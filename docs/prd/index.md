@@ -1,0 +1,27 @@
+# LearnR - Product Requirements Document
+
+## Table of Contents
+
+- [LearnR - Product Requirements Document](#table-of-contents)
+  - [Goals and Background Context](#goals-and-background-context)
+  - [Executive Summary](#executive-summary)
+  - [Project Classification](#project-classification)
+  - [Success Criteria](#success-criteria)
+  - [Product Scope](#product-scope)
+  - [Educational Technology Specific Requirements](#educational-technology-specific-requirements)
+  - [Web Application Specific Requirements](#web-application-specific-requirements)
+  - [User Experience Principles](#user-experience-principles)
+  - [User Interface Design Goals](#user-interface-design-goals)
+  - [Functional Requirements](#functional-requirements)
+  - [Non-Functional Requirements](#non-functional-requirements)
+  - [Technical Assumptions](#technical-assumptions)
+  - [Epic List](#epic-list)
+  - [Database Schema Summary](#database-schema-summary)
+  - [Algorithm Specifications](#algorithm-specifications)
+  - [Epic Details](#epic-details)
+  - [PM Checklist Validation Report](#pm-checklist-validation-report)
+  - [References](#references)
+  - [Next Steps](#next-steps)
+  - [Version 2.1 Enhancement Summary (November 19, 2025)](#version-21-enhancement-summary-november-19-2025)
+  - [Cross-Reference Index](#cross-reference-index)
+  - [Document Status](#document-status)

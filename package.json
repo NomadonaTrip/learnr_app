@@ -1,0 +1,54 @@
+{
+  "name": "learnr",
+  "version": "1.0.0",
+  "description": "AI-Powered Adaptive Learning Platform for Professional Certification Exam Preparation",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:frontend": "cd apps/web && npm run dev",
+    "dev:backend": "cd apps/api && uvicorn src.main:app --reload",
+    "build:frontend": "cd apps/web && npm run build",
+    "test": "npm run test:frontend && npm run test:backend && npm run test:e2e",
+    "test:frontend": "cd apps/web && npm run test",
+    "test:backend": "cd apps/api && pytest",
+    "test:e2e": "playwright test",
+    "test:ci": "npm run test:frontend:ci && npm run test:backend:ci",
+    "test:frontend:ci": "cd apps/web && npm run test:ci",
+    "test:backend:ci": "cd apps/api && pytest --cov=src --cov-report=xml",
+    "test:watch": "cd apps/web && npm run test:watch",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "cd apps/web && npm run lint",
+    "lint:backend": "cd apps/api && ruff check src/",
+    "format": "npm run format:frontend && npm run format:backend",
+    "format:frontend": "cd apps/web && npm run format",
+    "format:backend": "cd apps/api && ruff format src/",
+    "type-check": "cd apps/web && npm run type-check",
+    "playwright:install": "playwright install --with-deps",
+    "playwright:ui": "playwright test --ui",
+    "playwright:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.41.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=10.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/learnr.git"
+  },
+  "keywords": [
+    "education",
+    "learning",
+    "ai",
+    "certification",
+    "exam-prep",
+    "cbap"
+  ],
+  "author": "LearnR Team",
+  "license": "UNLICENSED"
+}

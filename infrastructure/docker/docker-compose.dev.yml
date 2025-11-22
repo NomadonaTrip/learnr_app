@@ -1,0 +1,156 @@
+version: '3.8'
+
+# =============================================================================
+# LearnR Local Development Environment
+# =============================================================================
+# This Docker Compose file provides local services for development:
+# - PostgreSQL: Local database
+# - Redis: Cache and background job queue
+# - Qdrant: Vector database for semantic search
+# - Mock OpenAI: Offline development without API costs
+#
+# Usage:
+#   Start all services:     docker-compose -f infrastructure/docker/docker-compose.dev.yml up -d
+#   Stop all services:      docker-compose -f infrastructure/docker/docker-compose.dev.yml down
+#   View logs:              docker-compose -f infrastructure/docker/docker-compose.dev.yml logs -f
+#   Restart a service:      docker-compose -f infrastructure/docker/docker-compose.dev.yml restart postgres
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: learnr-postgres-dev
+    environment:
+      POSTGRES_DB: learnr_dev
+      POSTGRES_USER: learnr
+      POSTGRES_PASSWORD: learnr123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d  # Optional: Init SQL scripts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U learnr -d learnr_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - learnr-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Redis Cache
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7.2-alpine
+    container_name: learnr-redis-dev
+    command: redis-server --appendonly yes --requirepass learnr123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - learnr-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Qdrant Vector Database
+  # ---------------------------------------------------------------------------
+  qdrant:
+    image: qdrant/qdrant:v1.7.0
+    container_name: learnr-qdrant-dev
+    ports:
+      - "6333:6333"  # HTTP API
+      - "6334:6334"  # gRPC API
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: "6334"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - learnr-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Mock OpenAI Service (for offline development)
+  # ---------------------------------------------------------------------------
+  mock-openai:
+    build:
+      context: ./mock-services/openai
+      dockerfile: Dockerfile
+    container_name: learnr-mock-openai-dev
+    ports:
+      - "8001:8001"
+    environment:
+      - MOCK_MODE=true
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - learnr-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Adminer (Optional - Database Web UI)
+  # ---------------------------------------------------------------------------
+  # Uncomment to enable database web interface at http://localhost:8080
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: learnr-adminer-dev
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     ADMINER_DEFAULT_SERVER: postgres
+  #   networks:
+  #     - learnr-network
+  #   restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Redis Commander (Optional - Redis Web UI)
+  # ---------------------------------------------------------------------------
+  # Uncomment to enable Redis web interface at http://localhost:8081
+  # redis-commander:
+  #   image: rediscommander/redis-commander:latest
+  #   container_name: learnr-redis-commander-dev
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     REDIS_HOSTS: local:redis:6379:0:learnr123
+  #   networks:
+  #     - learnr-network
+  #   restart: unless-stopped
+
+# =============================================================================
+# Volumes (persistent data)
+# =============================================================================
+volumes:
+  postgres_data:
+    name: learnr-postgres-data-dev
+  redis_data:
+    name: learnr-redis-data-dev
+  qdrant_data:
+    name: learnr-qdrant-data-dev
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  learnr-network:
+    name: learnr-network-dev
+    driver: bridge

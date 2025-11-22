@@ -1,0 +1,52 @@
+# ============================================
+# LearnR Backend Dependencies
+# Python 3.11+
+# ============================================
+
+# Web Framework
+fastapi==0.109.2
+uvicorn[standard]==0.27.0
+pydantic==2.6.0
+pydantic-settings==2.1.0
+
+# Database
+sqlalchemy==2.0.25
+alembic==1.13.1
+asyncpg==0.29.0  # Async PostgreSQL driver
+psycopg2-binary==2.9.9  # Sync PostgreSQL driver (for Alembic migrations)
+
+# Redis
+redis==5.0.1
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+bcrypt==4.1.2
+
+# HTTP Client
+httpx==0.26.0
+
+# Background Jobs
+celery==5.3.6
+
+# AI/ML
+openai==1.10.0
+
+# Vector Database
+qdrant-client==1.7.3
+
+# Email
+sendgrid==6.11.0
+
+# Monitoring & Logging
+structlog==24.1.0
+sentry-sdk[fastapi]==1.40.0
+
+# Analytics
+posthog==3.3.1
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2024.1
+email-validator==2.2.0  # For Pydantic EmailStr validation

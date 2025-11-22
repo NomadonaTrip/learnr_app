@@ -1,0 +1,26 @@
+# LearnR Fullstack Architecture Document
+
+## Table of Contents
+
+- [LearnR Fullstack Architecture Document](#table-of-contents)
+  - [Introduction](#introduction)
+  - [High Level Architecture](#high-level-architecture)
+  - [Tech Stack](#tech-stack)
+  - [Data Models](#data-models)
+  - [API Specification](#api-specification)
+  - [Components](#components)
+  - [Core Workflows](#core-workflows)
+  - [Database Schema](#database-schema)
+  - [Frontend Architecture](#frontend-architecture)
+  - [Accessibility Architecture](#accessibility-architecture)
+  - [Backend Architecture](#backend-architecture)
+  - [Unified Project Structure](#unified-project-structure)
+  - [Development Workflow](#development-workflow)
+  - [Deployment Architecture](#deployment-architecture)
+  - [Security and Performance](#security-and-performance)
+  - [Testing Strategy](#testing-strategy)
+  - [Coding Standards](#coding-standards)
+  - [Error Handling Strategy](#error-handling-strategy)
+  - [Content Quality & Moderation](#content-quality-moderation)
+  - [Monitoring and Observability](#monitoring-and-observability)
+  - [Architecture Complete](#architecture-complete)
