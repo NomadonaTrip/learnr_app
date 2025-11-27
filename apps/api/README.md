@@ -337,11 +337,87 @@ pytest tests/test_auth.py
 
 ## API Documentation
 
-FastAPI automatically generates interactive API documentation:
+### Interactive Documentation
 
-- **Swagger UI:** `http://localhost:8000/docs`
-- **ReDoc:** `http://localhost:8000/redoc`
-- **OpenAPI JSON:** `http://localhost:8000/openapi.json`
+Once the API is running, access interactive API documentation:
+
+- **Swagger UI**: http://localhost:8000/docs
+  - Interactive API explorer with "Try it out" functionality
+  - Test endpoints directly from the browser
+  - View request/response schemas and examples
+
+- **ReDoc**: http://localhost:8000/redoc
+  - Alternative documentation format
+  - Clean, responsive design
+  - Better for reading and reference
+
+- **OpenAPI Spec**: http://localhost:8000/openapi.json
+  - Raw OpenAPI 3.0 specification
+  - Use with API clients like Postman or Insomnia
+
+### Using Authentication in Swagger UI
+
+1. Register or login to get a JWT token:
+   - POST `/v1/auth/register` or POST `/v1/auth/login`
+   - Copy the `token` from the response
+
+2. Click the "Authorize" button (lock icon) in Swagger UI
+
+3. Enter your token in the format: `Bearer <your_token>`
+   - Example: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+
+4. Click "Authorize" - protected endpoints are now accessible
+
+### Health Check
+
+Monitor API health:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Response (healthy):
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-11-21T10:30:00.123456Z",
+  "database": {
+    "status": "connected",
+    "response_time_ms": 5
+  }
+}
+```
+
+Use this endpoint for:
+
+- Load balancer health checks
+- Container orchestration (Docker, Kubernetes)
+- Monitoring tools (Prometheus, Datadog)
+- CI/CD health verification
+
+## Endpoints Summary
+
+### Authentication (`/v1/auth`)
+
+- `POST /v1/auth/register` - Register new user
+- `POST /v1/auth/login` - User login
+- `POST /v1/auth/forgot-password` - Request password reset
+- `POST /v1/auth/reset-password` - Reset password with token
+
+### Users (`/v1/users`)
+
+- `GET /v1/users/me` - Get current user profile (protected)
+- `PUT /v1/users/me` - Update user profile (protected)
+
+### Health
+
+- `GET /health` - API health check (public)
+
+## Deployed Documentation
+
+- **Production API Docs**: https://api.learnr.com/docs
+- **Staging API Docs**: https://api-staging.learnr.com/docs
 
 ## Contributing
 
