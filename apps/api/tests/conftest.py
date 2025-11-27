@@ -107,7 +107,7 @@ async def db_session(test_engine):
     """
     Provide a database session for tests.
 
-    Each test gets a fresh session that's rolled back after the test.
+    Each test gets a fresh session with database cleanup after the test.
 
     Example:
         async def test_create_user(db_session):
@@ -123,7 +123,14 @@ async def db_session(test_engine):
 
     async with async_session() as session:
         yield session
-        await session.rollback()  # Rollback any changes after test
+
+        # Clean up all tables after each test to ensure isolation
+        # This handles nested transactions that commit independently
+        await session.rollback()
+        await session.execute(Base.metadata.tables['questions'].delete())
+        await session.execute(Base.metadata.tables['users'].delete())
+        await session.execute(Base.metadata.tables['password_reset_tokens'].delete())
+        await session.commit()
 
 
 # ============================================================================
