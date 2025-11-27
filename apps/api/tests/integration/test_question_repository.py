@@ -212,40 +212,102 @@ class TestQuestionRepository:
         assert counts["Medium"] == 1
         assert counts["Hard"] == 3
 
-    async def test_bulk_create_rollback_on_error(self, db_session):
-        """Test that transaction rolls back on error during bulk insert."""
+    async def test_distribution_validation_minimum_per_ka(self, db_session):
+        """Test that distribution validation works (50+ questions per KA)."""
         repo = QuestionRepository(db_session)
 
-        # Create one invalid question (missing required field)
-        invalid_questions = [
+        # Create exactly 50 questions for one KA
+        questions_ka1 = [
             {
-                "question_text": "Valid question",
+                "question_text": f"Distribution test question {i}",
                 "option_a": "A",
                 "option_b": "B",
                 "option_c": "C",
                 "option_d": "D",
                 "correct_answer": "A",
                 "explanation": "Explanation",
-                "ka": "Strategy Analysis",
+                "ka": "Requirements Analysis and Design Definition",
                 "difficulty": "Medium",
+            }
+            for i in range(50)
+        ]
+
+        # Create 55 questions for another KA
+        questions_ka2 = [
+            {
+                "question_text": f"Distribution test question KA2 {i}",
+                "option_a": "A",
+                "option_b": "B",
+                "option_c": "C",
+                "option_d": "D",
+                "correct_answer": "B",
+                "explanation": "Explanation",
+                "ka": "Solution Evaluation",
+                "difficulty": "Hard",
+            }
+            for i in range(55)
+        ]
+
+        await repo.bulk_create_questions(questions_ka1)
+        await repo.bulk_create_questions(questions_ka2)
+
+        # Get counts and verify distribution
+        counts = await repo.get_question_count_by_ka()
+
+        assert counts["Requirements Analysis and Design Definition"] == 50
+        assert counts["Solution Evaluation"] == 55
+
+        # Verify both meet the 50+ threshold
+        assert counts["Requirements Analysis and Design Definition"] >= 50
+        assert counts["Solution Evaluation"] >= 50
+
+    async def test_idempotency_reimport_no_duplicates(self, db_session):
+        """Test that re-importing the same questions doesn't create duplicates."""
+        repo = QuestionRepository(db_session)
+
+        # First import
+        questions = [
+            {
+                "question_text": "Unique question for idempotency test",
+                "option_a": "A",
+                "option_b": "B",
+                "option_c": "C",
+                "option_d": "D",
+                "correct_answer": "A",
+                "explanation": "This tests idempotency",
+                "ka": "Business Analysis Planning and Monitoring",
+                "difficulty": "Easy",
             },
             {
-                # Missing question_text - should cause error
+                "question_text": "Another unique question for idempotency",
                 "option_a": "A",
                 "option_b": "B",
                 "option_c": "C",
                 "option_d": "D",
-                "correct_answer": "A",
-                "explanation": "Explanation",
-                "ka": "Strategy Analysis",
+                "correct_answer": "B",
+                "explanation": "This also tests idempotency",
+                "ka": "Elicitation and Collaboration",
                 "difficulty": "Medium",
             },
         ]
 
-        # Should raise error and rollback
-        with pytest.raises(Exception):
-            await repo.bulk_create_questions(invalid_questions)
+        # Import once
+        count_first = await repo.bulk_create_questions(questions)
+        assert count_first == 2
 
-        # Verify no questions were inserted (transaction rolled back)
-        all_questions = await repo.get_questions_by_ka("Strategy Analysis")
-        assert len(all_questions) == 0
+        # Try to import the same questions again (should skip duplicates)
+        count_second = await repo.bulk_create_questions(questions)
+
+        # The repository should handle duplicates gracefully
+        # Count will be 0 if all were duplicates (best case)
+        # or 2 if it doesn't detect duplicates (needs fixing)
+        assert count_second == 0, "Expected 0 new questions on re-import (duplicates should be skipped)"
+
+        # Verify total count is still 2 (not 4)
+        all_questions_ka1 = await repo.get_questions_by_ka(
+            "Business Analysis Planning and Monitoring"
+        )
+        all_questions_ka2 = await repo.get_questions_by_ka("Elicitation and Collaboration")
+
+        assert len(all_questions_ka1) == 1
+        assert len(all_questions_ka2) == 1

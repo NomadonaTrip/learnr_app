@@ -9,12 +9,13 @@ from sqlalchemy import (
     CheckConstraint,
     Column,
     Float,
+    Index,
     Integer,
     String,
     Text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
 
 from ..db.session import Base
 
@@ -74,6 +75,12 @@ class Question(Base):
         CheckConstraint(
             "difficulty IN ('Easy', 'Medium', 'Hard')",
             name="check_difficulty",
+        ),
+        Index(
+            "idx_questions_text_hash_unique",
+            text("md5(question_text)"),
+            unique=True,
+            postgresql_using="btree",
         ),
     )
 
