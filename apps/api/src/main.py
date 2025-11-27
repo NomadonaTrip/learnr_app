@@ -14,6 +14,7 @@ from slowapi.errors import RateLimitExceeded
 from src.config import settings
 from src.db import engine
 from src.db.redis_client import get_redis, close_redis, test_redis_connection
+from src.db.qdrant_client import get_qdrant, close_qdrant, test_qdrant_connection
 from src.routes import auth, users, health
 from src.utils.rate_limiter import limiter
 from src.middleware.error_handler import (
@@ -63,11 +64,27 @@ async def lifespan(app: FastAPI):
         print(f"✗ Redis connection failed: {e}")
         raise
 
+    # Startup: Test Qdrant connection
+    try:
+        qdrant_ok = await test_qdrant_connection()
+        if qdrant_ok:
+            print("✓ Qdrant connection successful")
+        else:
+            print("✗ Qdrant connection failed")
+            raise Exception("Qdrant connection test failed")
+    except Exception as e:
+        print(f"✗ Qdrant connection failed: {e}")
+        raise
+
     yield
 
     # Shutdown: Close Redis connection
     await close_redis()
     print("✓ Redis connection closed")
+
+    # Shutdown: Close Qdrant connection
+    await close_qdrant()
+    print("✓ Qdrant connection closed")
 
     # Shutdown: Dispose of database connections
     await engine.dispose()
