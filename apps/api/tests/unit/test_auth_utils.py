@@ -4,9 +4,9 @@ Tests password hashing and JWT token generation.
 """
 
 import pytest
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
-from src.utils.auth import hash_password, verify_password, create_access_token
+from src.utils.auth import hash_password, verify_password, create_access_token, decode_token
 from src.config import settings
 
 
@@ -165,3 +165,72 @@ class TestJWTTokenGeneration:
                 settings.SECRET_KEY,
                 algorithms=["HS512"]  # Wrong algorithm
             )
+
+
+class TestJWTTokenDecoding:
+    """Tests for JWT token decoding and validation."""
+
+    def test_decode_valid_token(self):
+        """Test decoding valid JWT token."""
+        user_id = "123e4567-e89b-12d3-a456-426614174000"
+        payload = {
+            "sub": user_id,
+            "exp": datetime.now(timezone.utc) + timedelta(days=1),
+            "iat": datetime.now(timezone.utc)
+        }
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+        decoded = decode_token(token)
+
+        assert decoded is not None
+        assert decoded["sub"] == user_id
+        assert "exp" in decoded
+        assert "iat" in decoded
+
+    def test_decode_expired_token(self):
+        """Test decoding expired token returns None."""
+        user_id = "123e4567-e89b-12d3-a456-426614174000"
+        payload = {
+            "sub": user_id,
+            "exp": datetime.now(timezone.utc) - timedelta(days=1),  # Expired yesterday
+            "iat": datetime.now(timezone.utc) - timedelta(days=2)
+        }
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+        decoded = decode_token(token)
+
+        assert decoded is None
+
+    def test_decode_invalid_signature(self):
+        """Test decoding token with invalid signature returns None."""
+        user_id = "123e4567-e89b-12d3-a456-426614174000"
+        payload = {
+            "sub": user_id,
+            "exp": datetime.now(timezone.utc) + timedelta(days=1),
+            "iat": datetime.now(timezone.utc)
+        }
+        # Sign with wrong secret
+        token = jwt.encode(payload, "wrong_secret_key", algorithm=settings.JWT_ALGORITHM)
+
+        decoded = decode_token(token)
+
+        assert decoded is None
+
+    def test_decode_malformed_token(self):
+        """Test decoding malformed token returns None."""
+        decoded = decode_token("not.a.valid.token")
+
+        assert decoded is None
+
+    def test_decode_token_missing_sub_claim(self):
+        """Test decoding token without required 'sub' claim returns None."""
+        payload = {
+            "exp": datetime.now(timezone.utc) + timedelta(days=1),
+            "iat": datetime.now(timezone.utc)
+            # Missing 'sub' claim
+        }
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+        decoded = decode_token(token)
+
+        assert decoded is None

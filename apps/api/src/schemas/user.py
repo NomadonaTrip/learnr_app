@@ -31,6 +31,15 @@ class UserCreate(BaseModel):
             raise ValueError('Password must contain at least one number')
         return v
 
+    class Config:
+        """Pydantic config with example."""
+        json_schema_extra = {
+            "example": {
+                "email": "user@example.com",
+                "password": "SecurePass123"
+            }
+        }
+
 
 class UserUpdate(BaseModel):
     """
@@ -77,6 +86,20 @@ class UserUpdate(BaseModel):
             raise ValueError('Dark mode must be light, dark, or auto')
         return v
 
+    class Config:
+        """Pydantic config with example."""
+        json_schema_extra = {
+            "example": {
+                "exam_date": "2025-06-15",
+                "target_score": 85,
+                "daily_study_time": 60,
+                "knowledge_level": "Intermediate",
+                "motivation": "Career advancement",
+                "referral_source": "Search",
+                "dark_mode": "auto"
+            }
+        }
+
 
 class UserResponse(BaseModel):
     """
@@ -98,3 +121,18 @@ class UserResponse(BaseModel):
     class Config:
         """Pydantic config to enable SQLAlchemy model compatibility."""
         from_attributes = True  # Pydantic v2 (replaces orm_mode in v1)
+        json_schema_extra = {
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "email": "user@example.com",
+                "exam_date": "2025-06-15",
+                "target_score": 85,
+                "daily_study_time": 60,
+                "knowledge_level": "Intermediate",
+                "motivation": "Career advancement",
+                "referral_source": "Search",
+                "is_admin": False,
+                "dark_mode": "auto",
+                "created_at": "2025-11-21T10:30:00Z"
+            }
+        }

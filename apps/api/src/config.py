@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # Frontend URL
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Email Configuration
+    SENDGRID_API_KEY: str = "SG.default-api-key-change-this"
+    FROM_EMAIL: str = "noreply@learnr.com"
+    FROM_NAME: str = "LearnR Support"
+
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
     PASSWORD_RESET_RATE_LIMIT: int = 5
@@ -53,6 +58,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # Ignore extra env variables not defined in Settings
 
 
 # Global settings instance

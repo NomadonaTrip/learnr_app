@@ -6,9 +6,18 @@ import logging
 from fastapi import APIRouter, Depends, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.schemas.user import UserCreate
-from src.schemas.auth import RegisterResponse, LoginRequest, LoginResponse
+from src.schemas.auth import (
+    RegisterResponse,
+    LoginRequest,
+    LoginResponse,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
+)
 from src.services.auth_service import AuthService
 from src.repositories.user_repository import UserRepository
+from src.repositories.password_reset_repository import PasswordResetRepository
 from src.db.session import get_db
 from src.config import settings
 from src.utils.rate_limiter import limiter
@@ -144,4 +153,107 @@ async def login(
     return LoginResponse(
         user=user,
         token=token
+    )
+
+
+@router.post(
+    "/forgot-password",
+    response_model=ForgotPasswordResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Request password reset",
+    description="Request password reset email. Returns success regardless of email existence to prevent enumeration. Rate limited to 10 requests per hour per IP."
+)
+async def forgot_password(
+    request: Request,
+    forgot_data: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+) -> ForgotPasswordResponse:
+    """
+    Request password reset email.
+
+    - **email**: Email address to send reset link
+
+    **Security:** Returns same success message whether email exists or not
+    to prevent user enumeration.
+
+    **Rate Limiting:** 10 requests per hour per IP address.
+    """
+    # Rate limit by IP address (10 requests per hour)
+    client_ip = request.client.host
+    rate_limit_key = f"rate_limit:forgot_password:{client_ip}"
+
+    try:
+        is_allowed, retry_after = await check_rate_limit(
+            rate_limit_key,
+            max_attempts=10,
+            window_seconds=3600  # 1 hour
+        )
+
+        if not is_allowed:
+            raise RateLimitError(
+                "Too many password reset requests. Please try again later.",
+                retry_after_seconds=retry_after
+            )
+    except RateLimitError:
+        # Re-raise rate limit errors (these are expected)
+        raise
+    except Exception as e:
+        # Redis connection failure or other unexpected errors
+        # Fail-safe: Allow request but log for monitoring
+        logger.error(
+            "Rate limiting check failed - allowing request (fail-safe mode)",
+            extra={
+                "error": str(e),
+                "ip": client_ip,
+                "endpoint": "forgot_password",
+                "security_event": "rate_limit_failure"
+            }
+        )
+
+    # Initialize repositories and service
+    user_repo = UserRepository(db)
+    reset_token_repo = PasswordResetRepository(db)
+    auth_service = AuthService(user_repo, reset_token_repo)
+
+    # Request password reset (always returns success)
+    await auth_service.request_password_reset(forgot_data.email)
+
+    return ForgotPasswordResponse(
+        message="If your email is registered, you will receive a password reset link shortly."
+    )
+
+
+@router.post(
+    "/reset-password",
+    response_model=ResetPasswordResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Reset password with token",
+    description="Reset password using valid reset token received via email."
+)
+async def reset_password(
+    reset_data: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+) -> ResetPasswordResponse:
+    """
+    Reset password with token from email.
+
+    - **token**: Reset token from email link (UUID)
+    - **new_password**: New password (min 8 chars, letter + number)
+
+    Returns success message. User must log in with new password (no JWT returned).
+
+    Raises:
+    - **400 Bad Request**: Token expired, invalid, or already used
+    - **422 Unprocessable Entity**: Weak password
+    """
+    # Initialize repositories and service
+    user_repo = UserRepository(db)
+    reset_token_repo = PasswordResetRepository(db)
+    auth_service = AuthService(user_repo, reset_token_repo)
+
+    # Reset password
+    await auth_service.reset_password(reset_data.token, reset_data.new_password)
+
+    return ResetPasswordResponse(
+        message="Password reset successful. Please log in with your new password."
     )

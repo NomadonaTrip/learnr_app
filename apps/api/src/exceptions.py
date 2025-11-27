@@ -48,3 +48,18 @@ class RateLimitError(AppException):
     def __init__(self, message: str, retry_after_seconds: int):
         super().__init__(message, {"retry_after_seconds": retry_after_seconds})
         self.retry_after_seconds = retry_after_seconds
+
+
+class TokenExpiredError(AppException):
+    """Raised when token has expired (400)."""
+    pass
+
+
+class TokenInvalidError(AppException):
+    """Raised when token is invalid (400)."""
+    pass
+
+
+class TokenAlreadyUsedError(AppException):
+    """Raised when token has already been used (400)."""
+    pass
