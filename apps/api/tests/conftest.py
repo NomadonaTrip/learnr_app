@@ -183,6 +183,10 @@ async def db_session(test_engine):
         await session.execute(Base.metadata.tables['questions'].delete())
         if 'enrollments' in Base.metadata.tables:
             await session.execute(Base.metadata.tables['enrollments'].delete())
+        if 'concept_prerequisites' in Base.metadata.tables:
+            await session.execute(Base.metadata.tables['concept_prerequisites'].delete())
+        if 'concepts' in Base.metadata.tables:
+            await session.execute(Base.metadata.tables['concepts'].delete())
         await session.execute(Base.metadata.tables['users'].delete())
         await session.execute(Base.metadata.tables['password_reset_tokens'].delete())
         if 'courses' in Base.metadata.tables:
@@ -392,6 +396,19 @@ def sample_course_data():
         ],
         "is_active": True,
         "is_public": True
+    }
+
+
+@pytest.fixture
+def sample_concept_data():
+    """Sample concept data for testing."""
+    return {
+        "name": "Stakeholder Identification",
+        "description": "The process of identifying all individuals and groups affected by a solution.",
+        "corpus_section_ref": "3.2.1",
+        "knowledge_area_id": "ba-planning",
+        "difficulty_estimate": 0.3,
+        "prerequisite_depth": 0
     }
 
 

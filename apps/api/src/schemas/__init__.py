@@ -2,6 +2,27 @@
 Pydantic schemas module.
 Exports all request/response validation schemas.
 """
+from .concept import (
+    ConceptBase,
+    ConceptCountByKA,
+    ConceptCreate,
+    ConceptExport,
+    ConceptResponse,
+    ConceptSummary,
+    ConceptUpdate,
+)
+from .concept_prerequisite import (
+    PrerequisiteBase,
+    PrerequisiteBulkCreate,
+    PrerequisiteBulkResult,
+    PrerequisiteChainItem,
+    PrerequisiteChainResponse,
+    PrerequisiteCreate,
+    PrerequisiteResponse,
+    PrerequisiteWithConcept,
+    RelationshipType,
+    RootConceptResponse,
+)
 from .course import (
     CourseDetailResponse,
     CourseListItem,
@@ -28,4 +49,21 @@ __all__ = [
     "EnrollmentCreate",
     "EnrollmentResponse",
     "EnrollmentWithCourse",
+    "ConceptBase",
+    "ConceptCreate",
+    "ConceptUpdate",
+    "ConceptResponse",
+    "ConceptExport",
+    "ConceptCountByKA",
+    "ConceptSummary",
+    "RelationshipType",
+    "PrerequisiteBase",
+    "PrerequisiteCreate",
+    "PrerequisiteResponse",
+    "PrerequisiteWithConcept",
+    "PrerequisiteChainItem",
+    "PrerequisiteChainResponse",
+    "PrerequisiteBulkCreate",
+    "PrerequisiteBulkResult",
+    "RootConceptResponse",
 ]

@@ -13,6 +13,7 @@ from sqlalchemy.sql import func
 from ..db.session import Base
 
 if TYPE_CHECKING:
+    from .concept import Concept
     from .enrollment import Enrollment
 
 
@@ -68,6 +69,11 @@ class Course(Base):
     # Relationships
     enrollments: Mapped[List["Enrollment"]] = relationship(
         "Enrollment",
+        back_populates="course",
+        cascade="all, delete-orphan"
+    )
+    concepts: Mapped[List["Concept"]] = relationship(
+        "Concept",
         back_populates="course",
         cascade="all, delete-orphan"
     )
