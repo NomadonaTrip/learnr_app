@@ -9,7 +9,10 @@ import pytest
 from uuid import uuid4, UUID
 from typing import List
 
-from src.repositories.qdrant_repository import QdrantRepository
+from qdrant_client.models import Distance, VectorParams
+
+from src.repositories.qdrant_repository import QdrantRepository, QUESTIONS_COLLECTION, CHUNKS_COLLECTION
+from src.db.qdrant_client import get_qdrant
 
 
 # =============================================================================
@@ -19,10 +22,44 @@ from src.repositories.qdrant_repository import QdrantRepository
 TEST_COURSE_ID = uuid4()
 ANOTHER_COURSE_ID = uuid4()
 
+# Vector dimensions for text-embedding-3-large
+VECTOR_SIZE = 3072
+
 
 # =============================================================================
 # Fixtures
 # =============================================================================
+
+@pytest.fixture(scope="session", autouse=True)
+async def ensure_qdrant_collections():
+    """
+    Ensure Qdrant collections exist before running tests.
+    Creates collections if they don't exist.
+    """
+    client = get_qdrant()
+
+    # Check and create questions collection
+    try:
+        await client.get_collection(QUESTIONS_COLLECTION)
+    except Exception:
+        await client.create_collection(
+            collection_name=QUESTIONS_COLLECTION,
+            vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE)
+        )
+
+    # Check and create reading_chunks collection
+    try:
+        await client.get_collection(CHUNKS_COLLECTION)
+    except Exception:
+        await client.create_collection(
+            collection_name=CHUNKS_COLLECTION,
+            vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE)
+        )
+
+    yield
+
+    # Cleanup is optional - leave collections for inspection
+
 
 @pytest.fixture
 def qdrant_repo():

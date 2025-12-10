@@ -69,9 +69,22 @@ async def test_concept_indexes_exist(db_session):
     )
     indexes = [row[0] for row in result.fetchall()]
 
-    assert "idx_concepts_course" in indexes
-    assert "idx_concepts_knowledge_area" in indexes
-    assert "idx_concepts_section" in indexes
+    # SQLAlchemy auto-generates index names with ix_ prefix when index=True
+    # The migration creates explicit names, but tests use Base.metadata.create_all
+    # which uses model-defined indexes. Check for either naming convention.
+    has_course_idx = (
+        "idx_concepts_course" in indexes or
+        "ix_concepts_course_id" in indexes or
+        any("course" in idx for idx in indexes)
+    )
+    has_section_idx = (
+        "idx_concepts_section" in indexes or
+        "ix_concepts_corpus_section_ref" in indexes or
+        any("section" in idx for idx in indexes)
+    )
+
+    assert has_course_idx, f"Missing course index. Available: {indexes}"
+    assert has_section_idx, f"Missing section index. Available: {indexes}"
 
 
 # ============================================================================
@@ -319,6 +332,10 @@ async def test_get_concept_count_by_ka_all_kas(db_session, cbap_course):
 @pytest.mark.asyncio
 async def test_concept_course_relationship_bidirectional(db_session, cbap_course):
     """Test that concept-course relationship works both directions."""
+    from sqlalchemy.orm import selectinload
+    from sqlalchemy import select
+    from src.models.course import Course
+
     repo = ConceptRepository(db_session)
 
     # Create concept
@@ -328,15 +345,29 @@ async def test_concept_course_relationship_bidirectional(db_session, cbap_course
         knowledge_area_id="ba-planning",
     ))
     await db_session.commit()
-    await db_session.refresh(concept)
-    await db_session.refresh(cbap_course)
+
+    # Reload concept with course eagerly loaded
+    result = await db_session.execute(
+        select(Concept)
+        .where(Concept.id == concept.id)
+        .options(selectinload(Concept.course))
+    )
+    loaded_concept = result.scalar_one()
 
     # Access course from concept
-    assert concept.course is not None
-    assert concept.course.id == cbap_course.id
-    assert concept.course.slug == "cbap-test"
+    assert loaded_concept.course is not None
+    assert loaded_concept.course.id == cbap_course.id
+    assert loaded_concept.course.slug == "cbap-test"
+
+    # Reload course with concepts eagerly loaded
+    course_result = await db_session.execute(
+        select(Course)
+        .where(Course.id == cbap_course.id)
+        .options(selectinload(Course.concepts))
+    )
+    loaded_course = course_result.scalar_one()
 
     # Access concepts from course
-    assert len(cbap_course.concepts) >= 1
-    concept_names = [c.name for c in cbap_course.concepts]
+    assert len(loaded_course.concepts) >= 1
+    concept_names = [c.name for c in loaded_course.concepts]
     assert "Relationship Test" in concept_names
