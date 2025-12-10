@@ -4,7 +4,7 @@ Embedding Service for generating OpenAI embeddings.
 This service provides async methods for generating embeddings using OpenAI's
 text-embedding-3-large model with batching and retry logic.
 """
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from openai import APIConnectionError, APIError, AsyncOpenAI, RateLimitError
 from tenacity import (
@@ -17,12 +17,17 @@ from tenacity import (
 from ..config import settings
 from ..utils.logging_config import get_logger
 
+if TYPE_CHECKING:
+    from ..models.reading_chunk import ReadingChunk
+    from ..models.concept import Concept
+
 logger = get_logger(__name__)
 
 # Constants
 EMBEDDING_MODEL = "text-embedding-3-large"
 EMBEDDING_DIMENSIONS = 3072
 MAX_BATCH_SIZE = 100  # OpenAI allows up to 2048, but we use 100 for safety
+MAX_EMBEDDING_TOKENS = 8000  # OpenAI limit for text-embedding-3-large
 
 
 class EmbeddingService:
@@ -166,6 +171,56 @@ class EmbeddingService:
         )
 
         return all_embeddings, total_tokens
+
+    @staticmethod
+    def build_chunk_embedding_text(
+        chunk: "ReadingChunk",
+        concepts: List["Concept"]
+    ) -> str:
+        """
+        Build embedding text for a reading chunk with concept metadata.
+
+        Format: "{title}. {content} Concepts: {concept_names}"
+
+        Args:
+            chunk: ReadingChunk model with title and content
+            concepts: List of Concept models linked to the chunk
+
+        Returns:
+            Formatted text string for embedding generation
+
+        Examples:
+            >>> chunk = ReadingChunk(title="Stakeholder Analysis", content="...", corpus_section="3.2.1")
+            >>> concepts = [Concept(name="Stakeholder Analysis"), Concept(name="Communication")]
+            >>> text = EmbeddingService.build_chunk_embedding_text(chunk, concepts)
+            >>> # "Stakeholder Analysis. ... Concepts: Stakeholder Analysis, Communication"
+        """
+        # Build concept names string
+        if concepts:
+            concept_names = ", ".join([c.name for c in concepts])
+            embedding_text = f"{chunk.title}. {chunk.content} Concepts: {concept_names}"
+        else:
+            # Fallback: use section reference if no concepts
+            logger.warning(
+                "chunk_has_no_concepts",
+                chunk_id=str(chunk.id),
+                section=chunk.corpus_section
+            )
+            embedding_text = f"{chunk.title}. {chunk.content} Section: {chunk.corpus_section}"
+
+        # Truncate if exceeds max tokens (rare for 200-500 token chunks)
+        # Rough estimate: 1 token ~= 4 characters
+        max_chars = MAX_EMBEDDING_TOKENS * 4
+        if len(embedding_text) > max_chars:
+            logger.warning(
+                "truncating_chunk_embedding_text",
+                chunk_id=str(chunk.id),
+                original_length=len(embedding_text),
+                truncated_length=max_chars
+            )
+            embedding_text = embedding_text[:max_chars]
+
+        return embedding_text
 
     async def close(self):
         """Close the OpenAI client."""
