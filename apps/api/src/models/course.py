@@ -15,6 +15,7 @@ from ..db.session import Base
 if TYPE_CHECKING:
     from .concept import Concept
     from .enrollment import Enrollment
+    from .question import Question
 
 
 class Course(Base):
@@ -74,6 +75,11 @@ class Course(Base):
     )
     concepts: Mapped[List["Concept"]] = relationship(
         "Concept",
+        back_populates="course",
+        cascade="all, delete-orphan"
+    )
+    questions: Mapped[List["Question"]] = relationship(
+        "Question",
         back_populates="course",
         cascade="all, delete-orphan"
     )

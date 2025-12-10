@@ -15,6 +15,7 @@ from ..db.session import Base
 if TYPE_CHECKING:
     from .concept_prerequisite import ConceptPrerequisite
     from .course import Course
+    from .question_concept import QuestionConcept
 
 
 class Concept(Base):
@@ -81,6 +82,13 @@ class Concept(Base):
         "ConceptPrerequisite",
         foreign_keys="ConceptPrerequisite.prerequisite_concept_id",
         back_populates="prerequisite_concept",
+        cascade="all, delete-orphan"
+    )
+
+    # Many-to-many with questions via junction table
+    question_concepts: Mapped[List["QuestionConcept"]] = relationship(
+        "QuestionConcept",
+        back_populates="concept",
         cascade="all, delete-orphan"
     )
 

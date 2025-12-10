@@ -8,12 +8,14 @@ from .course import Course
 from .enrollment import Enrollment
 from .password_reset_token import PasswordResetToken
 from .question import Question
+from .question_concept import QuestionConcept
 from .user import User
 
 __all__ = [
     "User",
     "PasswordResetToken",
     "Question",
+    "QuestionConcept",
     "Course",
     "Enrollment",
     "Concept",

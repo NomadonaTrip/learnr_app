@@ -60,3 +60,4 @@ networkx>=3.2.0  # DAG validation, prerequisite graph operations
 python-dateutil==2.8.2
 pytz==2024.1
 email-validator==2.2.0  # For Pydantic EmailStr validation
+tenacity==8.2.3  # Retry logic with exponential backoff
