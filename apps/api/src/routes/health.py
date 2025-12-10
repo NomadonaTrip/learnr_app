@@ -94,6 +94,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     qdrant_status = "unknown"
     qdrant_response_time_ms = None
     qdrant_collections_count = None
+    qdrant_collections = None
     qdrant_error = None
 
     try:
@@ -103,6 +104,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         qdrant_response_time_ms = int((time.time() - start_time) * 1000)
         qdrant_status = "connected"
         qdrant_collections_count = len(collections.collections)
+        qdrant_collections = [col.name for col in collections.collections]
     except Exception as e:
         qdrant_status = "disconnected"
         qdrant_error = str(e)
@@ -125,6 +127,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
             status=qdrant_status,
             response_time_ms=qdrant_response_time_ms,
             collections_count=qdrant_collections_count,
+            collections=qdrant_collections,
             error=qdrant_error
         )
     )

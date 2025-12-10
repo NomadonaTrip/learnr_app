@@ -1,83 +1,102 @@
 """
 Qdrant utility functions
-Helper functions for working with Qdrant vector database
+Helper functions for working with Qdrant vector database with multi-course support
 """
 
 import logging
-from typing import Dict, Any, List
-from qdrant_client.models import Filter, FieldCondition, MatchValue
+from typing import Dict, Any, List, Optional
+from uuid import UUID
+from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchAny, Range
 
 logger = logging.getLogger(__name__)
 
 
-def build_filter_conditions(filters: Dict[str, Any] | None) -> Filter | None:
+def build_filter_conditions(
+    course_id: Optional[UUID] = None,
+    knowledge_area_id: Optional[str] = None,
+    difficulty_min: Optional[float] = None,
+    difficulty_max: Optional[float] = None,
+    concept_ids: Optional[List[UUID]] = None,
+    section_ref: Optional[str] = None,
+) -> Filter | None:
     """
-    Build Qdrant filter conditions from a dictionary.
+    Build Qdrant filter conditions for multi-course queries.
 
     Args:
-        filters: Dictionary of filter conditions with keys:
-            - ka: str (Knowledge Area)
-            - difficulty: str (Easy/Medium/Hard)
-            - concept_tags: str (single tag to match)
-            - section_ref: str (BABOK section reference)
+        course_id: UUID of course to filter by (recommended for all queries)
+        knowledge_area_id: Knowledge area ID (matches course.knowledge_areas[].id)
+        difficulty_min: Minimum difficulty (0.0-1.0)
+        difficulty_max: Maximum difficulty (0.0-1.0)
+        concept_ids: List of concept UUIDs to filter by (any match)
+        section_ref: Section reference (for reading chunks)
 
     Returns:
         Filter object with conditions, or None if no filters provided
 
     Examples:
-        >>> build_filter_conditions({"ka": "Requirements Life Cycle Management"})
-        Filter(must=[FieldCondition(key='ka', match=MatchValue(value='Requirements Life Cycle Management'))])
+        >>> build_filter_conditions(course_id=uuid4(), knowledge_area_id="ba-planning")
+        Filter(must=[...])
 
-        >>> build_filter_conditions({"ka": "Strategy Analysis", "difficulty": "Hard"})
-        Filter(must=[...]) # Multiple conditions
+        >>> build_filter_conditions(course_id=uuid4(), difficulty_min=0.3, difficulty_max=0.7)
+        Filter(must=[...])
 
-        >>> build_filter_conditions(None)
+        >>> build_filter_conditions()
         None
     """
-    if not filters:
-        return None
-
     must_conditions = []
 
-    # Knowledge Area filter
-    if "ka" in filters and filters["ka"]:
+    # Course filter (should almost always be set for multi-course)
+    if course_id:
         must_conditions.append(
             FieldCondition(
-                key="ka",
-                match=MatchValue(value=filters["ka"])
+                key="course_id",
+                match=MatchValue(value=str(course_id))
             )
         )
-        logger.debug(f"Added KA filter: {filters['ka']}")
+        logger.debug(f"Added course_id filter: {course_id}")
 
-    # Difficulty filter
-    if "difficulty" in filters and filters["difficulty"]:
+    # Knowledge Area filter
+    if knowledge_area_id:
+        must_conditions.append(
+            FieldCondition(
+                key="knowledge_area_id",
+                match=MatchValue(value=knowledge_area_id)
+            )
+        )
+        logger.debug(f"Added knowledge_area_id filter: {knowledge_area_id}")
+
+    # Difficulty range filter
+    if difficulty_min is not None or difficulty_max is not None:
         must_conditions.append(
             FieldCondition(
                 key="difficulty",
-                match=MatchValue(value=filters["difficulty"])
+                range=Range(
+                    gte=difficulty_min,
+                    lte=difficulty_max
+                )
             )
         )
-        logger.debug(f"Added difficulty filter: {filters['difficulty']}")
+        logger.debug(f"Added difficulty filter: {difficulty_min}-{difficulty_max}")
 
-    # Concept tags filter
-    if "concept_tags" in filters and filters["concept_tags"]:
+    # Concept IDs filter (any match)
+    if concept_ids:
         must_conditions.append(
             FieldCondition(
-                key="concept_tags",
-                match=MatchValue(value=filters["concept_tags"])
+                key="concept_ids",
+                match=MatchAny(any=[str(c) for c in concept_ids])
             )
         )
-        logger.debug(f"Added concept_tags filter: {filters['concept_tags']}")
+        logger.debug(f"Added concept_ids filter: {len(concept_ids)} concepts")
 
-    # Section reference filter (for BABOK chunks)
-    if "section_ref" in filters and filters["section_ref"]:
+    # Section reference filter (for reading chunks)
+    if section_ref:
         must_conditions.append(
             FieldCondition(
                 key="section_ref",
-                match=MatchValue(value=filters["section_ref"])
+                match=MatchValue(value=section_ref)
             )
         )
-        logger.debug(f"Added section_ref filter: {filters['section_ref']}")
+        logger.debug(f"Added section_ref filter: {section_ref}")
 
     # Return Filter object if we have conditions, None otherwise
     if must_conditions:
@@ -85,6 +104,68 @@ def build_filter_conditions(filters: Dict[str, Any] | None) -> Filter | None:
         return Filter(must=must_conditions)
 
     return None
+
+
+def build_multi_course_query(
+    course_ids: List[UUID],
+    knowledge_area_id: Optional[str] = None,
+    difficulty_min: Optional[float] = None,
+    difficulty_max: Optional[float] = None,
+) -> Filter | None:
+    """
+    Build Qdrant filter for querying across multiple courses.
+
+    Useful for cross-course analytics or searches spanning multiple courses.
+
+    Args:
+        course_ids: List of course UUIDs to include
+        knowledge_area_id: Optional knowledge area filter
+        difficulty_min: Minimum difficulty (0.0-1.0)
+        difficulty_max: Maximum difficulty (0.0-1.0)
+
+    Returns:
+        Filter object with conditions, or None if no course_ids provided
+
+    Examples:
+        >>> build_multi_course_query([course1_id, course2_id])
+        Filter(must=[FieldCondition(key='course_id', match=MatchAny(...))])
+    """
+    if not course_ids:
+        return None
+
+    must_conditions = []
+
+    # Multi-course filter using MatchAny
+    must_conditions.append(
+        FieldCondition(
+            key="course_id",
+            match=MatchAny(any=[str(c) for c in course_ids])
+        )
+    )
+    logger.debug(f"Added multi-course filter: {len(course_ids)} courses")
+
+    # Knowledge area filter
+    if knowledge_area_id:
+        must_conditions.append(
+            FieldCondition(
+                key="knowledge_area_id",
+                match=MatchValue(value=knowledge_area_id)
+            )
+        )
+
+    # Difficulty range filter
+    if difficulty_min is not None or difficulty_max is not None:
+        must_conditions.append(
+            FieldCondition(
+                key="difficulty",
+                range=Range(
+                    gte=difficulty_min,
+                    lte=difficulty_max
+                )
+            )
+        )
+
+    return Filter(must=must_conditions)
 
 
 def paginate_results(

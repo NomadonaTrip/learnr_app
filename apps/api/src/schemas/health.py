@@ -23,6 +23,7 @@ class QdrantHealth(BaseModel):
     status: str  # "connected" or "disconnected"
     response_time_ms: int | None = None
     collections_count: int | None = None
+    collections: list[str] | None = None
     error: str | None = None
 
     class Config:
@@ -32,7 +33,8 @@ class QdrantHealth(BaseModel):
             "example": {
                 "status": "connected",
                 "response_time_ms": 10,
-                "collections_count": 2
+                "collections_count": 2,
+                "collections": ["questions", "reading_chunks"]
             }
         }
 
@@ -56,7 +58,8 @@ class HealthResponse(BaseModel):
                 "qdrant": {
                     "status": "connected",
                     "response_time_ms": 10,
-                    "collections_count": 2
+                    "collections_count": 2,
+                    "collections": ["questions", "reading_chunks"]
                 }
             }
         }

@@ -2,9 +2,9 @@
 """
 Qdrant Collection Initialization Script
 
-Creates the required Qdrant collections for LearnR:
-- cbap_questions: CBAP exam questions with embeddings
-- babok_chunks: BABOK reading content chunks with embeddings
+Creates the required Qdrant collections for LearnR with multi-course support:
+- questions: Exam questions with embeddings (course-agnostic)
+- reading_chunks: Reading content chunks with embeddings (course-agnostic)
 
 Run this script after starting Qdrant to initialize the collections.
 
@@ -23,12 +23,20 @@ from qdrant_client.models import Distance, VectorParams, PayloadSchemaType
 from src.config import settings
 import asyncio
 
+# Collection name constants (course-agnostic)
+QUESTIONS_COLLECTION = "questions"
+CHUNKS_COLLECTION = "reading_chunks"
+
+# Old collection names for migration
+OLD_QUESTIONS_COLLECTION = "cbap_questions"
+OLD_CHUNKS_COLLECTION = "babok_chunks"
+
 
 async def init_collections():
-    """Initialize Qdrant collections for questions and BABOK chunks."""
-    print("="*60)
-    print("Qdrant Collection Initialization")
-    print("="*60)
+    """Initialize Qdrant collections for multi-course architecture."""
+    print("=" * 60)
+    print("Qdrant Collection Initialization (Multi-Course)")
+    print("=" * 60)
     print(f"Connecting to Qdrant at: {settings.QDRANT_URL}\n")
 
     try:
@@ -53,142 +61,176 @@ async def init_collections():
         sys.exit(1)
 
     # =========================================================================
-    # Collection 1: CBAP Questions
+    # Migration: Delete old collections if they exist
     # =========================================================================
-    questions_collection = "cbap_questions"
-    print(f"Processing collection: {questions_collection}")
+    old_collections = [OLD_QUESTIONS_COLLECTION, OLD_CHUNKS_COLLECTION]
+    for old_name in old_collections:
+        if old_name in collection_names:
+            print(f"⚠️  Deleting old collection: {old_name}")
+            await client.delete_collection(collection_name=old_name)
+            collection_names.remove(old_name)
 
-    if questions_collection not in collection_names:
+    # =========================================================================
+    # Collection 1: Questions (was cbap_questions)
+    # =========================================================================
+    print(f"\nProcessing collection: {QUESTIONS_COLLECTION}")
+
+    if QUESTIONS_COLLECTION not in collection_names:
         try:
             # Create collection
             await client.create_collection(
-                collection_name=questions_collection,
+                collection_name=QUESTIONS_COLLECTION,
                 vectors_config=VectorParams(
                     size=3072,  # text-embedding-3-large dimensions
                     distance=Distance.COSINE
                 )
             )
-            print(f"  ✓ Created collection: {questions_collection}")
+            print(f"  ✓ Created collection: {QUESTIONS_COLLECTION}")
 
             # Create payload indexes for filtering
             await client.create_payload_index(
-                collection_name=questions_collection,
+                collection_name=QUESTIONS_COLLECTION,
                 field_name="question_id",
                 field_schema=PayloadSchemaType.KEYWORD
             )
-            print(f"  ✓ Created index: question_id")
+            print("  ✓ Created index: question_id")
 
             await client.create_payload_index(
-                collection_name=questions_collection,
-                field_name="ka",
+                collection_name=QUESTIONS_COLLECTION,
+                field_name="course_id",
                 field_schema=PayloadSchemaType.KEYWORD
             )
-            print(f"  ✓ Created index: ka")
+            print("  ✓ Created index: course_id (multi-course support)")
 
             await client.create_payload_index(
-                collection_name=questions_collection,
+                collection_name=QUESTIONS_COLLECTION,
+                field_name="knowledge_area_id",
+                field_schema=PayloadSchemaType.KEYWORD
+            )
+            print("  ✓ Created index: knowledge_area_id")
+
+            await client.create_payload_index(
+                collection_name=QUESTIONS_COLLECTION,
                 field_name="difficulty",
-                field_schema=PayloadSchemaType.KEYWORD
+                field_schema=PayloadSchemaType.FLOAT
             )
-            print(f"  ✓ Created index: difficulty")
+            print("  ✓ Created index: difficulty (float)")
 
             await client.create_payload_index(
-                collection_name=questions_collection,
-                field_name="concept_tags",
+                collection_name=QUESTIONS_COLLECTION,
+                field_name="concept_ids",
                 field_schema=PayloadSchemaType.KEYWORD
             )
-            print(f"  ✓ Created index: concept_tags")
+            print("  ✓ Created index: concept_ids")
 
         except Exception as e:
-            print(f"  ✗ Failed to create collection {questions_collection}: {str(e)}")
+            print(f"  ✗ Failed to create collection {QUESTIONS_COLLECTION}: {str(e)}")
             sys.exit(1)
     else:
-        print(f"  ⊙ Collection {questions_collection} already exists (skipping)")
+        print(f"  ⊙ Collection {QUESTIONS_COLLECTION} already exists (skipping)")
 
     # =========================================================================
-    # Collection 2: BABOK Chunks
+    # Collection 2: Reading Chunks (was babok_chunks)
     # =========================================================================
-    babok_collection = "babok_chunks"
-    print(f"\nProcessing collection: {babok_collection}")
+    print(f"\nProcessing collection: {CHUNKS_COLLECTION}")
 
-    if babok_collection not in collection_names:
+    if CHUNKS_COLLECTION not in collection_names:
         try:
             # Create collection
             await client.create_collection(
-                collection_name=babok_collection,
+                collection_name=CHUNKS_COLLECTION,
                 vectors_config=VectorParams(
                     size=3072,  # text-embedding-3-large dimensions
                     distance=Distance.COSINE
                 )
             )
-            print(f"  ✓ Created collection: {babok_collection}")
+            print(f"  ✓ Created collection: {CHUNKS_COLLECTION}")
 
             # Create payload indexes for filtering
             await client.create_payload_index(
-                collection_name=babok_collection,
+                collection_name=CHUNKS_COLLECTION,
                 field_name="chunk_id",
                 field_schema=PayloadSchemaType.KEYWORD
             )
-            print(f"  ✓ Created index: chunk_id")
+            print("  ✓ Created index: chunk_id")
 
             await client.create_payload_index(
-                collection_name=babok_collection,
-                field_name="ka",
+                collection_name=CHUNKS_COLLECTION,
+                field_name="course_id",
                 field_schema=PayloadSchemaType.KEYWORD
             )
-            print(f"  ✓ Created index: ka")
+            print("  ✓ Created index: course_id (multi-course support)")
 
             await client.create_payload_index(
-                collection_name=babok_collection,
+                collection_name=CHUNKS_COLLECTION,
+                field_name="knowledge_area_id",
+                field_schema=PayloadSchemaType.KEYWORD
+            )
+            print("  ✓ Created index: knowledge_area_id")
+
+            await client.create_payload_index(
+                collection_name=CHUNKS_COLLECTION,
                 field_name="section_ref",
                 field_schema=PayloadSchemaType.KEYWORD
             )
-            print(f"  ✓ Created index: section_ref")
+            print("  ✓ Created index: section_ref")
 
             await client.create_payload_index(
-                collection_name=babok_collection,
+                collection_name=CHUNKS_COLLECTION,
                 field_name="difficulty",
+                field_schema=PayloadSchemaType.FLOAT
+            )
+            print("  ✓ Created index: difficulty (float)")
+
+            await client.create_payload_index(
+                collection_name=CHUNKS_COLLECTION,
+                field_name="concept_ids",
                 field_schema=PayloadSchemaType.KEYWORD
             )
-            print(f"  ✓ Created index: difficulty")
+            print("  ✓ Created index: concept_ids")
 
         except Exception as e:
-            print(f"  ✗ Failed to create collection {babok_collection}: {str(e)}")
+            print(f"  ✗ Failed to create collection {CHUNKS_COLLECTION}: {str(e)}")
             sys.exit(1)
     else:
-        print(f"  ⊙ Collection {babok_collection} already exists (skipping)")
+        print(f"  ⊙ Collection {CHUNKS_COLLECTION} already exists (skipping)")
 
     # =========================================================================
     # Verify Collections
     # =========================================================================
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Collection Verification")
-    print("="*60)
+    print("=" * 60)
 
     try:
         # Verify questions collection
-        info = await client.get_collection(collection_name=questions_collection)
-        print(f"\n{questions_collection}:")
+        info = await client.get_collection(collection_name=QUESTIONS_COLLECTION)
+        print(f"\n{QUESTIONS_COLLECTION}:")
         print(f"  Vectors count: {info.vectors_count}")
         print(f"  Vector size: {info.config.params.vectors.size}")
         print(f"  Distance metric: {info.config.params.vectors.distance}")
 
-        # Verify BABOK chunks collection
-        info = await client.get_collection(collection_name=babok_collection)
-        print(f"\n{babok_collection}:")
+        # Verify reading chunks collection
+        info = await client.get_collection(collection_name=CHUNKS_COLLECTION)
+        print(f"\n{CHUNKS_COLLECTION}:")
         print(f"  Vectors count: {info.vectors_count}")
         print(f"  Vector size: {info.config.params.vectors.size}")
         print(f"  Distance metric: {info.config.params.vectors.distance}")
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("✓ Initialization Complete!")
-        print("="*60)
+        print("=" * 60)
         print(f"\nQdrant collections ready at: {settings.QDRANT_URL}")
-        print(f"Web UI: {settings.QDRANT_URL}/dashboard\n")
+        print(f"Web UI: {settings.QDRANT_URL}/dashboard")
+        print("\nPayload Schema (Multi-Course):")
+        print("  questions: question_id, course_id, knowledge_area_id, difficulty, concept_ids")
+        print("  reading_chunks: chunk_id, course_id, knowledge_area_id, section_ref, difficulty, concept_ids\n")
 
     except Exception as e:
         print(f"\n✗ Collection verification failed: {str(e)}")
         sys.exit(1)
+
+    await client.close()
 
 
 if __name__ == "__main__":

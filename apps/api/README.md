@@ -131,18 +131,25 @@ Before using the API, initialize the required Qdrant collections:
 python apps/api/scripts/init_qdrant_collections.py
 ```
 
-This script creates two collections:
-- **`cbap_questions`** - CBAP exam questions with embeddings (3072 dimensions)
-- **`babok_chunks`** - BABOK reading content chunks (3072 dimensions)
+This script creates two collections with multi-course support:
+- **`questions`** - Exam questions with embeddings (3072 dimensions, course-agnostic)
+- **`reading_chunks`** - Reading content chunks with embeddings (3072 dimensions, course-agnostic)
 
-The script is idempotent - safe to run multiple times.
+**Payload Schema (Multi-Course):**
+
+| Collection | Fields |
+|------------|--------|
+| `questions` | `question_id`, `course_id`, `knowledge_area_id`, `difficulty` (float), `concept_ids`, `question_text`, `options`, `correct_answer` |
+| `reading_chunks` | `chunk_id`, `course_id`, `knowledge_area_id`, `section_ref`, `difficulty` (float), `concept_ids`, `text_content` |
+
+The script is idempotent - safe to run multiple times. It also handles migration from old collection names (`cbap_questions`, `babok_chunks`).
 
 ### Verifying Collections
 
 **Via Web UI:**
 1. Open http://localhost:6333/dashboard
 2. Click "Collections" in the sidebar
-3. Verify `cbap_questions` and `babok_chunks` are listed
+3. Verify `questions` and `reading_chunks` are listed
 
 **Via API:**
 ```bash
@@ -160,7 +167,8 @@ Look for the `qdrant` section in the response:
   "qdrant": {
     "status": "connected",
     "response_time_ms": 10,
-    "collections_count": 2
+    "collections_count": 2,
+    "collections": ["questions", "reading_chunks"]
   }
 }
 ```
