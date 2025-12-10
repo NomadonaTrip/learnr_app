@@ -70,4 +70,14 @@ async def update_user_profile(
     await db.commit()
     await db.refresh(current_user)
 
+    # Invalidate user cache so subsequent requests get fresh data
+    try:
+        from src.db.redis_client import get_redis
+        redis = await get_redis()
+        cache_key = f"user_cache:{str(current_user.id)}"
+        await redis.delete(cache_key)
+    except Exception:
+        # Cache invalidation failure is not critical
+        pass
+
     return UserResponse.model_validate(current_user)

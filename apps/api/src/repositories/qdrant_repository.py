@@ -85,7 +85,8 @@ class QdrantRepository:
         try:
             result = await self.client.retrieve(
                 collection_name="cbap_questions",
-                ids=[str(question_id)]
+                ids=[str(question_id)],
+                with_vectors=True
             )
 
             if result:

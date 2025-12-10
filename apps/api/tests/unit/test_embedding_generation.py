@@ -3,23 +3,22 @@ Unit tests for question embedding generation.
 
 Tests the embedding text formatting, batch processing, and retry logic.
 """
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-import pytest
-
 import sys
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root / "scripts"))
 sys.path.insert(0, str(project_root / "apps" / "api"))
 
-from generate_question_embeddings import (
-    format_embedding_text,
+from generate_question_embeddings import (  # noqa: E402
     batch_list,
-    retry_with_backoff,
     calculate_cost,
+    format_embedding_text,
+    retry_with_backoff,
 )
 
 

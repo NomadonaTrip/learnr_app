@@ -3,12 +3,17 @@ User SQLAlchemy model.
 Represents the users table with embedded onboarding data fields.
 """
 import uuid
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import Boolean, CheckConstraint, Column, Date, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
 
 from ..db.session import Base
+
+if TYPE_CHECKING:
+    from .enrollment import Enrollment
 
 
 class User(Base):
@@ -51,6 +56,13 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False
+    )
+
+    # Relationships
+    enrollments: Mapped[List["Enrollment"]] = relationship(
+        "Enrollment",
+        back_populates="user",
+        cascade="all, delete-orphan"
     )
 
     # Table constraints

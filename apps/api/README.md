@@ -106,7 +106,7 @@ curl http://localhost:6333/
 
 Expected response:
 ```json
-{"title":"qdrant - vector search engine","version":"1.7.4"}
+{"title":"qdrant - vector search engine","version":"1.7.3"}
 ```
 
 ### Accessing Qdrant Web UI

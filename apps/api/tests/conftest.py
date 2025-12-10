@@ -21,6 +21,9 @@ os.environ["DATABASE_URL"] = os.getenv(
     "TEST_DATABASE_URL",
     "postgresql+asyncpg://learnr:learnr123@localhost:5432/learnr_test"
 )
+# Use local Qdrant for tests (override cloud URL from .env)
+os.environ["QDRANT_URL"] = "http://localhost:6333"
+os.environ["QDRANT_API_KEY"] = ""
 
 # Now we can import app modules
 from src.main import app
@@ -43,6 +46,54 @@ def test_app() -> FastAPI:
     return app
 
 
+@pytest.fixture(autouse=True)
+def reset_rate_limiter(test_app):
+    """
+    Reset rate limiter state before each test.
+    This ensures tests don't interfere with each other's rate limit counts.
+    """
+    from src.utils.rate_limiter import limiter
+
+    # Reset the limiter's storage using its built-in reset method
+    limiter.reset()
+
+    # Also reset the app's limiter state reference
+    if hasattr(test_app.state, 'limiter'):
+        test_app.state.limiter.reset()
+    yield
+
+
+@pytest.fixture(autouse=True)
+async def reset_redis_rate_limits_and_cache():
+    """
+    Reset Redis-based rate limits and user cache before each test.
+    This clears rate_limit:* and user_cache:* keys from Redis.
+    """
+    from src.db.redis_client import get_redis
+    try:
+        redis = await get_redis()
+        # Delete all rate limit keys
+        rate_keys = await redis.keys("rate_limit:*")
+        if rate_keys:
+            await redis.delete(*rate_keys)
+        # Delete all user cache keys
+        cache_keys = await redis.keys("user_cache:*")
+        if cache_keys:
+            await redis.delete(*cache_keys)
+    except Exception:
+        # Ignore errors if Redis is not available
+        pass
+    yield
+    # Also clear cache after test to ensure clean state for next test
+    try:
+        redis = await get_redis()
+        cache_keys = await redis.keys("user_cache:*")
+        if cache_keys:
+            await redis.delete(*cache_keys)
+    except Exception:
+        pass
+
+
 # ============================================================================
 # HTTP Client Fixtures
 # ============================================================================
@@ -57,24 +108,25 @@ async def client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
             response = await client.get("/health")
             assert response.status_code == 200
     """
-    async with AsyncClient(app=test_app, base_url="http://test") as ac:
+    # httpx 0.28+ requires ASGITransport instead of app parameter
+    from httpx import ASGITransport
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
+
+
+@pytest.fixture
+async def async_client(client: AsyncClient) -> AsyncGenerator[AsyncClient, None]:
+    """Alias for client fixture - some tests use async_client instead of client."""
+    yield client
 
 
 # ============================================================================
 # Database Fixtures
 # ============================================================================
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """
-    Create event loop for async tests.
-    Required for async fixtures and tests.
-    """
-    import asyncio
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+# NOTE: event_loop fixture removed - pytest-asyncio 0.23+ manages event loops
+# automatically. Using asyncio_default_fixture_loop_scope = session in pytest.ini
 
 
 @pytest.fixture(scope="session")
@@ -126,10 +178,15 @@ async def db_session(test_engine):
 
         # Clean up all tables after each test to ensure isolation
         # This handles nested transactions that commit independently
+        # Order matters due to foreign key constraints
         await session.rollback()
         await session.execute(Base.metadata.tables['questions'].delete())
+        if 'enrollments' in Base.metadata.tables:
+            await session.execute(Base.metadata.tables['enrollments'].delete())
         await session.execute(Base.metadata.tables['users'].delete())
         await session.execute(Base.metadata.tables['password_reset_tokens'].delete())
+        if 'courses' in Base.metadata.tables:
+            await session.execute(Base.metadata.tables['courses'].delete())
         await session.commit()
 
 
@@ -253,6 +310,27 @@ def mock_qdrant_service():
     return MockQdrantService()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def reset_qdrant_client():
+    """
+    Reset Qdrant client singleton to use test environment settings.
+    This ensures tests use localhost:6333 instead of cloud URL from .env
+    """
+    import src.db.qdrant_client as qdrant_module
+    from src.config import settings
+
+    # Force settings to use test QDRANT_URL (env var was set at module load time)
+    # This is needed because settings may have been initialized before env var was set
+    settings.QDRANT_URL = "http://localhost:6333"
+    settings.QDRANT_API_KEY = None
+
+    # Reset singleton so it picks up the updated settings
+    qdrant_module.qdrant_client = None
+    yield
+    # Cleanup after all tests
+    qdrant_module.qdrant_client = None
+
+
 # ============================================================================
 # Test Data Fixtures
 # ============================================================================
@@ -293,6 +371,27 @@ def sample_session_data():
         "started_at": "2025-01-01T00:00:00Z",
         "questions_answered": 0,
         "correct_count": 0
+    }
+
+
+@pytest.fixture
+def sample_course_data():
+    """Sample course data for testing."""
+    return {
+        "slug": "cbap",
+        "name": "CBAP Certification Prep",
+        "description": "Comprehensive preparation course for CBAP certification.",
+        "corpus_name": "BABOK v3",
+        "knowledge_areas": [
+            {"id": "ba-planning", "name": "Business Analysis Planning and Monitoring", "short_name": "BA Planning", "display_order": 1, "color": "#3B82F6"},
+            {"id": "elicitation", "name": "Elicitation and Collaboration", "short_name": "Elicitation", "display_order": 2, "color": "#10B981"},
+            {"id": "rlcm", "name": "Requirements Life Cycle Management", "short_name": "RLCM", "display_order": 3, "color": "#F59E0B"},
+            {"id": "strategy", "name": "Strategy Analysis", "short_name": "Strategy", "display_order": 4, "color": "#EF4444"},
+            {"id": "radd", "name": "Requirements Analysis and Design Definition", "short_name": "RADD", "display_order": 5, "color": "#8B5CF6"},
+            {"id": "solution-eval", "name": "Solution Evaluation", "short_name": "Solution Eval", "display_order": 6, "color": "#EC4899"}
+        ],
+        "is_active": True,
+        "is_public": True
     }
 
 

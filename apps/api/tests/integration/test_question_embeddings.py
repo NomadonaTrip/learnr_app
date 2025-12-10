@@ -4,25 +4,25 @@ Integration tests for question embedding generation and Qdrant upload.
 Tests the full workflow from PostgreSQL fetch to Qdrant upload.
 """
 import json
-import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
-import pytest
-
 import sys
+import uuid
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root / "scripts"))
 sys.path.insert(0, str(project_root / "apps" / "api"))
 
-from generate_question_embeddings import (
+from generate_question_embeddings import (  # noqa: E402
+    COLLECTION_NAME,
+    EMBEDDING_DIMENSIONS,
     fetch_all_questions,
     upload_vectors_to_qdrant,
-    verify_qdrant_upload,
     vector_exists,
-    EMBEDDING_DIMENSIONS,
-    COLLECTION_NAME,
+    verify_qdrant_upload,
 )
 
 

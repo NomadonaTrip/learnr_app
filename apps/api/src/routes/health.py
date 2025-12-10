@@ -99,7 +99,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     try:
         start_time = time.time()
         qdrant_client = get_qdrant()
-        collections = qdrant_client.get_collections()
+        collections = await qdrant_client.get_collections()
         qdrant_response_time_ms = int((time.time() - start_time) * 1000)
         qdrant_status = "connected"
         qdrant_collections_count = len(collections.collections)

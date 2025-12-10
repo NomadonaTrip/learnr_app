@@ -35,7 +35,7 @@ class TestPasswordResetIntegration:
         assert "message" in data
         assert "If your email is registered" in data["message"]
 
-    async def test_forgot_password_nonexistent_email_no_error(self, async_client: AsyncClient):
+    async def test_forgot_password_nonexistent_email_no_error(self, async_client: AsyncClient, db_session):
         """Test forgot password with non-existent email returns success (no enumeration)."""
         response = await async_client.post(
             "/v1/auth/forgot-password",
@@ -97,7 +97,7 @@ class TestPasswordResetIntegration:
         )
         assert new_login.status_code == 200
 
-    async def test_reset_password_invalid_token(self, async_client: AsyncClient):
+    async def test_reset_password_invalid_token(self, async_client: AsyncClient, db_session):
         """Test reset password with invalid token returns 400."""
         response = await async_client.post(
             "/v1/auth/reset-password",
@@ -111,7 +111,7 @@ class TestPasswordResetIntegration:
         data = response.json()
         assert data["error"]["code"] == "TOKEN_INVALID"
 
-    async def test_reset_password_weak_password(self, async_client: AsyncClient):
+    async def test_reset_password_weak_password(self, async_client: AsyncClient, db_session):
         """Test reset password with weak password fails validation."""
         response = await async_client.post(
             "/v1/auth/reset-password",
@@ -207,7 +207,7 @@ class TestPasswordResetIntegration:
         assert data["error"]["code"] == "TOKEN_EXPIRED"
         assert "expired" in data["error"]["message"].lower()
 
-    async def test_forgot_password_rate_limiting(self, async_client: AsyncClient):
+    async def test_forgot_password_rate_limiting(self, async_client: AsyncClient, db_session):
         """Test forgot password rate limiting (10 requests per hour per IP)."""
         # Make 10 requests (at the limit)
         for i in range(10):

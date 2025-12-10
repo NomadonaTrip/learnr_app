@@ -93,10 +93,10 @@ class AuthService:
         # Always verify password even if user not found to prevent timing attacks
         if user is None:
             # Perform dummy hash verification to maintain constant timing
-            # Using a known bcrypt hash format to ensure timing is similar
+            # Using a valid bcrypt hash to ensure timing is similar to real verification
             verify_password(
                 "dummy_password_for_timing_safety",
-                "$2b$12$dummyhashformaintainingtimingsafety.abcdefghijklmnopqrstuvwxyz"
+                "$2b$12$nbnaTwK8eZWPYgqkvl4fV.H.x8xuFE6tbqfZ/DWQdsYJX6Jkqa2VW"
             )
             raise AuthenticationError("Invalid email or password")
 

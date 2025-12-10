@@ -15,7 +15,7 @@ from src.config import settings
 from src.db import engine
 from src.db.redis_client import get_redis, close_redis, test_redis_connection
 from src.db.qdrant_client import get_qdrant, close_qdrant, test_qdrant_connection
-from src.routes import auth, users, health
+from src.routes import auth, courses, health, users
 from src.utils.rate_limiter import limiter
 from src.middleware.error_handler import (
     conflict_error_handler,
@@ -24,7 +24,10 @@ from src.middleware.error_handler import (
     authentication_error_handler,
     authorization_error_handler,
     not_found_error_handler,
-    rate_limit_error_handler
+    rate_limit_error_handler,
+    token_invalid_error_handler,
+    token_expired_error_handler,
+    token_already_used_error_handler
 )
 from src.exceptions import (
     ConflictError,
@@ -33,7 +36,10 @@ from src.exceptions import (
     AuthenticationError,
     AuthorizationError,
     NotFoundError,
-    RateLimitError
+    RateLimitError,
+    TokenInvalidError,
+    TokenExpiredError,
+    TokenAlreadyUsedError
 )
 
 
@@ -205,11 +211,15 @@ app.add_exception_handler(AuthenticationError, authentication_error_handler)
 app.add_exception_handler(AuthorizationError, authorization_error_handler)
 app.add_exception_handler(NotFoundError, not_found_error_handler)
 app.add_exception_handler(RateLimitError, rate_limit_error_handler)
+app.add_exception_handler(TokenInvalidError, token_invalid_error_handler)
+app.add_exception_handler(TokenExpiredError, token_expired_error_handler)
+app.add_exception_handler(TokenAlreadyUsedError, token_already_used_error_handler)
 
 # Include routers
 app.include_router(health.router)  # Health check (no prefix - root level)
 app.include_router(auth.router, prefix="/v1")
 app.include_router(users.router, prefix="/v1")
+app.include_router(courses.router, prefix="/v1")
 
 
 @app.get("/")

@@ -54,7 +54,7 @@ class PasswordResetRepository:
         """
         try:
             token_uuid = UUID(token)
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError, TypeError):
             return None
 
         result = await self.session.execute(
@@ -81,7 +81,7 @@ class PasswordResetRepository:
         """
         try:
             token_uuid = UUID(token)
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError, TypeError):
             return None
 
         result = await self.session.execute(

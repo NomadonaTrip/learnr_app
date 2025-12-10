@@ -14,7 +14,10 @@ from src.exceptions import (
     AuthenticationError,
     AuthorizationError,
     NotFoundError,
-    RateLimitError
+    RateLimitError,
+    TokenInvalidError,
+    TokenExpiredError,
+    TokenAlreadyUsedError
 )
 
 
@@ -129,5 +132,53 @@ async def rate_limit_error_handler(request: Request, exc: RateLimitError) -> JSO
         },
         headers={
             "Retry-After": str(exc.retry_after_seconds)
+        }
+    )
+
+
+async def token_invalid_error_handler(request: Request, exc: TokenInvalidError) -> JSONResponse:
+    """Handle 400 Invalid Token errors."""
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "error": {
+                "code": "TOKEN_INVALID",
+                "message": exc.message,
+                "details": exc.details,
+                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "request_id": str(uuid.uuid4())
+            }
+        }
+    )
+
+
+async def token_expired_error_handler(request: Request, exc: TokenExpiredError) -> JSONResponse:
+    """Handle 400 Expired Token errors."""
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "error": {
+                "code": "TOKEN_EXPIRED",
+                "message": exc.message,
+                "details": exc.details,
+                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "request_id": str(uuid.uuid4())
+            }
+        }
+    )
+
+
+async def token_already_used_error_handler(request: Request, exc: TokenAlreadyUsedError) -> JSONResponse:
+    """Handle 400 Token Already Used errors."""
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "error": {
+                "code": "TOKEN_ALREADY_USED",
+                "message": exc.message,
+                "details": exc.details,
+                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "request_id": str(uuid.uuid4())
+            }
         }
     )
