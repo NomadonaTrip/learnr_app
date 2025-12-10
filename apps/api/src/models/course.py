@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from .concept import Concept
     from .enrollment import Enrollment
     from .question import Question
+    from .reading_chunk import ReadingChunk
 
 
 class Course(Base):
@@ -80,6 +81,11 @@ class Course(Base):
     )
     questions: Mapped[List["Question"]] = relationship(
         "Question",
+        back_populates="course",
+        cascade="all, delete-orphan"
+    )
+    reading_chunks: Mapped[List["ReadingChunk"]] = relationship(
+        "ReadingChunk",
         back_populates="course",
         cascade="all, delete-orphan"
     )

@@ -33,6 +33,7 @@ celery==5.3.6
 
 # AI/ML
 openai==1.10.0
+tiktoken==0.5.2  # Token counting for chunking
 
 # PDF Parsing (for concept extraction)
 pymupdf==1.23.8

@@ -35,6 +35,15 @@ from .enrollment import (
     EnrollmentResponse,
     EnrollmentWithCourse,
 )
+from .reading_chunk import (
+    ChunkBase,
+    ChunkCountByKA,
+    ChunkCreate,
+    ChunkExport,
+    ChunkResponse,
+    ChunkUpdate,
+    ChunkValidationReport,
+)
 from .user import UserCreate, UserResponse, UserUpdate
 
 __all__ = [
@@ -66,4 +75,11 @@ __all__ = [
     "PrerequisiteBulkCreate",
     "PrerequisiteBulkResult",
     "RootConceptResponse",
+    "ChunkBase",
+    "ChunkCreate",
+    "ChunkUpdate",
+    "ChunkResponse",
+    "ChunkExport",
+    "ChunkCountByKA",
+    "ChunkValidationReport",
 ]
