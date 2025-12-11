@@ -85,6 +85,24 @@ class ConceptRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_ids(self, concept_ids: List[UUID]) -> List[Concept]:
+        """
+        Get multiple concepts by their UUIDs in a single query.
+
+        Args:
+            concept_ids: List of Concept UUIDs
+
+        Returns:
+            List of Concept models (may be fewer than input if some IDs don't exist)
+        """
+        if not concept_ids:
+            return []
+
+        result = await self.session.execute(
+            select(Concept).where(Concept.id.in_(concept_ids))
+        )
+        return list(result.scalars().all())
+
     async def get_all_concepts(self, course_id: UUID) -> List[Concept]:
         """
         Get all concepts for a course.

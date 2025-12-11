@@ -113,3 +113,44 @@ class ChunkValidationReport(BaseModel):
     chunks_above_max_tokens: int
     validation_passed: bool
     errors: List[str]
+
+
+class ReadingChunkResponse(BaseModel):
+    """Schema for reading chunk in API retrieval responses."""
+
+    id: UUID
+    course_id: UUID
+    title: str
+    content: str
+    corpus_section: str
+    knowledge_area_id: str
+    concept_ids: List[UUID]
+    concept_names: List[str] = Field(
+        default_factory=list, description="Human-readable concept names"
+    )
+    estimated_read_time_minutes: int
+    relevance_score: Optional[float] = Field(
+        None, description="Relevance score for ranking (number of matching concepts)"
+    )
+
+    model_config = {"from_attributes": True}
+
+
+class ReadingQueryParams(BaseModel):
+    """Schema for reading retrieval query parameters."""
+
+    concept_ids: List[UUID] = Field(..., description="Concepts to find reading for")
+    knowledge_area_id: Optional[str] = Field(
+        None, description="Filter by knowledge area"
+    )
+    limit: int = Field(5, ge=1, le=20, description="Maximum number of chunks to return")
+
+
+class ReadingListResponse(BaseModel):
+    """Schema for paginated reading chunk list response."""
+
+    items: List[ReadingChunkResponse]
+    total: int = Field(..., description="Total number of matching chunks")
+    fallback_used: bool = Field(
+        False, description="True if semantic search fallback was used"
+    )

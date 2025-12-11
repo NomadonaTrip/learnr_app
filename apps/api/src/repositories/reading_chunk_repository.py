@@ -2,14 +2,16 @@
 ReadingChunk repository for database operations on ReadingChunk model.
 Implements repository pattern for data access with multi-course support.
 """
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, cast
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.types import String
 
 from src.models.reading_chunk import ReadingChunk
-from src.schemas.reading_chunk import ChunkCreate
+from src.schemas.reading_chunk import ChunkCreate, ReadingQueryParams
 
 
 class ReadingChunkRepository:
@@ -222,6 +224,78 @@ class ReadingChunkRepository:
             .order_by(ReadingChunk.corpus_section, ReadingChunk.chunk_index)
         )
         return list(result.scalars().all())
+
+    async def get_chunks_by_concepts(
+        self, course_id: UUID, params: ReadingQueryParams
+    ) -> Tuple[List[ReadingChunk], int]:
+        """
+        Get reading chunks matching requested concepts with relevance ranking.
+
+        Uses PostgreSQL array overlap operator for efficient filtering.
+        Ranks results by number of matching concepts (relevance score).
+
+        Args:
+            course_id: Course UUID to filter by
+            params: ReadingQueryParams with concept_ids, knowledge_area_id, limit
+
+        Returns:
+            Tuple of (list of ReadingChunk models, total count before limit)
+        """
+        # Convert UUIDs to strings for PostgreSQL array operations
+        concept_ids_str = [str(cid) for cid in params.concept_ids]
+
+        # Build the base query with array overlap filter
+        query = (
+            select(ReadingChunk)
+            .where(ReadingChunk.course_id == course_id)
+            .where(ReadingChunk.concept_ids.overlap(concept_ids_str))
+        )
+
+        # Apply knowledge area filter if provided
+        if params.knowledge_area_id:
+            query = query.where(ReadingChunk.knowledge_area_id == params.knowledge_area_id)
+
+        # Count total matching chunks before pagination
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await self.session.execute(count_query)
+        total = total_result.scalar_one()
+
+        # Calculate relevance score using array_length of intersection
+        # This counts how many of the requested concepts each chunk contains
+        concept_array = cast(concept_ids_str, ARRAY(String))
+
+        # PostgreSQL: array_length(concept_ids && ARRAY[...], 1) gives match count
+        # We'll use a raw expression for this
+        from sqlalchemy import text
+
+        match_count_expr = text(
+            f"COALESCE(array_length(ARRAY(SELECT unnest(concept_ids) "
+            f"INTERSECT SELECT unnest(ARRAY{concept_ids_str}::text[])), 1), 0)"
+        ).label("match_count")
+
+        # Add relevance scoring and ordering
+        query_with_score = (
+            select(ReadingChunk, match_count_expr)
+            .where(ReadingChunk.course_id == course_id)
+            .where(ReadingChunk.concept_ids.overlap(concept_ids_str))
+        )
+
+        if params.knowledge_area_id:
+            query_with_score = query_with_score.where(
+                ReadingChunk.knowledge_area_id == params.knowledge_area_id
+            )
+
+        # Order by relevance (most matches first), then by section
+        query_with_score = query_with_score.order_by(
+            match_count_expr.desc(),
+            ReadingChunk.corpus_section,
+            ReadingChunk.chunk_index
+        ).limit(params.limit)
+
+        result = await self.session.execute(query_with_score)
+        chunks = [row[0] for row in result.all()]  # Extract ReadingChunk from tuple
+
+        return chunks, total
 
     async def delete_all_for_course(self, course_id: UUID) -> int:
         """

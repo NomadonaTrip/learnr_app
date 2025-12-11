@@ -48,6 +48,9 @@ from .reading_chunk import (
     ChunkResponse,
     ChunkUpdate,
     ChunkValidationReport,
+    ReadingChunkResponse,
+    ReadingListResponse,
+    ReadingQueryParams,
 )
 from .user import UserCreate, UserResponse, UserUpdate
 
@@ -87,6 +90,9 @@ __all__ = [
     "ChunkExport",
     "ChunkCountByKA",
     "ChunkValidationReport",
+    "ReadingChunkResponse",
+    "ReadingQueryParams",
+    "ReadingListResponse",
     "QuestionListParams",
     "QuestionListResponse",
     "PaginatedQuestionResponse",
