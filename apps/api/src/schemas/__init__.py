@@ -35,6 +35,11 @@ from .enrollment import (
     EnrollmentResponse,
     EnrollmentWithCourse,
 )
+from .question import (
+    PaginatedQuestionResponse,
+    QuestionListParams,
+    QuestionListResponse,
+)
 from .reading_chunk import (
     ChunkBase,
     ChunkCountByKA,
@@ -82,4 +87,7 @@ __all__ = [
     "ChunkExport",
     "ChunkCountByKA",
     "ChunkValidationReport",
+    "QuestionListParams",
+    "QuestionListResponse",
+    "PaginatedQuestionResponse",
 ]

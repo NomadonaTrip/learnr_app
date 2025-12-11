@@ -15,7 +15,7 @@ from src.config import settings
 from src.db import engine
 from src.db.redis_client import get_redis, close_redis, test_redis_connection
 from src.db.qdrant_client import get_qdrant, close_qdrant, test_qdrant_connection
-from src.routes import auth, concepts, courses, health, users
+from src.routes import auth, concepts, courses, health, questions, users
 from src.utils.rate_limiter import limiter
 from src.middleware.error_handler import (
     conflict_error_handler,
@@ -221,6 +221,7 @@ app.include_router(auth.router, prefix="/v1")
 app.include_router(users.router, prefix="/v1")
 app.include_router(courses.router, prefix="/v1")
 app.include_router(concepts.router, prefix="/v1")
+app.include_router(questions.router, prefix="/v1")
 
 
 @app.get("/")

@@ -322,6 +322,160 @@ class QuestionRepository:
 
         return counts
 
+    def _apply_question_filters(
+        self,
+        query,
+        course_id: UUID,
+        concept_ids: Optional[List[UUID]] = None,
+        knowledge_area_id: Optional[str] = None,
+        difficulty_min: Optional[float] = None,
+        difficulty_max: Optional[float] = None,
+        exclude_ids: Optional[List[UUID]] = None,
+    ):
+        """
+        Apply common filters to a question query.
+
+        This helper method centralizes filter logic to avoid duplication
+        between the main query and count query.
+
+        Args:
+            query: SQLAlchemy query to apply filters to
+            course_id: Course UUID (required - always filter by course)
+            concept_ids: Optional list of concept UUIDs to filter by
+            knowledge_area_id: Optional knowledge area ID filter
+            difficulty_min: Minimum difficulty (0.0-1.0)
+            difficulty_max: Maximum difficulty (0.0-1.0)
+            exclude_ids: Optional list of question IDs to exclude
+
+        Returns:
+            Query with filters applied
+        """
+        # Always filter by active status and course
+        query = query.where(Question.is_active.is_(True))
+        query = query.where(Question.course_id == course_id)
+
+        # Apply concept filter (ANY match)
+        if concept_ids:
+            concept_subquery = (
+                select(QuestionConcept.question_id)
+                .where(QuestionConcept.concept_id.in_(concept_ids))
+                .distinct()
+            )
+            query = query.where(Question.id.in_(concept_subquery))
+
+        # Apply knowledge area filter
+        if knowledge_area_id:
+            query = query.where(Question.knowledge_area_id == knowledge_area_id)
+
+        # Apply difficulty range filter
+        if difficulty_min is not None:
+            query = query.where(Question.difficulty >= difficulty_min)
+        if difficulty_max is not None:
+            query = query.where(Question.difficulty <= difficulty_max)
+
+        # Apply exclusion list
+        if exclude_ids:
+            query = query.where(~Question.id.in_(exclude_ids))
+
+        return query
+
+    async def get_questions_filtered(
+        self,
+        course_id: UUID,
+        concept_ids: Optional[List[UUID]] = None,
+        knowledge_area_id: Optional[str] = None,
+        difficulty_min: float = 0.0,
+        difficulty_max: float = 1.0,
+        exclude_ids: Optional[List[UUID]] = None,
+        limit: int = 10,
+        offset: int = 0
+    ) -> Tuple[List[Tuple[Question, List[UUID]]], int]:
+        """
+        Get filtered questions with concept IDs for a specific course.
+
+        This is the core query for the question retrieval API. It supports:
+        - Course scoping (required)
+        - Concept filtering (ANY match)
+        - Knowledge area filtering
+        - Difficulty range filtering
+        - Exclusion list
+        - Pagination
+
+        Args:
+            course_id: Course UUID (required - always filter by course)
+            concept_ids: Optional list of concept UUIDs to filter by
+            knowledge_area_id: Optional knowledge area ID filter
+            difficulty_min: Minimum difficulty (0.0-1.0)
+            difficulty_max: Maximum difficulty (0.0-1.0)
+            exclude_ids: Optional list of question IDs to exclude
+            limit: Maximum results to return (1-100)
+            offset: Results to skip (pagination)
+
+        Returns:
+            Tuple of (list of (Question, concept_ids), total count)
+            Each item is (Question instance, List[UUID] of mapped concepts)
+        """
+        # Base query with concept aggregation
+        # Use LEFT JOIN to include questions without concepts (empty array)
+        query = (
+            select(
+                Question,
+                func.array_agg(QuestionConcept.concept_id).label('concept_ids')
+            )
+            .outerjoin(QuestionConcept, Question.id == QuestionConcept.question_id)
+            .group_by(Question.id)
+        )
+
+        # Apply filters using shared helper method
+        query = self._apply_question_filters(
+            query,
+            course_id=course_id,
+            concept_ids=concept_ids,
+            knowledge_area_id=knowledge_area_id,
+            difficulty_min=difficulty_min,
+            difficulty_max=difficulty_max,
+            exclude_ids=exclude_ids
+        )
+
+        # Count total before pagination (using same filter logic)
+        count_query = select(Question.id)
+        count_query = self._apply_question_filters(
+            count_query,
+            course_id=course_id,
+            concept_ids=concept_ids,
+            knowledge_area_id=knowledge_area_id,
+            difficulty_min=difficulty_min,
+            difficulty_max=difficulty_max,
+            exclude_ids=exclude_ids
+        )
+        count_query = select(func.count()).select_from(count_query.subquery())
+        total = await self.db.scalar(count_query) or 0
+
+        # Apply pagination
+        query = query.offset(offset).limit(limit)
+
+        # Execute query
+        result = await self.db.execute(query)
+        rows = result.all()
+
+        # Process results: convert array_agg results to proper lists
+        # array_agg returns {None} for questions with no concepts, we convert to []
+        questions_with_concepts = []
+        for question, concept_ids_agg in rows:
+            # Handle NULL from array_agg (when no concepts mapped)
+            if concept_ids_agg and concept_ids_agg[0] is not None:
+                concept_id_list = list(concept_ids_agg)
+            else:
+                concept_id_list = []
+            questions_with_concepts.append((question, concept_id_list))
+
+        logger.info(
+            f"Retrieved {len(questions_with_concepts)} questions "
+            f"(total: {total}) for course {course_id}"
+        )
+
+        return questions_with_concepts, total
+
     # =====================================
     # Concept Mapping Methods
     # =====================================

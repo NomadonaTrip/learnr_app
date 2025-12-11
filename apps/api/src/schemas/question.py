@@ -194,6 +194,44 @@ class QuestionConceptMappingResult(BaseModel):
 
 
 # =====================================
+# Question Retrieval API schemas
+# =====================================
+
+class QuestionListParams(BaseModel):
+    """Query parameters for filtering questions."""
+    concept_ids: Optional[List[UUID]] = Field(None, description="Filter by concept IDs")
+    knowledge_area_id: Optional[str] = Field(None, max_length=50, description="Filter by knowledge area")
+    difficulty_min: float = Field(0.0, ge=0.0, le=1.0, description="Minimum difficulty")
+    difficulty_max: float = Field(1.0, ge=0.0, le=1.0, description="Maximum difficulty")
+    exclude_ids: Optional[List[UUID]] = Field(None, description="Question IDs to exclude")
+    limit: int = Field(10, ge=1, le=100, description="Result limit")
+    offset: int = Field(0, ge=0, description="Result offset")
+
+
+class QuestionListResponse(BaseModel):
+    """Schema for question list response (excludes correct_answer and explanation)."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    course_id: UUID
+    question_text: str
+    options: Dict[str, str]  # {"A": "...", "B": "...", "C": "...", "D": "..."}
+    knowledge_area_id: str
+    difficulty: float
+    discrimination: float
+    concept_ids: List[UUID] = Field(default_factory=list, description="Mapped concept IDs")
+
+
+class PaginatedQuestionResponse(BaseModel):
+    """Paginated response wrapper for question lists."""
+    items: List[QuestionListResponse]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+
+
+# =====================================
 # Validation/Stats schemas
 # =====================================
 
