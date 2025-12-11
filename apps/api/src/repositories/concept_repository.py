@@ -10,7 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.concept import Concept
 from src.models.concept_prerequisite import ConceptPrerequisite
-from src.schemas.concept import ConceptCreate
+from src.models.question import Question
+from src.models.question_concept import QuestionConcept
+from src.schemas.concept import ConceptCreate, ConceptListParams
 from src.schemas.concept_prerequisite import PrerequisiteCreate
 
 
@@ -518,3 +520,225 @@ class ConceptRepository:
             )
         )
         return list(result.scalars().all())
+
+    # ==================== API Endpoint Methods (Story 2.10) ====================
+
+    async def get_concepts_filtered(
+        self, course_id: UUID, params: ConceptListParams
+    ) -> Tuple[List[Concept], int]:
+        """
+        Get concepts with filtering, search, and pagination.
+
+        Args:
+            course_id: Course UUID
+            params: Filter and pagination parameters
+
+        Returns:
+            Tuple of (concepts list, total count)
+        """
+        # Base query filtered by course
+        query = select(Concept).where(Concept.course_id == course_id)
+
+        # Apply knowledge area filter
+        if params.knowledge_area_id:
+            query = query.where(Concept.knowledge_area_id == params.knowledge_area_id)
+
+        # Apply search filter (case-insensitive name search)
+        if params.search:
+            query = query.where(Concept.name.ilike(f"%{params.search}%"))
+
+        # Get total count before pagination
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await self.session.execute(count_query)
+        total = total_result.scalar_one()
+
+        # Apply ordering and pagination
+        query = query.order_by(Concept.corpus_section_ref, Concept.name)
+        query = query.limit(params.limit).offset(params.offset)
+
+        # Execute query
+        result = await self.session.execute(query)
+        concepts = list(result.scalars().all())
+
+        return concepts, total
+
+    async def get_prerequisite_chain_for_course(
+        self, course_id: UUID, concept_id: UUID, max_depth: int = 10
+    ) -> List[Concept]:
+        """
+        Get full prerequisite chain for a concept within a specific course.
+
+        Args:
+            course_id: Course UUID
+            concept_id: Target concept UUID
+            max_depth: Maximum depth to traverse (default 10)
+
+        Returns:
+            List of prerequisite Concepts ordered by depth
+        """
+        # Use recursive CTE with course filtering
+        cte_sql = text("""
+            WITH RECURSIVE prereq_chain AS (
+                -- Base case: direct prerequisites within the course
+                SELECT
+                    c.id,
+                    c.course_id,
+                    c.name,
+                    c.description,
+                    c.corpus_section_ref,
+                    c.knowledge_area_id,
+                    c.difficulty_estimate,
+                    c.prerequisite_depth,
+                    c.created_at,
+                    c.updated_at,
+                    1 as chain_depth
+                FROM concepts c
+                INNER JOIN concept_prerequisites cp ON c.id = cp.prerequisite_concept_id
+                WHERE cp.concept_id = :target_id
+                  AND c.course_id = :course_id
+
+                UNION ALL
+
+                -- Recursive case: prerequisites of prerequisites within the course
+                SELECT
+                    c.id,
+                    c.course_id,
+                    c.name,
+                    c.description,
+                    c.corpus_section_ref,
+                    c.knowledge_area_id,
+                    c.difficulty_estimate,
+                    c.prerequisite_depth,
+                    c.created_at,
+                    c.updated_at,
+                    pc.chain_depth + 1
+                FROM concepts c
+                INNER JOIN concept_prerequisites cp ON c.id = cp.prerequisite_concept_id
+                INNER JOIN prereq_chain pc ON cp.concept_id = pc.id
+                WHERE pc.chain_depth < :max_depth
+                  AND c.course_id = :course_id
+            )
+            SELECT DISTINCT ON (id) *
+            FROM prereq_chain
+            ORDER BY id, chain_depth, prerequisite_depth
+        """)
+
+        result = await self.session.execute(
+            cte_sql,
+            {"target_id": str(concept_id), "course_id": str(course_id), "max_depth": max_depth}
+        )
+
+        # Map results to Concept objects
+        prerequisites = []
+        for row in result:
+            concept = Concept(
+                id=row.id,
+                course_id=row.course_id,
+                name=row.name,
+                description=row.description,
+                corpus_section_ref=row.corpus_section_ref,
+                knowledge_area_id=row.knowledge_area_id,
+                difficulty_estimate=row.difficulty_estimate,
+                prerequisite_depth=row.prerequisite_depth,
+                created_at=row.created_at,
+                updated_at=row.updated_at
+            )
+            prerequisites.append(concept)
+
+        return prerequisites
+
+    async def get_question_count_for_concept(
+        self, course_id: UUID, concept_id: UUID
+    ) -> int:
+        """
+        Get count of questions linked to a concept within a course.
+
+        Args:
+            course_id: Course UUID
+            concept_id: Concept UUID
+
+        Returns:
+            Number of questions for this concept
+        """
+        result = await self.session.execute(
+            select(func.count(QuestionConcept.question_id))
+            .join(Question, QuestionConcept.question_id == Question.id)
+            .where(QuestionConcept.concept_id == concept_id)
+            .where(Question.course_id == course_id)
+        )
+        return result.scalar_one()
+
+    async def get_corpus_stats(self, course_id: UUID) -> Dict:
+        """
+        Get comprehensive statistics for a course's concept corpus.
+
+        Args:
+            course_id: Course UUID
+
+        Returns:
+            Dictionary with statistics including:
+            - total_concepts
+            - by_knowledge_area (dict)
+            - by_depth (dict)
+            - average_prerequisites_per_concept
+            - concepts_with_questions
+            - concepts_without_questions
+        """
+        # Total concepts for course
+        total_result = await self.session.execute(
+            select(func.count(Concept.id)).where(Concept.course_id == course_id)
+        )
+        total = total_result.scalar_one()
+
+        # By knowledge area
+        ka_result = await self.session.execute(
+            select(Concept.knowledge_area_id, func.count(Concept.id))
+            .where(Concept.course_id == course_id)
+            .group_by(Concept.knowledge_area_id)
+        )
+        by_ka = {row[0]: row[1] for row in ka_result.all()}
+
+        # By prerequisite depth
+        depth_result = await self.session.execute(
+            select(Concept.prerequisite_depth, func.count(Concept.id))
+            .where(Concept.course_id == course_id)
+            .group_by(Concept.prerequisite_depth)
+        )
+        by_depth = {row[0]: row[1] for row in depth_result.all()}
+
+        # Average prerequisites per concept for course
+        avg_prereq_result = await self.session.execute(
+            text("""
+                SELECT AVG(prereq_count)
+                FROM (
+                    SELECT c.id, COUNT(cp.prerequisite_concept_id) as prereq_count
+                    FROM concepts c
+                    LEFT JOIN concept_prerequisites cp ON c.id = cp.concept_id
+                    WHERE c.course_id = :course_id
+                    GROUP BY c.id
+                ) AS prereq_counts
+            """),
+            {"course_id": str(course_id)}
+        )
+        avg_prereq = avg_prereq_result.scalar_one() or 0.0
+
+        # Concepts with questions (within same course)
+        with_questions_result = await self.session.execute(
+            select(func.count(func.distinct(QuestionConcept.concept_id)))
+            .join(Concept, QuestionConcept.concept_id == Concept.id)
+            .join(Question, QuestionConcept.question_id == Question.id)
+            .where(Concept.course_id == course_id)
+            .where(Question.course_id == course_id)
+        )
+        concepts_with_questions = with_questions_result.scalar_one()
+
+        concepts_without_questions = total - concepts_with_questions
+
+        return {
+            "total_concepts": total,
+            "by_knowledge_area": by_ka,
+            "by_depth": by_depth,
+            "average_prerequisites_per_concept": float(avg_prereq),
+            "concepts_with_questions": concepts_with_questions,
+            "concepts_without_questions": concepts_without_questions,
+        }

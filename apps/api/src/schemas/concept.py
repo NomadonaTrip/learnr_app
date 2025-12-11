@@ -3,7 +3,7 @@ Pydantic schemas for Concept model.
 Handles validation and serialization for concept data.
 """
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -96,3 +96,63 @@ class ConceptSummary(BaseModel):
     counts_by_ka: dict[str, int]
     section_coverage_percent: float
     sections_without_concepts: list[str]
+
+
+# ===== API Endpoint Schemas (Story 2.10) =====
+
+
+class ConceptListParams(BaseModel):
+    """Query parameters for listing concepts."""
+
+    knowledge_area_id: Optional[str] = Field(None, description="Filter by knowledge area")
+    search: Optional[str] = Field(None, description="Search by concept name")
+    limit: int = Field(50, ge=1, le=200, description="Number of results to return")
+    offset: int = Field(0, ge=0, description="Number of results to skip")
+
+
+class PaginatedConceptResponse(BaseModel):
+    """Paginated response for concept list."""
+
+    items: List[ConceptResponse]
+    total: int = Field(..., description="Total number of concepts matching filters")
+    limit: int
+    offset: int
+    has_more: bool = Field(..., description="Whether there are more results")
+
+
+class ConceptPrerequisitesResponse(BaseModel):
+    """Response for concept prerequisites API endpoint (Story 2.10)."""
+
+    concept_id: UUID
+    prerequisites: List[ConceptResponse]
+    depth: int = Field(..., description="Maximum depth in prerequisite chain")
+
+
+class QuestionSummary(BaseModel):
+    """Summary information for a question."""
+
+    id: UUID
+    question_text: str = Field(..., description="Truncated question text (first 100 chars)")
+    difficulty: float = Field(..., ge=0.0, le=1.0)
+
+    model_config = {"from_attributes": True}
+
+
+class ConceptQuestionsResponse(BaseModel):
+    """Response for concept questions endpoint."""
+
+    concept_id: UUID
+    question_count: int = Field(..., description="Total number of questions for this concept")
+    sample_questions: List[QuestionSummary]
+
+
+class ConceptStatsResponse(BaseModel):
+    """Response for concept statistics endpoint."""
+
+    course_id: UUID
+    total_concepts: int
+    by_knowledge_area: dict[str, int] = Field(..., description="Keyed by knowledge_area_id")
+    by_depth: dict[int, int] = Field(..., description="Concepts grouped by prerequisite_depth")
+    average_prerequisites_per_concept: float
+    concepts_with_questions: int
+    concepts_without_questions: int
