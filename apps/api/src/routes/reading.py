@@ -4,7 +4,6 @@ Endpoints for retrieving reading chunks filtered by concept with semantic search
 """
 import logging
 import time
-from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -46,7 +45,7 @@ def get_concept_repository(db: AsyncSession = Depends(get_db)) -> ConceptReposit
 
 
 async def get_concept_names_batch(
-    concept_ids: List[UUID], concept_repo: ConceptRepository
+    concept_ids: list[UUID], concept_repo: ConceptRepository
 ) -> dict[UUID, str]:
     """
     Batch fetch concept names for multiple IDs in a single query.
@@ -83,7 +82,7 @@ async def get_concept_names_batch(
 async def get_reading_content(
     request: Request,
     course_slug: str,
-    concept_ids: List[UUID] = Query(
+    concept_ids: list[UUID] = Query(
         ..., description="Concept IDs to find reading for (required)"
     ),
     knowledge_area_id: str | None = Query(
@@ -189,8 +188,8 @@ async def get_reading_content(
         if not fallback_used and chunk.concept_ids:
             # Count how many requested concepts are in this chunk
             matching_count = len(
-                set(str(cid) for cid in concept_ids)
-                & set(str(cid) for cid in chunk.concept_ids)
+                {str(cid) for cid in concept_ids}
+                & {str(cid) for cid in chunk.concept_ids}
             )
             relevance_score = float(matching_count)
 

@@ -2,7 +2,6 @@
 Course repository for database operations on Course model.
 Implements repository pattern for data access.
 """
-from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import select
@@ -17,7 +16,7 @@ class CourseRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_all_active(self) -> List[Course]:
+    async def get_all_active(self) -> list[Course]:
         """
         Get all active courses.
 
@@ -26,12 +25,12 @@ class CourseRepository:
         """
         result = await self.session.execute(
             select(Course)
-            .where(Course.is_active == True)
+            .where(Course.is_active.is_(True))
             .order_by(Course.name)
         )
         return list(result.scalars().all())
 
-    async def get_by_slug(self, slug: str) -> Optional[Course]:
+    async def get_by_slug(self, slug: str) -> Course | None:
         """
         Get a course by its slug.
 
@@ -46,7 +45,7 @@ class CourseRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_id(self, course_id: UUID) -> Optional[Course]:
+    async def get_by_id(self, course_id: UUID) -> Course | None:
         """
         Get a course by its UUID.
 
@@ -61,7 +60,7 @@ class CourseRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_active_by_slug(self, slug: str) -> Optional[Course]:
+    async def get_active_by_slug(self, slug: str) -> Course | None:
         """
         Get an active course by its slug.
 
@@ -74,6 +73,6 @@ class CourseRepository:
         result = await self.session.execute(
             select(Course)
             .where(Course.slug == slug)
-            .where(Course.is_active == True)
+            .where(Course.is_active.is_(True))
         )
         return result.scalar_one_or_none()

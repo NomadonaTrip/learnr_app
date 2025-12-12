@@ -2,11 +2,13 @@
 Authentication utilities for password hashing and JWT token generation.
 """
 
-from datetime import datetime, timedelta, timezone
-from passlib.context import CryptContext
-from jose import jwt, JWTError, ExpiredSignatureError
-from src.config import settings
 import logging
+from datetime import UTC, datetime, timedelta
+
+from jose import ExpiredSignatureError, JWTError, jwt
+from passlib.context import CryptContext
+
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +56,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     """
     to_encode = data.copy()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if expires_delta:
         expire = now + expires_delta
     else:

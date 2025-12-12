@@ -4,11 +4,10 @@ Reading Search Service for semantic search fallback.
 This service provides semantic search capabilities for reading chunks
 using OpenAI embeddings and Qdrant vector database.
 """
-from typing import List
 from uuid import UUID
 
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
+from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 from src.db.qdrant_client import get_qdrant
 from src.models.reading_chunk import ReadingChunk
@@ -48,10 +47,10 @@ class ReadingSearchService:
     async def search_chunks_by_concept_names(
         self,
         course_id: UUID,
-        concept_names: List[str],
+        concept_names: list[str],
         chunk_repository: ReadingChunkRepository,
         limit: int = 5,
-    ) -> List[ReadingChunk]:
+    ) -> list[ReadingChunk]:
         """
         Search for reading chunks using semantic similarity to concept names.
 

@@ -9,7 +9,7 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Optional
 from uuid import UUID
 
 import networkx as nx
@@ -53,16 +53,16 @@ class PrerequisiteGraphService:
 
     def __init__(self):
         # Graph storage
-        self.graph: Optional[nx.DiGraph] = None
-        self.concepts: Dict[UUID, CachedConcept] = {}
-        self.prerequisites: Dict[UUID, List[CachedPrerequisite]] = defaultdict(list)
-        self.dependents: Dict[UUID, List[UUID]] = defaultdict(list)
-        self.depths: Dict[UUID, int] = {}
-        self.root_concepts: Set[UUID] = set()
+        self.graph: nx.DiGraph | None = None
+        self.concepts: dict[UUID, CachedConcept] = {}
+        self.prerequisites: dict[UUID, list[CachedPrerequisite]] = defaultdict(list)
+        self.dependents: dict[UUID, list[UUID]] = defaultdict(list)
+        self.depths: dict[UUID, int] = {}
+        self.root_concepts: set[UUID] = set()
 
         # Cache metadata
-        self.loaded_at: Optional[float] = None
-        self.course_ids: Set[UUID] = set()
+        self.loaded_at: float | None = None
+        self.course_ids: set[UUID] = set()
         self.load_time_ms: float = 0.0
         self.concept_count: int = 0
         self.edge_count: int = 0
@@ -82,7 +82,7 @@ class PrerequisiteGraphService:
         async with cls._lock:
             cls._instance = None
 
-    async def load_graph(self, session: AsyncSession, course_id: Optional[UUID] = None) -> None:
+    async def load_graph(self, session: AsyncSession, course_id: UUID | None = None) -> None:
         """
         Load prerequisite graph into memory.
 
@@ -189,7 +189,7 @@ class PrerequisiteGraphService:
         """Check if graph is loaded."""
         return self.graph is not None and self.loaded_at is not None
 
-    def get_prerequisites(self, concept_id: UUID) -> List[CachedPrerequisite]:
+    def get_prerequisites(self, concept_id: UUID) -> list[CachedPrerequisite]:
         """
         Get direct prerequisites for a concept. O(1) lookup.
 
@@ -201,7 +201,7 @@ class PrerequisiteGraphService:
         """
         return self.prerequisites.get(concept_id, [])
 
-    def get_prerequisite_ids(self, concept_id: UUID) -> List[UUID]:
+    def get_prerequisite_ids(self, concept_id: UUID) -> list[UUID]:
         """
         Get prerequisite concept IDs. O(1) lookup.
 
@@ -215,7 +215,7 @@ class PrerequisiteGraphService:
 
     def get_prerequisite_chain(
         self, concept_id: UUID, max_depth: int = 10
-    ) -> List[Tuple[UUID, int]]:
+    ) -> list[tuple[UUID, int]]:
         """
         Get full prerequisite chain using cached BFS.
 
@@ -230,8 +230,8 @@ class PrerequisiteGraphService:
             return []
 
         # BFS backwards through graph
-        visited: Dict[UUID, int] = {}
-        queue: List[Tuple[UUID, int]] = []
+        visited: dict[UUID, int] = {}
+        queue: list[tuple[UUID, int]] = []
 
         # Start with direct prerequisites
         for prereq in self.prerequisites.get(concept_id, []):
@@ -254,7 +254,7 @@ class PrerequisiteGraphService:
                     queue.append((prereq.prerequisite_id, depth + 1))
 
         # Sort by depth
-        result = [(cid, d) for cid, d in visited.items()]
+        result = list(visited.items())
         result.sort(key=lambda x: x[1])
         return result
 
@@ -270,7 +270,7 @@ class PrerequisiteGraphService:
         """
         return self.depths.get(concept_id, 0)
 
-    def get_dependents(self, concept_id: UUID) -> List[UUID]:
+    def get_dependents(self, concept_id: UUID) -> list[UUID]:
         """
         Get concepts that depend on this one. O(1) lookup.
 
@@ -282,7 +282,7 @@ class PrerequisiteGraphService:
         """
         return self.dependents.get(concept_id, [])
 
-    def get_root_concepts(self) -> List[UUID]:
+    def get_root_concepts(self) -> list[UUID]:
         """
         Get all root concepts (no prerequisites).
 
@@ -291,7 +291,7 @@ class PrerequisiteGraphService:
         """
         return list(self.root_concepts)
 
-    def get_concept(self, concept_id: UUID) -> Optional[CachedConcept]:
+    def get_concept(self, concept_id: UUID) -> CachedConcept | None:
         """
         Get cached concept data. O(1) lookup.
 
@@ -303,7 +303,7 @@ class PrerequisiteGraphService:
         """
         return self.concepts.get(concept_id)
 
-    def get_statistics(self) -> Dict:
+    def get_statistics(self) -> dict:
         """Get graph statistics."""
         return {
             "loaded": self.is_loaded(),
@@ -340,7 +340,7 @@ async def get_prerequisite_graph_service() -> PrerequisiteGraphService:
     return await PrerequisiteGraphService.get_instance()
 
 
-async def load_prerequisite_graph(session: AsyncSession, course_id: Optional[UUID] = None) -> None:
+async def load_prerequisite_graph(session: AsyncSession, course_id: UUID | None = None) -> None:
     """
     Load prerequisite graph on startup.
 
@@ -350,7 +350,7 @@ async def load_prerequisite_graph(session: AsyncSession, course_id: Optional[UUI
     await service.load_graph(session, course_id)
 
 
-async def refresh_prerequisite_graph(session: AsyncSession, course_id: Optional[UUID] = None) -> None:
+async def refresh_prerequisite_graph(session: AsyncSession, course_id: UUID | None = None) -> None:
     """
     Refresh prerequisite graph.
 

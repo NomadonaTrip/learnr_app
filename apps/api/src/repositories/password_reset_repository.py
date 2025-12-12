@@ -3,9 +3,9 @@ Password Reset Token repository for database operations on PasswordResetToken mo
 Implements repository pattern for data access.
 """
 
-from datetime import datetime, timedelta, timezone
-from uuid import UUID
 import uuid
+from datetime import UTC, datetime, timedelta
+from uuid import UUID
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,7 +33,7 @@ class PasswordResetRepository:
         token = PasswordResetToken(
             user_id=user_id,
             token=uuid.uuid4(),
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=expires_in_hours)
+            expires_at=datetime.now(UTC) + timedelta(hours=expires_in_hours)
         )
 
         self.session.add(token)
@@ -62,7 +62,7 @@ class PasswordResetRepository:
                 and_(
                     PasswordResetToken.token == token_uuid,
                     PasswordResetToken.used_at.is_(None),
-                    PasswordResetToken.expires_at > datetime.now(timezone.utc)
+                    PasswordResetToken.expires_at > datetime.now(UTC)
                 )
             )
         )
@@ -104,7 +104,7 @@ class PasswordResetRepository:
         token_obj = result.scalar_one_or_none()
 
         if token_obj:
-            token_obj.used_at = datetime.now(timezone.utc)
+            token_obj.used_at = datetime.now(UTC)
             await self.session.commit()
 
     async def invalidate_user_tokens(self, user_id: UUID) -> None:
@@ -125,6 +125,6 @@ class PasswordResetRepository:
         tokens = result.scalars().all()
 
         for token in tokens:
-            token.used_at = datetime.now(timezone.utc)
+            token.used_at = datetime.now(UTC)
 
         await self.session.commit()

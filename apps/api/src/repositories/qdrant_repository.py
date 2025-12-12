@@ -4,16 +4,16 @@ Provides data access layer for vector database operations with multi-course supp
 """
 
 import logging
+from typing import Any
 from uuid import UUID
-from typing import List, Dict, Any, Optional
 
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import (
-    PointStruct,
-    Filter,
     FieldCondition,
-    MatchValue,
+    Filter,
     MatchAny,
+    MatchValue,
+    PointStruct,
     Range,
 )
 
@@ -40,9 +40,9 @@ class QdrantRepository:
     async def create_question_vector(
         self,
         question_id: UUID,
-        vector: List[float],
+        vector: list[float],
         course_id: UUID,
-        payload: Dict[str, Any]
+        payload: dict[str, Any]
     ) -> None:
         """
         Insert question vector into Qdrant.
@@ -84,7 +84,7 @@ class QdrantRepository:
             logger.error(f"Failed to create question vector {question_id}: {str(e)}")
             raise
 
-    async def get_question_vector(self, question_id: UUID) -> Dict[str, Any] | None:
+    async def get_question_vector(self, question_id: UUID) -> dict[str, Any] | None:
         """
         Retrieve question vector by ID.
 
@@ -119,15 +119,15 @@ class QdrantRepository:
 
     async def search_questions(
         self,
-        query_vector: List[float],
-        course_id: Optional[UUID] = None,
-        knowledge_area_id: Optional[str] = None,
-        difficulty_min: Optional[float] = None,
-        difficulty_max: Optional[float] = None,
-        concept_ids: Optional[List[UUID]] = None,
-        exclude_ids: Optional[List[UUID]] = None,
+        query_vector: list[float],
+        course_id: UUID | None = None,
+        knowledge_area_id: str | None = None,
+        difficulty_min: float | None = None,
+        difficulty_max: float | None = None,
+        concept_ids: list[UUID] | None = None,
+        exclude_ids: list[UUID] | None = None,
         limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Semantic search for questions with multi-course support.
 
@@ -246,9 +246,9 @@ class QdrantRepository:
     async def create_chunk_vector(
         self,
         chunk_id: UUID,
-        vector: List[float],
+        vector: list[float],
         course_id: UUID,
-        payload: Dict[str, Any]
+        payload: dict[str, Any]
     ) -> None:
         """
         Insert reading chunk vector into Qdrant.
@@ -289,7 +289,7 @@ class QdrantRepository:
             logger.error(f"Failed to create chunk vector {chunk_id}: {str(e)}")
             raise
 
-    async def get_chunk_vector(self, chunk_id: UUID) -> Dict[str, Any] | None:
+    async def get_chunk_vector(self, chunk_id: UUID) -> dict[str, Any] | None:
         """
         Retrieve chunk vector by ID.
 
@@ -324,15 +324,15 @@ class QdrantRepository:
 
     async def search_chunks(
         self,
-        query_vector: List[float],
-        course_id: Optional[UUID] = None,
-        knowledge_area_id: Optional[str] = None,
-        section_ref: Optional[str] = None,
-        difficulty_min: Optional[float] = None,
-        difficulty_max: Optional[float] = None,
-        concept_ids: Optional[List[UUID]] = None,
+        query_vector: list[float],
+        course_id: UUID | None = None,
+        knowledge_area_id: str | None = None,
+        section_ref: str | None = None,
+        difficulty_min: float | None = None,
+        difficulty_max: float | None = None,
+        concept_ids: list[UUID] | None = None,
         limit: int = 3
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Semantic search for reading chunks with multi-course support.
 

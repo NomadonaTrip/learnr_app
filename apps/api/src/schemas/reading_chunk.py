@@ -3,7 +3,6 @@ Pydantic schemas for ReadingChunk model.
 Handles validation and serialization for reading chunk data.
 """
 from datetime import datetime
-from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -20,7 +19,7 @@ class ChunkBase(BaseModel):
     knowledge_area_id: str = Field(
         ..., max_length=50, description="Reference to course.knowledge_areas[].id"
     )
-    concept_ids: List[UUID] = Field(
+    concept_ids: list[UUID] = Field(
         default_factory=list, description="UUIDs of concepts this chunk is linked to"
     )
     estimated_read_time_minutes: int = Field(
@@ -58,13 +57,13 @@ class ChunkCreate(ChunkBase):
 class ChunkUpdate(BaseModel):
     """Schema for updating an existing reading chunk."""
 
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
-    content: Optional[str] = Field(None, min_length=1)
-    corpus_section: Optional[str] = Field(None, max_length=50)
-    knowledge_area_id: Optional[str] = Field(None, max_length=50)
-    concept_ids: Optional[List[UUID]] = None
-    estimated_read_time_minutes: Optional[int] = Field(None, ge=1)
-    chunk_index: Optional[int] = Field(None, ge=0)
+    title: str | None = Field(None, min_length=1, max_length=255)
+    content: str | None = Field(None, min_length=1)
+    corpus_section: str | None = Field(None, max_length=50)
+    knowledge_area_id: str | None = Field(None, max_length=50)
+    concept_ids: list[UUID] | None = None
+    estimated_read_time_minutes: int | None = Field(None, ge=1)
+    chunk_index: int | None = Field(None, ge=0)
 
 
 class ChunkResponse(ChunkBase):
@@ -107,12 +106,12 @@ class ChunkValidationReport(BaseModel):
     total_chunks: int
     chunks_per_ka: dict[str, int]
     chunks_without_concepts: int
-    orphan_chunk_ids: List[UUID]
+    orphan_chunk_ids: list[UUID]
     average_concepts_per_chunk: float
     chunks_below_min_tokens: int
     chunks_above_max_tokens: int
     validation_passed: bool
-    errors: List[str]
+    errors: list[str]
 
 
 class ReadingChunkResponse(BaseModel):
@@ -124,12 +123,12 @@ class ReadingChunkResponse(BaseModel):
     content: str
     corpus_section: str
     knowledge_area_id: str
-    concept_ids: List[UUID]
-    concept_names: List[str] = Field(
+    concept_ids: list[UUID]
+    concept_names: list[str] = Field(
         default_factory=list, description="Human-readable concept names"
     )
     estimated_read_time_minutes: int
-    relevance_score: Optional[float] = Field(
+    relevance_score: float | None = Field(
         None, description="Relevance score for ranking (number of matching concepts)"
     )
 
@@ -139,8 +138,8 @@ class ReadingChunkResponse(BaseModel):
 class ReadingQueryParams(BaseModel):
     """Schema for reading retrieval query parameters."""
 
-    concept_ids: List[UUID] = Field(..., description="Concepts to find reading for")
-    knowledge_area_id: Optional[str] = Field(
+    concept_ids: list[UUID] = Field(..., description="Concepts to find reading for")
+    knowledge_area_id: str | None = Field(
         None, description="Filter by knowledge area"
     )
     limit: int = Field(5, ge=1, le=20, description="Maximum number of chunks to return")
@@ -149,7 +148,7 @@ class ReadingQueryParams(BaseModel):
 class ReadingListResponse(BaseModel):
     """Schema for paginated reading chunk list response."""
 
-    items: List[ReadingChunkResponse]
+    items: list[ReadingChunkResponse]
     total: int = Field(..., description="Total number of matching chunks")
     fallback_used: bool = Field(
         False, description="True if semantic search fallback was used"

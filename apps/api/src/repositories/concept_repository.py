@@ -2,7 +2,6 @@
 Concept repository for database operations on Concept model.
 Implements repository pattern for data access with multi-course support.
 """
-from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
 from sqlalchemy import delete, func, select, text, update
@@ -46,7 +45,7 @@ class ConceptRepository:
         await self.session.refresh(db_concept)
         return db_concept
 
-    async def bulk_create(self, concepts: List[ConceptCreate]) -> int:
+    async def bulk_create(self, concepts: list[ConceptCreate]) -> int:
         """
         Bulk create concepts for efficiency.
 
@@ -72,7 +71,7 @@ class ConceptRepository:
         await self.session.flush()
         return len(db_concepts)
 
-    async def get_by_id(self, concept_id: UUID) -> Optional[Concept]:
+    async def get_by_id(self, concept_id: UUID) -> Concept | None:
         """
         Get a concept by its UUID.
 
@@ -87,7 +86,7 @@ class ConceptRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_ids(self, concept_ids: List[UUID]) -> List[Concept]:
+    async def get_by_ids(self, concept_ids: list[UUID]) -> list[Concept]:
         """
         Get multiple concepts by their UUIDs in a single query.
 
@@ -105,7 +104,7 @@ class ConceptRepository:
         )
         return list(result.scalars().all())
 
-    async def get_all_concepts(self, course_id: UUID) -> List[Concept]:
+    async def get_all_concepts(self, course_id: UUID) -> list[Concept]:
         """
         Get all concepts for a course.
 
@@ -124,7 +123,7 @@ class ConceptRepository:
 
     async def get_concepts_by_ka(
         self, course_id: UUID, knowledge_area_id: str
-    ) -> List[Concept]:
+    ) -> list[Concept]:
         """
         Get concepts for a specific knowledge area within a course.
 
@@ -158,7 +157,7 @@ class ConceptRepository:
         )
         return result.scalar_one()
 
-    async def get_concept_count_by_ka(self, course_id: UUID) -> Dict[str, int]:
+    async def get_concept_count_by_ka(self, course_id: UUID) -> dict[str, int]:
         """
         Get concept count grouped by knowledge area for a course.
 
@@ -177,7 +176,7 @@ class ConceptRepository:
 
     async def get_by_section_ref(
         self, course_id: UUID, section_ref: str
-    ) -> List[Concept]:
+    ) -> list[Concept]:
         """
         Get concepts by corpus section reference.
 
@@ -214,7 +213,7 @@ class ConceptRepository:
 
     # ==================== Prerequisite Methods ====================
 
-    async def get_prerequisites(self, concept_id: UUID) -> List[Concept]:
+    async def get_prerequisites(self, concept_id: UUID) -> list[Concept]:
         """
         Get direct prerequisites for a concept.
 
@@ -237,7 +236,7 @@ class ConceptRepository:
 
     async def get_prerequisites_with_strength(
         self, concept_id: UUID
-    ) -> List[Tuple[Concept, float, str]]:
+    ) -> list[tuple[Concept, float, str]]:
         """
         Get direct prerequisites with strength and relationship type.
 
@@ -264,7 +263,7 @@ class ConceptRepository:
 
     async def get_prerequisite_chain(
         self, concept_id: UUID, max_depth: int = 10
-    ) -> List[Tuple[Concept, int]]:
+    ) -> list[tuple[Concept, int]]:
         """
         Get full prerequisite chain using recursive CTE.
 
@@ -322,7 +321,7 @@ class ConceptRepository:
         result.sort(key=lambda x: x[1])
         return result
 
-    async def get_dependents(self, concept_id: UUID) -> List[Concept]:
+    async def get_dependents(self, concept_id: UUID) -> list[Concept]:
         """
         Get concepts that depend on this concept (reverse lookup).
 
@@ -373,7 +372,7 @@ class ConceptRepository:
         return prereq
 
     async def bulk_add_prerequisites(
-        self, prerequisites: List[PrerequisiteCreate]
+        self, prerequisites: list[PrerequisiteCreate]
     ) -> int:
         """
         Bulk add prerequisite relationships.
@@ -397,7 +396,7 @@ class ConceptRepository:
         await self.session.flush()
         return len(db_prereqs)
 
-    async def get_root_concepts(self, course_id: UUID) -> List[Concept]:
+    async def get_root_concepts(self, course_id: UUID) -> list[Concept]:
         """
         Get concepts with no prerequisites (foundational concepts).
 
@@ -424,7 +423,7 @@ class ConceptRepository:
 
     async def get_root_concepts_with_dependent_count(
         self, course_id: UUID
-    ) -> List[Tuple[Concept, int]]:
+    ) -> list[tuple[Concept, int]]:
         """
         Get root concepts with count of dependents.
 
@@ -478,7 +477,7 @@ class ConceptRepository:
         return result.rowcount
 
     async def update_prerequisite_depths(
-        self, depth_map: Dict[UUID, int]
+        self, depth_map: dict[UUID, int]
     ) -> int:
         """
         Bulk update prerequisite_depth for concepts.
@@ -502,7 +501,7 @@ class ConceptRepository:
 
     async def get_all_prerequisites_for_course(
         self, course_id: UUID
-    ) -> List[ConceptPrerequisite]:
+    ) -> list[ConceptPrerequisite]:
         """
         Get all prerequisite relationships for a course.
 
@@ -525,7 +524,7 @@ class ConceptRepository:
 
     async def get_concepts_filtered(
         self, course_id: UUID, params: ConceptListParams
-    ) -> Tuple[List[Concept], int]:
+    ) -> tuple[list[Concept], int]:
         """
         Get concepts with filtering, search, and pagination.
 
@@ -564,7 +563,7 @@ class ConceptRepository:
 
     async def get_prerequisite_chain_for_course(
         self, course_id: UUID, concept_id: UUID, max_depth: int = 10
-    ) -> List[Concept]:
+    ) -> list[Concept]:
         """
         Get full prerequisite chain for a concept within a specific course.
 
@@ -668,7 +667,7 @@ class ConceptRepository:
         )
         return result.scalar_one()
 
-    async def get_corpus_stats(self, course_id: UUID) -> Dict:
+    async def get_corpus_stats(self, course_id: UUID) -> dict:
         """
         Get comprehensive statistics for a course's concept corpus.
 

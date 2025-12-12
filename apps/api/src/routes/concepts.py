@@ -2,10 +2,7 @@
 Concept API endpoints.
 Endpoints for accessing concept information and prerequisites.
 """
-import json
 import time
-from datetime import datetime, timezone
-from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -15,7 +12,6 @@ from structlog import get_logger
 from src.db.redis_client import get_redis
 from src.db.session import get_db
 from src.dependencies import get_current_user
-from src.models.question import Question
 from src.models.user import User
 from src.repositories.concept_repository import ConceptRepository
 from src.repositories.course_repository import CourseRepository
@@ -95,8 +91,8 @@ async def get_course_id_by_slug(
 async def list_course_concepts(
     request: Request,
     course_slug: str,
-    knowledge_area_id: Optional[str] = Query(None, description="Filter by knowledge area"),
-    search: Optional[str] = Query(None, description="Search by concept name"),
+    knowledge_area_id: str | None = Query(None, description="Filter by knowledge area"),
+    search: str | None = Query(None, description="Search by concept name"),
     limit: int = Query(50, ge=1, le=200, description="Number of results to return"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
     concept_repo: ConceptRepository = Depends(get_concept_repository),
@@ -177,6 +173,79 @@ async def list_course_concepts(
     # Cache response (AC 8: 1 hour TTL)
     await redis.setex(cache_key, CONCEPT_CACHE_TTL, response.model_dump_json())
     logger.info("concept_list_cache_set", cache_key=cache_key)
+
+    return response
+
+
+@router.get(
+    "/courses/{course_slug}/concepts/stats",
+    response_model=ConceptStatsResponse,
+    summary="Get concept statistics for a course",
+    description="Returns comprehensive statistics about concepts in a course.",
+    responses={
+        200: {"description": "Statistics retrieved successfully"},
+        404: {"description": "Course not found"},
+    },
+)
+async def get_course_concept_stats(
+    request: Request,
+    course_slug: str,
+    concept_repo: ConceptRepository = Depends(get_concept_repository),
+    course_repo: CourseRepository = Depends(get_course_repository),
+    current_user: User = Depends(get_current_user),
+) -> ConceptStatsResponse:
+    """
+    Get comprehensive statistics for a course's concept corpus.
+
+    Includes:
+    - Total concept count
+    - Breakdown by knowledge area
+    - Breakdown by prerequisite depth
+    - Average prerequisites per concept
+    - Concepts with/without questions
+
+    Cached for 1 hour per AC 8.
+    """
+    start_time = time.time()
+
+    # Build cache key (AC 8: keyed by course)
+    cache_key = f"concepts:{course_slug}:stats"
+
+    # Try to get from cache
+    redis = await get_redis()
+    cached_response = await redis.get(cache_key)
+    if cached_response:
+        logger.info("concept_stats_cache_hit", cache_key=cache_key)
+        return ConceptStatsResponse.model_validate_json(cached_response)
+
+    # Get course ID by slug
+    course_id = await get_course_id_by_slug(course_slug, course_repo)
+
+    # Get statistics from database
+    stats = await concept_repo.get_corpus_stats(course_id)
+
+    # Log response time
+    elapsed_ms = (time.time() - start_time) * 1000
+    if elapsed_ms > 100:
+        logger.warning(
+            "slow_concept_stats_query",
+            course_slug=course_slug,
+            elapsed_ms=round(elapsed_ms, 2)
+        )
+
+    response = ConceptStatsResponse(
+        course_id=course_id,
+        total_concepts=stats["total_concepts"],
+        by_knowledge_area=stats["by_knowledge_area"],
+        by_depth=stats["by_depth"],
+        average_prerequisites_per_concept=stats["average_prerequisites_per_concept"],
+        concepts_with_questions=stats["concepts_with_questions"],
+        concepts_without_questions=stats["concepts_without_questions"],
+    )
+
+    # Cache response (AC 8: 1 hour TTL)
+    await redis.setex(cache_key, CONCEPT_CACHE_TTL, response.model_dump_json())
+    logger.info("concept_stats_cache_set", cache_key=cache_key)
 
     return response
 
@@ -424,85 +493,12 @@ async def get_course_concept_questions(
     )
 
 
-@router.get(
-    "/courses/{course_slug}/concepts/stats",
-    response_model=ConceptStatsResponse,
-    summary="Get concept statistics for a course",
-    description="Returns comprehensive statistics about concepts in a course.",
-    responses={
-        200: {"description": "Statistics retrieved successfully"},
-        404: {"description": "Course not found"},
-    },
-)
-async def get_course_concept_stats(
-    request: Request,
-    course_slug: str,
-    concept_repo: ConceptRepository = Depends(get_concept_repository),
-    course_repo: CourseRepository = Depends(get_course_repository),
-    current_user: User = Depends(get_current_user),
-) -> ConceptStatsResponse:
-    """
-    Get comprehensive statistics for a course's concept corpus.
-
-    Includes:
-    - Total concept count
-    - Breakdown by knowledge area
-    - Breakdown by prerequisite depth
-    - Average prerequisites per concept
-    - Concepts with/without questions
-
-    Cached for 1 hour per AC 8.
-    """
-    start_time = time.time()
-
-    # Build cache key (AC 8: keyed by course)
-    cache_key = f"concepts:{course_slug}:stats"
-
-    # Try to get from cache
-    redis = await get_redis()
-    cached_response = await redis.get(cache_key)
-    if cached_response:
-        logger.info("concept_stats_cache_hit", cache_key=cache_key)
-        return ConceptStatsResponse.model_validate_json(cached_response)
-
-    # Get course ID by slug
-    course_id = await get_course_id_by_slug(course_slug, course_repo)
-
-    # Get statistics from database
-    stats = await concept_repo.get_corpus_stats(course_id)
-
-    # Log response time
-    elapsed_ms = (time.time() - start_time) * 1000
-    if elapsed_ms > 100:
-        logger.warning(
-            "slow_concept_stats_query",
-            course_slug=course_slug,
-            elapsed_ms=round(elapsed_ms, 2)
-        )
-
-    response = ConceptStatsResponse(
-        course_id=course_id,
-        total_concepts=stats["total_concepts"],
-        by_knowledge_area=stats["by_knowledge_area"],
-        by_depth=stats["by_depth"],
-        average_prerequisites_per_concept=stats["average_prerequisites_per_concept"],
-        concepts_with_questions=stats["concepts_with_questions"],
-        concepts_without_questions=stats["concepts_without_questions"],
-    )
-
-    # Cache response (AC 8: 1 hour TTL)
-    await redis.setex(cache_key, CONCEPT_CACHE_TTL, response.model_dump_json())
-    logger.info("concept_stats_cache_set", cache_key=cache_key)
-
-    return response
-
-
 # ==================== Legacy Endpoints (from previous stories) ====================
 
 
 @router.get(
     "/{concept_id}/prerequisites",
-    response_model=List[PrerequisiteWithConcept],
+    response_model=list[PrerequisiteWithConcept],
     summary="Get concept prerequisites",
     description="Returns direct prerequisites for a concept. Requires authentication.",
     responses={
@@ -516,7 +512,7 @@ async def get_concept_prerequisites(
         False,
         description="If true, return full prerequisite chain (recursive)"
     ),
-    depth: Optional[int] = Query(
+    depth: int | None = Query(
         None,
         ge=1,
         le=10,
@@ -524,7 +520,7 @@ async def get_concept_prerequisites(
     ),
     repo: ConceptRepository = Depends(get_concept_repository),
     current_user: User = Depends(get_current_user),
-) -> List[PrerequisiteWithConcept]:
+) -> list[PrerequisiteWithConcept]:
     """
     Get prerequisites for a concept.
 
@@ -647,7 +643,7 @@ async def get_prerequisite_chain(
 
 @router.get(
     "/{concept_id}/dependents",
-    response_model=List[ConceptResponse],
+    response_model=list[ConceptResponse],
     summary="Get concepts that depend on this one",
     description="Returns concepts that have this concept as a prerequisite.",
     responses={
@@ -659,7 +655,7 @@ async def get_concept_dependents(
     concept_id: UUID,
     repo: ConceptRepository = Depends(get_concept_repository),
     current_user: User = Depends(get_current_user),
-) -> List[ConceptResponse]:
+) -> list[ConceptResponse]:
     """
     Get concepts that depend on this concept.
 
@@ -699,7 +695,7 @@ async def get_concept_dependents(
 
 @router.get(
     "/roots/{course_id}",
-    response_model=List[RootConceptResponse],
+    response_model=list[RootConceptResponse],
     summary="Get foundational concepts",
     description="Returns concepts with no prerequisites (root concepts).",
     responses={
@@ -710,7 +706,7 @@ async def get_root_concepts(
     course_id: UUID,
     repo: ConceptRepository = Depends(get_concept_repository),
     current_user: User = Depends(get_current_user),
-) -> List[RootConceptResponse]:
+) -> list[RootConceptResponse]:
     """
     Get foundational concepts for a course.
 

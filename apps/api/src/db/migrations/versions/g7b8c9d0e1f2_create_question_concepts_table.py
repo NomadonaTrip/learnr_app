@@ -9,7 +9,6 @@ between questions and concepts. Each question can map to 1-5 concepts with
 a relevance score indicating how directly the question tests that concept.
 """
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op
@@ -17,9 +16,9 @@ from sqlalchemy.dialects.postgresql import UUID
 
 # revision identifiers, used by Alembic.
 revision: str = 'g7b8c9d0e1f2'
-down_revision: Union[str, None] = 'f6a7b8c9d0e1'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = 'f6a7b8c9d0e1'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

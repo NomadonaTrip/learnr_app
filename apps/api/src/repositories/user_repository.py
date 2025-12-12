@@ -3,12 +3,14 @@ User repository for database operations on User model.
 Implements repository pattern for data access.
 """
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
 from uuid import UUID
-from src.models.user import User
+
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.exceptions import ConflictError, DatabaseError
+from src.models.user import User
 
 
 class UserRepository:
@@ -45,8 +47,8 @@ class UserRepository:
         except IntegrityError as e:
             await self.session.rollback()
             if "unique constraint" in str(e).lower():
-                raise ConflictError(f"Email {email} already registered")
-            raise DatabaseError("Failed to create user")
+                raise ConflictError(f"Email {email} already registered") from e
+            raise DatabaseError("Failed to create user") from e
 
     async def get_by_email(self, email: str) -> User | None:
         """

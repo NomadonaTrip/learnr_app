@@ -4,43 +4,43 @@ FastAPI application entry point
 """
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from sqlalchemy import text
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import text
 
 from src.config import settings
 from src.db import engine
-from src.db.redis_client import get_redis, close_redis, test_redis_connection
-from src.db.qdrant_client import get_qdrant, close_qdrant, test_qdrant_connection
-from src.routes import auth, concepts, courses, health, questions, reading, users
-from src.utils.rate_limiter import limiter
-from src.middleware.error_handler import (
-    conflict_error_handler,
-    validation_error_handler,
-    database_error_handler,
-    authentication_error_handler,
-    authorization_error_handler,
-    not_found_error_handler,
-    rate_limit_error_handler,
-    token_invalid_error_handler,
-    token_expired_error_handler,
-    token_already_used_error_handler
-)
+from src.db.qdrant_client import close_qdrant, test_qdrant_connection
+from src.db.redis_client import close_redis, test_redis_connection
 from src.exceptions import (
-    ConflictError,
-    ValidationError,
-    DatabaseError,
     AuthenticationError,
     AuthorizationError,
+    ConflictError,
+    DatabaseError,
     NotFoundError,
     RateLimitError,
-    TokenInvalidError,
+    TokenAlreadyUsedError,
     TokenExpiredError,
-    TokenAlreadyUsedError
+    TokenInvalidError,
+    ValidationError,
 )
+from src.middleware.error_handler import (
+    authentication_error_handler,
+    authorization_error_handler,
+    conflict_error_handler,
+    database_error_handler,
+    not_found_error_handler,
+    rate_limit_error_handler,
+    token_already_used_error_handler,
+    token_expired_error_handler,
+    token_invalid_error_handler,
+    validation_error_handler,
+)
+from src.routes import auth, concepts, courses, health, questions, reading, users
+from src.utils.rate_limiter import limiter
 
 
 @asynccontextmanager

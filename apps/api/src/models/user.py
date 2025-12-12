@@ -3,7 +3,7 @@ User SQLAlchemy model.
 Represents the users table with embedded onboarding data fields.
 """
 import uuid
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, CheckConstraint, Column, Date, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -59,7 +59,7 @@ class User(Base):
     )
 
     # Relationships
-    enrollments: Mapped[List["Enrollment"]] = relationship(
+    enrollments: Mapped[list["Enrollment"]] = relationship(
         "Enrollment",
         back_populates="user",
         cascade="all, delete-orphan"

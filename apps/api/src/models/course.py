@@ -3,7 +3,7 @@ Course SQLAlchemy model.
 Represents the courses table for multi-course support.
 """
 import uuid
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -69,22 +69,22 @@ class Course(Base):
     )
 
     # Relationships
-    enrollments: Mapped[List["Enrollment"]] = relationship(
+    enrollments: Mapped[list["Enrollment"]] = relationship(
         "Enrollment",
         back_populates="course",
         cascade="all, delete-orphan"
     )
-    concepts: Mapped[List["Concept"]] = relationship(
+    concepts: Mapped[list["Concept"]] = relationship(
         "Concept",
         back_populates="course",
         cascade="all, delete-orphan"
     )
-    questions: Mapped[List["Question"]] = relationship(
+    questions: Mapped[list["Question"]] = relationship(
         "Question",
         back_populates="course",
         cascade="all, delete-orphan"
     )
-    reading_chunks: Mapped[List["ReadingChunk"]] = relationship(
+    reading_chunks: Mapped[list["ReadingChunk"]] = relationship(
         "ReadingChunk",
         back_populates="course",
         cascade="all, delete-orphan"

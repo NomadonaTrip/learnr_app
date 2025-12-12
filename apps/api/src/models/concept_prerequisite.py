@@ -2,7 +2,6 @@
 ConceptPrerequisite SQLAlchemy model.
 Represents prerequisite relationships between concepts for BKT prioritization.
 """
-import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, DateTime, Float, ForeignKey, String

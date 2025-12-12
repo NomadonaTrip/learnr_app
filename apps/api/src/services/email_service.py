@@ -11,7 +11,6 @@ This service handles all email sending functionality including:
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 # SendGrid SDK (will be installed via requirements.txt)
 try:
@@ -69,7 +68,7 @@ class EmailService:
         to_email: str,
         subject: str,
         html_content: str,
-        text_content: Optional[str] = None
+        text_content: str | None = None
     ) -> bool:
         """
         Send an email via SendGrid.
@@ -122,7 +121,7 @@ class EmailService:
         self,
         to_email: str,
         reset_token: str,
-        user_name: Optional[str] = None
+        user_name: str | None = None
     ) -> bool:
         """
         Send password reset email with reset link.

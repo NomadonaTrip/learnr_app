@@ -4,7 +4,6 @@ Follows the repository pattern for question-related database operations.
 Supports multi-course architecture.
 """
 import logging
-from typing import List, Optional, Tuple
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -55,7 +54,7 @@ class QuestionRepository:
             await self.db.rollback()
             raise
 
-    async def bulk_create_questions(self, questions: List[dict]) -> int:
+    async def bulk_create_questions(self, questions: list[dict]) -> int:
         """
         Bulk insert questions with transaction support and duplicate handling.
 
@@ -113,8 +112,8 @@ class QuestionRepository:
     async def get_question_by_id(
         self,
         question_id: UUID,
-        course_id: Optional[UUID] = None
-    ) -> Optional[Question]:
+        course_id: UUID | None = None
+    ) -> Question | None:
         """
         Retrieve question by ID, optionally scoped to a course.
 
@@ -134,11 +133,11 @@ class QuestionRepository:
     async def get_questions_by_course(
         self,
         course_id: UUID,
-        knowledge_area_id: Optional[str] = None,
-        is_active: Optional[bool] = True,
+        knowledge_area_id: str | None = None,
+        is_active: bool | None = True,
         limit: int = 100,
         offset: int = 0
-    ) -> Tuple[List[Question], int]:
+    ) -> tuple[list[Question], int]:
         """
         Retrieve questions for a specific course with optional filters.
 
@@ -177,7 +176,7 @@ class QuestionRepository:
         self,
         course_id: UUID,
         knowledge_area_id: str
-    ) -> List[Question]:
+    ) -> list[Question]:
         """
         Retrieve all questions for a specific knowledge area within a course.
 
@@ -196,7 +195,7 @@ class QuestionRepository:
         )
         return list(result.scalars().all())
 
-    async def get_all_questions(self, course_id: UUID) -> List[Question]:
+    async def get_all_questions(self, course_id: UUID) -> list[Question]:
         """
         Retrieve all questions for a course.
 
@@ -213,7 +212,7 @@ class QuestionRepository:
         )
         return list(result.scalars().all())
 
-    async def get_questions_with_concepts(self, course_id: UUID) -> List[Question]:
+    async def get_questions_with_concepts(self, course_id: UUID) -> list[Question]:
         """
         Retrieve all questions with their concept mappings eagerly loaded.
 
@@ -234,14 +233,16 @@ class QuestionRepository:
     async def get_questions_by_concept(
         self,
         concept_id: UUID,
-        course_id: Optional[UUID] = None
-    ) -> List[Question]:
+        course_id: UUID | None = None,
+        limit: int | None = None
+    ) -> list[Question]:
         """
-        Retrieve all questions mapped to a specific concept.
+        Retrieve questions mapped to a specific concept.
 
         Args:
             concept_id: Concept UUID
             course_id: Optional course_id filter for safety
+            limit: Optional limit on number of questions to return
 
         Returns:
             List of Question instances
@@ -254,6 +255,8 @@ class QuestionRepository:
         )
         if course_id:
             query = query.where(Question.course_id == course_id)
+        if limit:
+            query = query.limit(limit)
 
         result = await self.db.execute(query)
         return list(result.scalars().all())
@@ -291,7 +294,7 @@ class QuestionRepository:
             .where(Question.is_active.is_(True))
             .group_by(Question.knowledge_area_id)
         )
-        return {ka: count for ka, count in result.all()}
+        return dict(result.all())
 
     async def get_question_count_by_difficulty(self, course_id: UUID) -> dict[str, int]:
         """
@@ -326,11 +329,11 @@ class QuestionRepository:
         self,
         query,
         course_id: UUID,
-        concept_ids: Optional[List[UUID]] = None,
-        knowledge_area_id: Optional[str] = None,
-        difficulty_min: Optional[float] = None,
-        difficulty_max: Optional[float] = None,
-        exclude_ids: Optional[List[UUID]] = None,
+        concept_ids: list[UUID] | None = None,
+        knowledge_area_id: str | None = None,
+        difficulty_min: float | None = None,
+        difficulty_max: float | None = None,
+        exclude_ids: list[UUID] | None = None,
     ):
         """
         Apply common filters to a question query.
@@ -382,14 +385,14 @@ class QuestionRepository:
     async def get_questions_filtered(
         self,
         course_id: UUID,
-        concept_ids: Optional[List[UUID]] = None,
-        knowledge_area_id: Optional[str] = None,
+        concept_ids: list[UUID] | None = None,
+        knowledge_area_id: str | None = None,
         difficulty_min: float = 0.0,
         difficulty_max: float = 1.0,
-        exclude_ids: Optional[List[UUID]] = None,
+        exclude_ids: list[UUID] | None = None,
         limit: int = 10,
         offset: int = 0
-    ) -> Tuple[List[Tuple[Question, List[UUID]]], int]:
+    ) -> tuple[list[tuple[Question, list[UUID]]], int]:
         """
         Get filtered questions with concept IDs for a specific course.
 
@@ -509,7 +512,7 @@ class QuestionRepository:
 
     async def bulk_add_concept_mappings(
         self,
-        mappings: List[dict]
+        mappings: list[dict]
     ) -> int:
         """
         Bulk insert question-concept mappings.
@@ -534,7 +537,7 @@ class QuestionRepository:
     async def get_concept_mappings_for_question(
         self,
         question_id: UUID
-    ) -> List[QuestionConcept]:
+    ) -> list[QuestionConcept]:
         """
         Get all concept mappings for a question.
 
@@ -550,7 +553,7 @@ class QuestionRepository:
         )
         return list(result.scalars().all())
 
-    async def get_questions_without_concepts(self, course_id: UUID) -> List[Question]:
+    async def get_questions_without_concepts(self, course_id: UUID) -> list[Question]:
         """
         Get questions that don't have any concept mappings.
 
@@ -598,7 +601,7 @@ class QuestionRepository:
     # Rollback Support
     # =====================================
 
-    async def delete_questions_by_ids(self, question_ids: List[UUID]) -> int:
+    async def delete_questions_by_ids(self, question_ids: list[UUID]) -> int:
         """
         Delete questions by list of IDs (used for rollback).
 
@@ -621,7 +624,7 @@ class QuestionRepository:
         logger.info(f"Deleted {result.rowcount} questions")
         return result.rowcount
 
-    async def deactivate_questions_by_ids(self, question_ids: List[UUID]) -> int:
+    async def deactivate_questions_by_ids(self, question_ids: list[UUID]) -> int:
         """
         Soft-delete questions by setting is_active=False.
 

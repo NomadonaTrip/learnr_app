@@ -4,7 +4,7 @@ Embedding Service for generating OpenAI embeddings.
 This service provides async methods for generating embeddings using OpenAI's
 text-embedding-3-large model with batching and retry logic.
 """
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from openai import APIConnectionError, APIError, AsyncOpenAI, RateLimitError
 from tenacity import (
@@ -18,8 +18,8 @@ from ..config import settings
 from ..utils.logging_config import get_logger
 
 if TYPE_CHECKING:
-    from ..models.reading_chunk import ReadingChunk
     from ..models.concept import Concept
+    from ..models.reading_chunk import ReadingChunk
 
 logger = get_logger(__name__)
 
@@ -56,7 +56,7 @@ class EmbeddingService:
         wait=wait_exponential(multiplier=1, min=2, max=60),
         reraise=True,
     )
-    async def generate_embedding(self, text: str) -> List[float]:
+    async def generate_embedding(self, text: str) -> list[float]:
         """
         Generate embedding for a single text.
 
@@ -83,7 +83,7 @@ class EmbeddingService:
         wait=wait_exponential(multiplier=1, min=2, max=60),
         reraise=True,
     )
-    async def _batch_embed_texts(self, texts: List[str]) -> tuple[List[List[float]], int]:
+    async def _batch_embed_texts(self, texts: list[str]) -> tuple[list[list[float]], int]:
         """
         Internal method to generate embeddings for a batch of texts with retry.
 
@@ -113,10 +113,10 @@ class EmbeddingService:
 
     async def batch_generate_embeddings(
         self,
-        texts: List[str],
+        texts: list[str],
         batch_size: int = MAX_BATCH_SIZE,
         progress_callback=None
-    ) -> tuple[List[List[float]], int]:
+    ) -> tuple[list[list[float]], int]:
         """
         Generate embeddings for multiple texts in batches.
 
@@ -175,7 +175,7 @@ class EmbeddingService:
     @staticmethod
     def build_chunk_embedding_text(
         chunk: "ReadingChunk",
-        concepts: List["Concept"]
+        concepts: list["Concept"]
     ) -> str:
         """
         Build embedding text for a reading chunk with concept metadata.

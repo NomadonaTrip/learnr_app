@@ -4,20 +4,21 @@ Helper functions for working with Qdrant vector database with multi-course suppo
 """
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any
 from uuid import UUID
-from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchAny, Range
+
+from qdrant_client.models import FieldCondition, Filter, MatchAny, MatchValue, Range
 
 logger = logging.getLogger(__name__)
 
 
 def build_filter_conditions(
-    course_id: Optional[UUID] = None,
-    knowledge_area_id: Optional[str] = None,
-    difficulty_min: Optional[float] = None,
-    difficulty_max: Optional[float] = None,
-    concept_ids: Optional[List[UUID]] = None,
-    section_ref: Optional[str] = None,
+    course_id: UUID | None = None,
+    knowledge_area_id: str | None = None,
+    difficulty_min: float | None = None,
+    difficulty_max: float | None = None,
+    concept_ids: list[UUID] | None = None,
+    section_ref: str | None = None,
 ) -> Filter | None:
     """
     Build Qdrant filter conditions for multi-course queries.
@@ -107,10 +108,10 @@ def build_filter_conditions(
 
 
 def build_multi_course_query(
-    course_ids: List[UUID],
-    knowledge_area_id: Optional[str] = None,
-    difficulty_min: Optional[float] = None,
-    difficulty_max: Optional[float] = None,
+    course_ids: list[UUID],
+    knowledge_area_id: str | None = None,
+    difficulty_min: float | None = None,
+    difficulty_max: float | None = None,
 ) -> Filter | None:
     """
     Build Qdrant filter for querying across multiple courses.
@@ -169,10 +170,10 @@ def build_multi_course_query(
 
 
 def paginate_results(
-    results: List[Dict[str, Any]],
+    results: list[dict[str, Any]],
     offset: int = 0,
     limit: int = 10
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Paginate search results.
 
@@ -270,7 +271,7 @@ def log_qdrant_operation(
     success: bool,
     duration_ms: int | None = None,
     error: str | None = None,
-    metadata: Dict[str, Any] | None = None
+    metadata: dict[str, Any] | None = None
 ) -> None:
     """
     Log Qdrant operations for debugging and monitoring.
@@ -313,7 +314,7 @@ def log_qdrant_operation(
         logger.error(f"Qdrant operation failed: {log_data}")
 
 
-def validate_vector_dimensions(vector: List[float], expected_dimensions: int = 3072) -> bool:
+def validate_vector_dimensions(vector: list[float], expected_dimensions: int = 3072) -> bool:
     """
     Validate that a vector has the expected number of dimensions.
 
@@ -343,7 +344,7 @@ def validate_vector_dimensions(vector: List[float], expected_dimensions: int = 3
     return True
 
 
-def format_search_result(result: Dict[str, Any]) -> Dict[str, Any]:
+def format_search_result(result: dict[str, Any]) -> dict[str, Any]:
     """
     Format a Qdrant search result for API response.
 

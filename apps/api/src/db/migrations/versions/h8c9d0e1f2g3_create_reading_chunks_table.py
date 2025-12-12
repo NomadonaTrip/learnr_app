@@ -6,17 +6,16 @@ Create Date: 2025-12-10
 
 """
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 
 # revision identifiers, used by Alembic.
 revision: str = 'h8c9d0e1f2g3'
-down_revision: Union[str, None] = 'g7b8c9d0e1f2'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = 'g7b8c9d0e1f2'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

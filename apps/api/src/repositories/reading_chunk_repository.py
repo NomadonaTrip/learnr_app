@@ -2,13 +2,10 @@
 ReadingChunk repository for database operations on ReadingChunk model.
 Implements repository pattern for data access with multi-course support.
 """
-from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
-from sqlalchemy import func, select, cast
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.types import String
 
 from src.models.reading_chunk import ReadingChunk
 from src.schemas.reading_chunk import ChunkCreate, ReadingQueryParams
@@ -45,7 +42,7 @@ class ReadingChunkRepository:
         await self.session.refresh(db_chunk)
         return db_chunk
 
-    async def bulk_create(self, chunks: List[ChunkCreate]) -> int:
+    async def bulk_create(self, chunks: list[ChunkCreate]) -> int:
         """
         Bulk create reading chunks for efficiency.
 
@@ -72,7 +69,7 @@ class ReadingChunkRepository:
         await self.session.flush()
         return len(db_chunks)
 
-    async def get_by_id(self, chunk_id: UUID) -> Optional[ReadingChunk]:
+    async def get_by_id(self, chunk_id: UUID) -> ReadingChunk | None:
         """
         Get a reading chunk by its UUID.
 
@@ -87,7 +84,7 @@ class ReadingChunkRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_all_chunks(self, course_id: UUID) -> List[ReadingChunk]:
+    async def get_all_chunks(self, course_id: UUID) -> list[ReadingChunk]:
         """
         Get all reading chunks for a course.
 
@@ -106,7 +103,7 @@ class ReadingChunkRepository:
 
     async def get_chunks_by_concept(
         self, concept_id: UUID, course_id: UUID
-    ) -> List[ReadingChunk]:
+    ) -> list[ReadingChunk]:
         """
         Get reading chunks linked to a specific concept.
         Uses GIN index for efficient array containment queries.
@@ -128,7 +125,7 @@ class ReadingChunkRepository:
 
     async def get_chunks_by_section(
         self, section_ref: str, course_id: UUID
-    ) -> List[ReadingChunk]:
+    ) -> list[ReadingChunk]:
         """
         Get reading chunks for a specific corpus section.
 
@@ -149,7 +146,7 @@ class ReadingChunkRepository:
 
     async def get_chunks_by_knowledge_area(
         self, knowledge_area_id: str, course_id: UUID
-    ) -> List[ReadingChunk]:
+    ) -> list[ReadingChunk]:
         """
         Get reading chunks for a specific knowledge area.
 
@@ -184,7 +181,7 @@ class ReadingChunkRepository:
         )
         return result.scalar_one()
 
-    async def get_chunk_count_by_ka(self, course_id: UUID) -> Dict[str, int]:
+    async def get_chunk_count_by_ka(self, course_id: UUID) -> dict[str, int]:
         """
         Get chunk count grouped by knowledge area for a course.
 
@@ -206,7 +203,7 @@ class ReadingChunkRepository:
 
     async def get_chunks_without_concepts(
         self, course_id: UUID
-    ) -> List[ReadingChunk]:
+    ) -> list[ReadingChunk]:
         """
         Get chunks with empty concept_ids array (orphan chunks).
         Used for validation reporting.
@@ -227,7 +224,7 @@ class ReadingChunkRepository:
 
     async def get_chunks_by_concepts(
         self, course_id: UUID, params: ReadingQueryParams
-    ) -> Tuple[List[ReadingChunk], int]:
+    ) -> tuple[list[ReadingChunk], int]:
         """
         Get reading chunks matching requested concepts with relevance ranking.
 
@@ -262,8 +259,6 @@ class ReadingChunkRepository:
 
         # Calculate relevance score using array_length of intersection
         # This counts how many of the requested concepts each chunk contains
-        concept_array = cast(concept_ids_str, ARRAY(String))
-
         # PostgreSQL: array_length(concept_ids && ARRAY[...], 1) gives match count
         # We'll use a raw expression for this
         from sqlalchemy import text

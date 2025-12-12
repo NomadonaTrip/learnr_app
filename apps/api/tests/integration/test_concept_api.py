@@ -105,16 +105,22 @@ async def test_questions(
         Question(
             course_id=test_course.id,
             question_text="What is stakeholder analysis?",
+            options={"A": "Process of identifying stakeholders", "B": "Option B", "C": "Option C", "D": "Option D"},
             correct_answer="A",
+            explanation="Stakeholder analysis identifies and analyzes stakeholders.",
+            knowledge_area_id="ba-planning",
             difficulty=0.5,
-            vendor_id="TEST"
+            source="vendor"
         ),
         Question(
             course_id=test_course.id,
             question_text="Define business need",
+            options={"A": "Option A", "B": "Gap or opportunity", "C": "Option C", "D": "Option D"},
             correct_answer="B",
+            explanation="Business need is a problem or opportunity to be addressed.",
+            knowledge_area_id="ba-planning",
             difficulty=0.3,
-            vendor_id="TEST"
+            source="vendor"
         )
     ]
 
@@ -404,9 +410,9 @@ class TestGetStats:
         assert data["by_knowledge_area"]["ba-planning"] == 2
         assert data["by_knowledge_area"]["elicitation"] == 1
 
-        # Check depth breakdown
-        assert 0 in data["by_depth"]
-        assert 1 in data["by_depth"]
+        # Check depth breakdown (JSON keys are always strings)
+        assert "0" in data["by_depth"]
+        assert "1" in data["by_depth"]
 
         # Check question statistics
         assert data["concepts_with_questions"] == 2

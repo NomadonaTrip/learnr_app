@@ -3,26 +3,28 @@ Authentication routes for user registration and login.
 """
 
 import logging
-from fastapi import APIRouter, Depends, status, Request
+
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.schemas.user import UserCreate
+
+from src.config import settings
+from src.db.session import get_db
+from src.exceptions import RateLimitError
+from src.repositories.password_reset_repository import PasswordResetRepository
+from src.repositories.user_repository import UserRepository
 from src.schemas.auth import (
-    RegisterResponse,
-    LoginRequest,
-    LoginResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
+    LoginRequest,
+    LoginResponse,
+    RegisterResponse,
     ResetPasswordRequest,
     ResetPasswordResponse,
 )
+from src.schemas.user import UserCreate
 from src.services.auth_service import AuthService
-from src.repositories.user_repository import UserRepository
-from src.repositories.password_reset_repository import PasswordResetRepository
-from src.db.session import get_db
-from src.config import settings
-from src.utils.rate_limiter import limiter
 from src.utils.rate_limit import check_rate_limit, reset_rate_limit
-from src.exceptions import RateLimitError
+from src.utils.rate_limiter import limiter
 
 logger = logging.getLogger(__name__)
 

@@ -4,6 +4,7 @@ Schemas for request/response data structures for authentication endpoints.
 """
 
 from pydantic import BaseModel, EmailStr, field_validator
+
 from src.schemas.user import UserResponse
 
 

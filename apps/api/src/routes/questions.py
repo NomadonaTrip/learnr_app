@@ -4,7 +4,6 @@ Endpoints for retrieving questions filtered by concept, knowledge area, and diff
 """
 import logging
 import time
-from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -53,11 +52,11 @@ def get_course_repository(db: AsyncSession = Depends(get_db)) -> CourseRepositor
 async def get_questions(
     request: Request,
     course_slug: str,
-    concept_ids: Optional[List[UUID]] = Query(
+    concept_ids: list[UUID] | None = Query(
         None,
         description="Filter by concept IDs (ANY match)"
     ),
-    knowledge_area_id: Optional[str] = Query(
+    knowledge_area_id: str | None = Query(
         None,
         max_length=50,
         description="Filter by knowledge area ID"
@@ -74,7 +73,7 @@ async def get_questions(
         le=1.0,
         description="Maximum difficulty (0.0-1.0)"
     ),
-    exclude_ids: Optional[List[UUID]] = Query(
+    exclude_ids: list[UUID] | None = Query(
         None,
         description="Question IDs to exclude (recently asked)"
     ),

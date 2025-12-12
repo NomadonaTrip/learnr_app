@@ -30,6 +30,8 @@ from src.main import app
 from src.db.session import Base, AsyncSessionLocal
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from src.config import settings
+from src.utils.auth import create_access_token
+from uuid import uuid4
 
 
 # ============================================================================
@@ -66,8 +68,8 @@ def reset_rate_limiter(test_app):
 @pytest.fixture(autouse=True)
 async def reset_redis_rate_limits_and_cache():
     """
-    Reset Redis-based rate limits and user cache before each test.
-    This clears rate_limit:* and user_cache:* keys from Redis.
+    Reset Redis-based rate limits and caches before each test.
+    This clears rate_limit:*, user_cache:*, and concepts:* keys from Redis.
     """
     from src.db.redis_client import get_redis
     try:
@@ -80,6 +82,10 @@ async def reset_redis_rate_limits_and_cache():
         cache_keys = await redis.keys("user_cache:*")
         if cache_keys:
             await redis.delete(*cache_keys)
+        # Delete all concept cache keys
+        concept_keys = await redis.keys("concepts:*")
+        if concept_keys:
+            await redis.delete(*concept_keys)
     except Exception:
         # Ignore errors if Redis is not available
         pass
@@ -90,6 +96,9 @@ async def reset_redis_rate_limits_and_cache():
         cache_keys = await redis.keys("user_cache:*")
         if cache_keys:
             await redis.delete(*cache_keys)
+        concept_keys = await redis.keys("concepts:*")
+        if concept_keys:
+            await redis.delete(*concept_keys)
     except Exception:
         pass
 
@@ -125,8 +134,22 @@ async def async_client(client: AsyncClient) -> AsyncGenerator[AsyncClient, None]
 # Database Fixtures
 # ============================================================================
 
-# NOTE: event_loop fixture removed - pytest-asyncio 0.23+ manages event loops
-# automatically. Using asyncio_default_fixture_loop_scope = session in pytest.ini
+# Event loop fixture for pytest-asyncio 0.21.x compatibility
+# Required for session-scoped async fixtures like test_engine
+@pytest.fixture(scope="session")
+def event_loop():
+    """
+    Create a session-scoped event loop for async fixtures.
+
+    pytest-asyncio 0.21.x requires an explicit event_loop fixture for
+    session-scoped async fixtures. This will be automatically managed
+    in pytest-asyncio 0.23+.
+    """
+    import asyncio
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture(scope="session")
@@ -417,7 +440,29 @@ def sample_concept_data():
 # ============================================================================
 
 @pytest.fixture
-def auth_headers():
+async def test_user(db_session: AsyncSession):
+    """
+    Create a test user in the database for authentication testing.
+
+    Returns:
+        User object with hashed password
+    """
+    from src.models.user import User
+    from src.utils.auth import hash_password
+
+    user = User(
+        email="testuser@example.com",
+        hashed_password=hash_password("testpass123"),
+        is_admin=False
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def auth_headers(test_user):
     """
     Generate authentication headers for testing protected endpoints.
 
@@ -426,17 +471,34 @@ def auth_headers():
             response = await client.get("/api/me", headers=auth_headers)
             assert response.status_code == 200
     """
-    # TODO: Generate real JWT when auth is implemented
-    fake_token = "fake-jwt-token-for-testing"
-    return {"Authorization": f"Bearer {fake_token}"}
+    # Generate real JWT token using actual test user ID
+    token = create_access_token(data={"sub": str(test_user.id)})
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
-def admin_auth_headers():
+async def admin_test_user(db_session: AsyncSession):
+    """Create an admin test user in the database."""
+    from src.models.user import User
+    from src.utils.auth import hash_password
+
+    user = User(
+        email="admin@example.com",
+        hashed_password=hash_password("adminpass123"),
+        is_admin=True
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def admin_auth_headers(admin_test_user):
     """Authentication headers for admin user."""
-    # TODO: Generate admin JWT when auth is implemented
-    fake_admin_token = "fake-admin-jwt-token-for-testing"
-    return {"Authorization": f"Bearer {fake_admin_token}"}
+    # Generate real JWT token for admin using actual admin user ID
+    token = create_access_token(data={"sub": str(admin_test_user.id)})
+    return {"Authorization": f"Bearer {token}"}
 
 
 # ============================================================================

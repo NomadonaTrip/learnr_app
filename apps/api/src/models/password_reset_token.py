@@ -3,7 +3,7 @@ Password Reset Token SQLAlchemy model.
 Represents password reset tokens for secure password recovery flow.
 """
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID
@@ -75,7 +75,7 @@ class PasswordResetToken(Base):
         """
         return (
             self.used_at is None and
-            self.expires_at > datetime.now(timezone.utc)
+            self.expires_at > datetime.now(UTC)
         )
 
     def __repr__(self) -> str:

@@ -3,7 +3,6 @@ Question Pydantic schemas for request/response validation.
 Supports multi-course architecture with concept mapping.
 """
 from datetime import datetime
-from typing import Dict, List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -26,7 +25,7 @@ class QuestionBase(BaseModel):
     knowledge_area_id: str = Field(..., max_length=50, description="Knowledge area ID")
     difficulty: float = Field(0.5, ge=0.0, le=1.0, description="IRT difficulty (0.0-1.0)")
     source: str = Field("vendor", max_length=50, description="Question source")
-    corpus_reference: Optional[str] = Field(None, max_length=100, description="Source reference")
+    corpus_reference: str | None = Field(None, max_length=100, description="Source reference")
 
 
 class QuestionCreate(QuestionBase):
@@ -39,17 +38,17 @@ class QuestionCreate(QuestionBase):
 
 class QuestionUpdate(BaseModel):
     """Schema for updating a question."""
-    question_text: Optional[str] = Field(None, min_length=10)
-    options: Optional[QuestionOptionsSchema] = None
-    correct_answer: Optional[str] = Field(None, pattern="^[ABCD]$")
-    explanation: Optional[str] = Field(None, min_length=10)
-    knowledge_area_id: Optional[str] = Field(None, max_length=50)
-    difficulty: Optional[float] = Field(None, ge=0.0, le=1.0)
-    discrimination: Optional[float] = Field(None, ge=0.0, le=5.0)
-    guess_rate: Optional[float] = Field(None, ge=0.0, le=1.0)
-    slip_rate: Optional[float] = Field(None, ge=0.0, le=1.0)
-    corpus_reference: Optional[str] = Field(None, max_length=100)
-    is_active: Optional[bool] = None
+    question_text: str | None = Field(None, min_length=10)
+    options: QuestionOptionsSchema | None = None
+    correct_answer: str | None = Field(None, pattern="^[ABCD]$")
+    explanation: str | None = Field(None, min_length=10)
+    knowledge_area_id: str | None = Field(None, max_length=50)
+    difficulty: float | None = Field(None, ge=0.0, le=1.0)
+    discrimination: float | None = Field(None, ge=0.0, le=5.0)
+    guess_rate: float | None = Field(None, ge=0.0, le=1.0)
+    slip_rate: float | None = Field(None, ge=0.0, le=1.0)
+    corpus_reference: str | None = Field(None, max_length=100)
+    is_active: bool | None = None
 
 
 class QuestionResponse(QuestionBase):
@@ -70,7 +69,7 @@ class QuestionResponse(QuestionBase):
 
 class QuestionWithConceptsResponse(QuestionResponse):
     """Schema for question with mapped concepts."""
-    concepts: List["ConceptMappingResponse"] = Field(default_factory=list)
+    concepts: list["ConceptMappingResponse"] = Field(default_factory=list)
 
 
 # =====================================
@@ -88,23 +87,23 @@ class QuestionImport(BaseModel):
     knowledge_area: str = Field(..., description="Knowledge area name (will be mapped to ID)")
 
     # Support both formats for options
-    options: Optional[Dict[str, str]] = None  # JSONB format
-    option_a: Optional[str] = None  # CSV format
-    option_b: Optional[str] = None
-    option_c: Optional[str] = None
-    option_d: Optional[str] = None
+    options: dict[str, str] | None = None  # JSONB format
+    option_a: str | None = None  # CSV format
+    option_b: str | None = None
+    option_c: str | None = None
+    option_d: str | None = None
 
     # Optional fields
-    difficulty: Optional[str] = None  # Can be "Easy"/"Medium"/"Hard" or float string
+    difficulty: str | None = None  # Can be "Easy"/"Medium"/"Hard" or float string
     source: str = Field("vendor", max_length=50)
-    corpus_reference: Optional[str] = Field(None, alias="babok_reference")
+    corpus_reference: str | None = Field(None, alias="babok_reference")
 
     @field_validator("correct_answer")
     @classmethod
     def normalize_correct_answer(cls, v: str) -> str:
         return v.upper()
 
-    def get_options_dict(self) -> Dict[str, str]:
+    def get_options_dict(self) -> dict[str, str]:
         """Convert to options dict regardless of input format."""
         if self.options:
             return self.options
@@ -143,7 +142,7 @@ class QuestionImportResult(BaseModel):
     invalid_questions: int
     inserted_questions: int
     skipped_duplicates: int
-    errors: List[str]
+    errors: list[str]
 
 
 # =====================================
@@ -188,9 +187,9 @@ class QuestionConceptMappingResult(BaseModel):
     """Schema for concept mapping result per question."""
     question_id: UUID
     question_text: str
-    mappings: List[ConceptMappingWithReasoning]
+    mappings: list[ConceptMappingWithReasoning]
     success: bool
-    error: Optional[str] = None
+    error: str | None = None
 
 
 # =====================================
@@ -199,11 +198,11 @@ class QuestionConceptMappingResult(BaseModel):
 
 class QuestionListParams(BaseModel):
     """Query parameters for filtering questions."""
-    concept_ids: Optional[List[UUID]] = Field(None, description="Filter by concept IDs")
-    knowledge_area_id: Optional[str] = Field(None, max_length=50, description="Filter by knowledge area")
+    concept_ids: list[UUID] | None = Field(None, description="Filter by concept IDs")
+    knowledge_area_id: str | None = Field(None, max_length=50, description="Filter by knowledge area")
     difficulty_min: float = Field(0.0, ge=0.0, le=1.0, description="Minimum difficulty")
     difficulty_max: float = Field(1.0, ge=0.0, le=1.0, description="Maximum difficulty")
-    exclude_ids: Optional[List[UUID]] = Field(None, description="Question IDs to exclude")
+    exclude_ids: list[UUID] | None = Field(None, description="Question IDs to exclude")
     limit: int = Field(10, ge=1, le=100, description="Result limit")
     offset: int = Field(0, ge=0, description="Result offset")
 
@@ -215,16 +214,16 @@ class QuestionListResponse(BaseModel):
     id: UUID
     course_id: UUID
     question_text: str
-    options: Dict[str, str]  # {"A": "...", "B": "...", "C": "...", "D": "..."}
+    options: dict[str, str]  # {"A": "...", "B": "...", "C": "...", "D": "..."}
     knowledge_area_id: str
     difficulty: float
     discrimination: float
-    concept_ids: List[UUID] = Field(default_factory=list, description="Mapped concept IDs")
+    concept_ids: list[UUID] = Field(default_factory=list, description="Mapped concept IDs")
 
 
 class PaginatedQuestionResponse(BaseModel):
     """Paginated response wrapper for question lists."""
-    items: List[QuestionListResponse]
+    items: list[QuestionListResponse]
     total: int
     limit: int
     offset: int
@@ -242,14 +241,14 @@ class ConceptCoverageStats(BaseModel):
     concepts_without_questions: int
     concepts_with_few_questions: int  # < 3 questions
     average_questions_per_concept: float
-    concepts_needing_content: List[str]  # Concept names with < 3 questions
+    concepts_needing_content: list[str]  # Concept names with < 3 questions
 
 
 class QuestionDistributionStats(BaseModel):
     """Statistics about question distribution."""
     total_questions: int
-    by_knowledge_area: Dict[str, int]
-    by_difficulty: Dict[str, int]
+    by_knowledge_area: dict[str, int]
+    by_difficulty: dict[str, int]
     questions_with_concepts: int
     questions_without_concepts: int
     average_concepts_per_question: float
@@ -261,8 +260,8 @@ class ImportValidationReport(BaseModel):
     course_id: UUID
     question_stats: QuestionDistributionStats
     concept_stats: ConceptCoverageStats
-    warnings: List[str]
-    errors: List[str]
+    warnings: list[str]
+    errors: list[str]
     is_valid: bool
 
 

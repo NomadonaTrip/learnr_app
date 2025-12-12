@@ -2,7 +2,6 @@
 Pydantic schemas for Enrollment API responses.
 """
 from datetime import date, datetime
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -10,9 +9,9 @@ from pydantic import BaseModel, Field
 
 class EnrollmentBase(BaseModel):
     """Base schema for enrollment data."""
-    exam_date: Optional[date] = Field(None, description="Target exam date")
-    target_score: Optional[int] = Field(None, ge=0, le=100, description="Target score percentage")
-    daily_study_time: Optional[int] = Field(None, ge=0, description="Daily study time in minutes")
+    exam_date: date | None = Field(None, description="Target exam date")
+    target_score: int | None = Field(None, ge=0, le=100, description="Target score percentage")
+    daily_study_time: int | None = Field(None, ge=0, description="Daily study time in minutes")
 
 
 class EnrollmentCreate(EnrollmentBase):
@@ -26,7 +25,7 @@ class EnrollmentResponse(EnrollmentBase):
     user_id: UUID = Field(..., description="User UUID")
     course_id: UUID = Field(..., description="Course UUID")
     enrolled_at: datetime = Field(..., description="Enrollment timestamp")
-    last_activity_at: Optional[datetime] = Field(None, description="Last activity timestamp")
+    last_activity_at: datetime | None = Field(None, description="Last activity timestamp")
     status: str = Field(..., description="Enrollment status (active, paused, completed, archived)")
     completion_percentage: float = Field(..., ge=0, le=100, description="Course completion percentage")
     created_at: datetime = Field(..., description="Creation timestamp")

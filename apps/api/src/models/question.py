@@ -3,7 +3,7 @@ Question SQLAlchemy model.
 Represents the questions table for course exam questions with multi-course support.
 """
 import uuid
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
@@ -92,7 +92,7 @@ class Question(Base):
     course: Mapped["Course"] = relationship("Course", back_populates="questions")
 
     # Many-to-many with concepts via junction table
-    question_concepts: Mapped[List["QuestionConcept"]] = relationship(
+    question_concepts: Mapped[list["QuestionConcept"]] = relationship(
         "QuestionConcept",
         back_populates="question",
         cascade="all, delete-orphan"
@@ -131,7 +131,7 @@ class Question(Base):
     )
 
     @property
-    def concepts(self) -> List["Concept"]:
+    def concepts(self) -> list["Concept"]:
         """Get list of concepts this question maps to."""
         return [qc.concept for qc in self.question_concepts]
 

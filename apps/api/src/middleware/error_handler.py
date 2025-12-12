@@ -3,21 +3,23 @@ Global exception handlers for the LearnR API.
 Provides consistent error response format across all endpoints.
 """
 
+import uuid
+from datetime import UTC, datetime
+
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
-from datetime import datetime, timezone
-import uuid
+
 from src.exceptions import (
-    ConflictError,
-    ValidationError,
-    DatabaseError,
     AuthenticationError,
     AuthorizationError,
+    ConflictError,
+    DatabaseError,
     NotFoundError,
     RateLimitError,
-    TokenInvalidError,
+    TokenAlreadyUsedError,
     TokenExpiredError,
-    TokenAlreadyUsedError
+    TokenInvalidError,
+    ValidationError,
 )
 
 
@@ -30,7 +32,7 @@ async def conflict_error_handler(request: Request, exc: ConflictError) -> JSONRe
                 "code": "CONFLICT_ERROR",
                 "message": exc.message,
                 "details": exc.details,
-                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "timestamp": datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
                 "request_id": str(uuid.uuid4())
             }
         }
@@ -46,7 +48,7 @@ async def validation_error_handler(request: Request, exc: ValidationError) -> JS
                 "code": "VALIDATION_ERROR",
                 "message": exc.message,
                 "details": exc.details,
-                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "timestamp": datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
                 "request_id": str(uuid.uuid4())
             }
         }
@@ -62,7 +64,7 @@ async def database_error_handler(request: Request, exc: DatabaseError) -> JSONRe
                 "code": "DATABASE_ERROR",
                 "message": "An internal error occurred",
                 "details": {},
-                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "timestamp": datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
                 "request_id": str(uuid.uuid4())
             }
         }
@@ -78,7 +80,7 @@ async def authentication_error_handler(request: Request, exc: AuthenticationErro
                 "code": "AUTHENTICATION_ERROR",
                 "message": exc.message,
                 "details": exc.details,
-                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "timestamp": datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
                 "request_id": str(uuid.uuid4())
             }
         }
@@ -94,7 +96,7 @@ async def authorization_error_handler(request: Request, exc: AuthorizationError)
                 "code": "AUTHORIZATION_ERROR",
                 "message": exc.message,
                 "details": exc.details,
-                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "timestamp": datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
                 "request_id": str(uuid.uuid4())
             }
         }
@@ -110,7 +112,7 @@ async def not_found_error_handler(request: Request, exc: NotFoundError) -> JSONR
                 "code": "NOT_FOUND_ERROR",
                 "message": exc.message,
                 "details": exc.details,
-                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "timestamp": datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
                 "request_id": str(uuid.uuid4())
             }
         }
@@ -126,7 +128,7 @@ async def rate_limit_error_handler(request: Request, exc: RateLimitError) -> JSO
                 "code": "RATE_LIMIT_EXCEEDED",
                 "message": exc.message,
                 "details": exc.details,
-                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "timestamp": datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
                 "request_id": str(uuid.uuid4())
             }
         },
@@ -145,7 +147,7 @@ async def token_invalid_error_handler(request: Request, exc: TokenInvalidError) 
                 "code": "TOKEN_INVALID",
                 "message": exc.message,
                 "details": exc.details,
-                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "timestamp": datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
                 "request_id": str(uuid.uuid4())
             }
         }
@@ -161,7 +163,7 @@ async def token_expired_error_handler(request: Request, exc: TokenExpiredError) 
                 "code": "TOKEN_EXPIRED",
                 "message": exc.message,
                 "details": exc.details,
-                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "timestamp": datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
                 "request_id": str(uuid.uuid4())
             }
         }
@@ -177,7 +179,7 @@ async def token_already_used_error_handler(request: Request, exc: TokenAlreadyUs
                 "code": "TOKEN_ALREADY_USED",
                 "message": exc.message,
                 "details": exc.details,
-                "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                "timestamp": datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
                 "request_id": str(uuid.uuid4())
             }
         }

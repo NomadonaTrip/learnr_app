@@ -1,14 +1,14 @@
 """Health check endpoint."""
-from datetime import datetime, timezone
 import time
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.session import get_db
 from src.db.qdrant_client import get_qdrant
-from src.schemas.health import DatabaseHealth, QdrantHealth, HealthResponse
+from src.db.session import get_db
+from src.schemas.health import DatabaseHealth, HealthResponse, QdrantHealth
 
 router = APIRouter(tags=["health"])
 
@@ -74,7 +74,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
 
     Returns 200 if all services healthy, 503 if any service connection fails.
     """
-    timestamp = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+    timestamp = datetime.now(UTC).isoformat().replace('+00:00', 'Z')
 
     # Check database connectivity
     database_status = "unknown"

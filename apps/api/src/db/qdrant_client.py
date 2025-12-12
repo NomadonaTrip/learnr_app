@@ -4,8 +4,9 @@ Provides async Qdrant connection for vector database operations
 """
 
 import logging
+
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.http.exceptions import UnexpectedResponse
+
 from src.config import settings
 
 logger = logging.getLogger(__name__)

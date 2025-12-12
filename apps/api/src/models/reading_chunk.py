@@ -3,7 +3,7 @@ ReadingChunk SQLAlchemy model.
 Represents chunked reading content from course materials (e.g., BABOK v3).
 """
 import uuid
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID

@@ -5,7 +5,6 @@ This service handles uploading question and reading chunk embeddings to Qdrant
 with proper payload structure, batching, and idempotency support.
 """
 from dataclasses import dataclass
-from typing import Dict, List
 from uuid import UUID
 
 from qdrant_client import AsyncQdrantClient
@@ -32,14 +31,14 @@ class QuestionVectorItem:
     """
     question_id: UUID
     course_id: UUID
-    vector: List[float]
+    vector: list[float]
     knowledge_area_id: str
     difficulty: float
     discrimination: float
-    concept_ids: List[str]
-    concept_names: List[str]
+    concept_ids: list[str]
+    concept_names: list[str]
     question_text: str
-    options: Dict[str, str]
+    options: dict[str, str]
     correct_answer: str
 
 
@@ -53,12 +52,12 @@ class ChunkVectorItem:
     """
     chunk_id: UUID
     course_id: UUID
-    vector: List[float]
+    vector: list[float]
     title: str
     knowledge_area_id: str
     corpus_section: str
-    concept_ids: List[str]
-    concept_names: List[str]
+    concept_ids: list[str]
+    concept_names: list[str]
     text_content: str
     estimated_read_time: int
 
@@ -105,7 +104,7 @@ class QdrantUploadService:
             logger.warning("vector_existence_check_failed", question_id=str(question_id), error=str(e))
             return False
 
-    def _build_payload(self, item: QuestionVectorItem) -> Dict:
+    def _build_payload(self, item: QuestionVectorItem) -> dict:
         """
         Build Qdrant payload from QuestionVectorItem.
 
@@ -168,7 +167,7 @@ class QdrantUploadService:
 
     async def batch_upload_question_vectors(
         self,
-        items: List[QuestionVectorItem],
+        items: list[QuestionVectorItem],
         skip_if_exists: bool = True,
         batch_size: int = MAX_BATCH_SIZE,
         progress_callback=None
@@ -239,7 +238,7 @@ class QdrantUploadService:
 
         return uploaded_count, skipped_count
 
-    async def verify_collection_count(self, expected_count: int | None = None) -> Dict:
+    async def verify_collection_count(self, expected_count: int | None = None) -> dict:
         """
         Verify the number of vectors in the collection.
 
@@ -286,7 +285,7 @@ class QdrantUploadService:
                 "error": str(e)
             }
 
-    async def verify_course_vectors(self, course_id: UUID, expected_count: int | None = None) -> Dict:
+    async def verify_course_vectors(self, course_id: UUID, expected_count: int | None = None) -> dict:
         """
         Verify the number of vectors for a specific course.
 
@@ -299,7 +298,7 @@ class QdrantUploadService:
         Returns:
             Dictionary with verification results
         """
-        from qdrant_client.models import CountRequest, FieldCondition, Filter, MatchValue
+        from qdrant_client.models import FieldCondition, Filter, MatchValue
 
         try:
             # Use count API for efficient counting (no pagination needed)
@@ -375,7 +374,7 @@ class QdrantUploadService:
             logger.warning("chunk_vector_existence_check_failed", chunk_id=str(chunk_id), error=str(e))
             return False
 
-    def _build_chunk_payload(self, item: ChunkVectorItem) -> Dict:
+    def _build_chunk_payload(self, item: ChunkVectorItem) -> dict:
         """
         Build Qdrant payload from ChunkVectorItem.
 
@@ -437,7 +436,7 @@ class QdrantUploadService:
 
     async def batch_upload_chunk_vectors(
         self,
-        items: List[ChunkVectorItem],
+        items: list[ChunkVectorItem],
         skip_if_exists: bool = True,
         batch_size: int = MAX_BATCH_SIZE,
         progress_callback=None
@@ -508,7 +507,7 @@ class QdrantUploadService:
 
         return uploaded_count, skipped_count
 
-    async def verify_chunk_collection_count(self, expected_count: int | None = None) -> Dict:
+    async def verify_chunk_collection_count(self, expected_count: int | None = None) -> dict:
         """
         Verify the number of chunk vectors in the collection.
 
@@ -559,7 +558,7 @@ class QdrantUploadService:
         self,
         course_id: UUID,
         expected_count: int | None = None
-    ) -> Dict:
+    ) -> dict:
         """
         Verify the number of chunk vectors for a specific course.
 

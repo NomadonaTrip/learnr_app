@@ -3,7 +3,7 @@ Concept SQLAlchemy model.
 Represents discrete, testable concepts extracted from course materials.
 """
 import uuid
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -70,7 +70,7 @@ class Concept(Base):
     course: Mapped["Course"] = relationship("Course", back_populates="concepts")
 
     # Prerequisite relationships (concepts that must be learned before this one)
-    prerequisites: Mapped[List["ConceptPrerequisite"]] = relationship(
+    prerequisites: Mapped[list["ConceptPrerequisite"]] = relationship(
         "ConceptPrerequisite",
         foreign_keys="ConceptPrerequisite.concept_id",
         back_populates="concept",
@@ -78,7 +78,7 @@ class Concept(Base):
     )
 
     # Dependent relationships (concepts that depend on this one)
-    dependents: Mapped[List["ConceptPrerequisite"]] = relationship(
+    dependents: Mapped[list["ConceptPrerequisite"]] = relationship(
         "ConceptPrerequisite",
         foreign_keys="ConceptPrerequisite.prerequisite_concept_id",
         back_populates="prerequisite_concept",
@@ -86,7 +86,7 @@ class Concept(Base):
     )
 
     # Many-to-many with questions via junction table
-    question_concepts: Mapped[List["QuestionConcept"]] = relationship(
+    question_concepts: Mapped[list["QuestionConcept"]] = relationship(
         "QuestionConcept",
         back_populates="concept",
         cascade="all, delete-orphan"

@@ -3,7 +3,6 @@ Pydantic schemas for Concept model.
 Handles validation and serialization for concept data.
 """
 from datetime import datetime
-from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -13,8 +12,8 @@ class ConceptBase(BaseModel):
     """Base schema with common concept fields."""
 
     name: str = Field(..., min_length=1, max_length=255, description="Concept name")
-    description: Optional[str] = Field(None, description="1-2 sentence definition")
-    corpus_section_ref: Optional[str] = Field(
+    description: str | None = Field(None, description="1-2 sentence definition")
+    corpus_section_ref: str | None = Field(
         None, max_length=50, description="Reference to source material section (e.g., '3.2.1')"
     )
     knowledge_area_id: str = Field(
@@ -48,12 +47,12 @@ class ConceptCreate(ConceptBase):
 class ConceptUpdate(BaseModel):
     """Schema for updating an existing concept."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
-    corpus_section_ref: Optional[str] = Field(None, max_length=50)
-    knowledge_area_id: Optional[str] = Field(None, max_length=50)
-    difficulty_estimate: Optional[float] = Field(None, ge=0.0, le=1.0)
-    prerequisite_depth: Optional[int] = Field(None, ge=0)
+    name: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = None
+    corpus_section_ref: str | None = Field(None, max_length=50)
+    knowledge_area_id: str | None = Field(None, max_length=50)
+    difficulty_estimate: float | None = Field(None, ge=0.0, le=1.0)
+    prerequisite_depth: int | None = Field(None, ge=0)
 
 
 class ConceptResponse(ConceptBase):
@@ -73,8 +72,8 @@ class ConceptExport(BaseModel):
     id: UUID
     course_id: UUID
     name: str
-    description: Optional[str]
-    corpus_section_ref: Optional[str]
+    description: str | None
+    corpus_section_ref: str | None
     knowledge_area_id: str
     difficulty_estimate: float
     prerequisite_depth: int
@@ -104,8 +103,8 @@ class ConceptSummary(BaseModel):
 class ConceptListParams(BaseModel):
     """Query parameters for listing concepts."""
 
-    knowledge_area_id: Optional[str] = Field(None, description="Filter by knowledge area")
-    search: Optional[str] = Field(None, description="Search by concept name")
+    knowledge_area_id: str | None = Field(None, description="Filter by knowledge area")
+    search: str | None = Field(None, description="Search by concept name")
     limit: int = Field(50, ge=1, le=200, description="Number of results to return")
     offset: int = Field(0, ge=0, description="Number of results to skip")
 
@@ -113,7 +112,7 @@ class ConceptListParams(BaseModel):
 class PaginatedConceptResponse(BaseModel):
     """Paginated response for concept list."""
 
-    items: List[ConceptResponse]
+    items: list[ConceptResponse]
     total: int = Field(..., description="Total number of concepts matching filters")
     limit: int
     offset: int
@@ -124,7 +123,7 @@ class ConceptPrerequisitesResponse(BaseModel):
     """Response for concept prerequisites API endpoint (Story 2.10)."""
 
     concept_id: UUID
-    prerequisites: List[ConceptResponse]
+    prerequisites: list[ConceptResponse]
     depth: int = Field(..., description="Maximum depth in prerequisite chain")
 
 
@@ -143,7 +142,7 @@ class ConceptQuestionsResponse(BaseModel):
 
     concept_id: UUID
     question_count: int = Field(..., description="Total number of questions for this concept")
-    sample_questions: List[QuestionSummary]
+    sample_questions: list[QuestionSummary]
 
 
 class ConceptStatsResponse(BaseModel):

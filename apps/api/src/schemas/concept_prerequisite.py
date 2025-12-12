@@ -4,7 +4,6 @@ Handles validation and serialization for prerequisite relationship data.
 """
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -95,14 +94,14 @@ class PrerequisiteChainResponse(BaseModel):
 
     target_concept_id: UUID
     target_concept_name: str
-    chain: List[PrerequisiteChainItem]
+    chain: list[PrerequisiteChainItem]
     total_depth: int = Field(..., description="Maximum depth in the chain")
 
 
 class PrerequisiteBulkCreate(BaseModel):
     """Schema for bulk creating prerequisites."""
 
-    prerequisites: List[PrerequisiteCreate]
+    prerequisites: list[PrerequisiteCreate]
 
 
 class PrerequisiteBulkResult(BaseModel):
@@ -113,7 +112,7 @@ class PrerequisiteBulkResult(BaseModel):
         default=0,
         description="Count of prerequisites skipped (duplicates or invalid)"
     )
-    errors: List[str] = Field(
+    errors: list[str] = Field(
         default_factory=list,
         description="Error messages for failed inserts"
     )

@@ -2,8 +2,7 @@
 Course API endpoints.
 Public endpoints for listing and retrieving course information.
 """
-from datetime import datetime, timezone
-from typing import List
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,7 +44,7 @@ async def list_courses(
     """
     courses = await repo.get_all_active()
 
-    course_items: List[CourseListItem] = []
+    course_items: list[CourseListItem] = []
     for course in courses:
         knowledge_areas = course.knowledge_areas or []
         course_items.append(
@@ -64,7 +63,7 @@ async def list_courses(
     return CourseListResponse(
         data=course_items,
         meta={
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "version": "v1",
             "count": len(course_items),
         },
@@ -130,7 +129,7 @@ async def get_course_by_slug(
     return CourseDetailResponse(
         data=course_response,
         meta={
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "version": "v1",
         },
     )

@@ -4,10 +4,7 @@ Handles business logic for authentication operations.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
-from uuid import UUID
-
-from sqlalchemy import select
+from datetime import UTC, datetime, timedelta
 
 from src.config import settings
 from src.exceptions import (
@@ -17,7 +14,6 @@ from src.exceptions import (
     TokenExpiredError,
     TokenInvalidError,
 )
-from src.models.password_reset_token import PasswordResetToken
 from src.models.user import User
 from src.repositories.password_reset_repository import PasswordResetRepository
 from src.repositories.user_repository import UserRepository
@@ -170,7 +166,7 @@ class AuthService:
             if existing_token:
                 if existing_token.used_at is not None:
                     raise TokenAlreadyUsedError("This password reset token has already been used.")
-                elif existing_token.expires_at < datetime.now(timezone.utc):
+                elif existing_token.expires_at < datetime.now(UTC):
                     raise TokenExpiredError("Password reset token has expired. Please request a new one.")
 
             # Token doesn't exist or is invalid

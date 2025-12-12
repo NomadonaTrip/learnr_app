@@ -2,7 +2,6 @@
 Pydantic schemas for Course API responses.
 """
 from datetime import datetime
-from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -21,20 +20,20 @@ class CourseBase(BaseModel):
     """Base schema for course data."""
     slug: str = Field(..., description="URL-friendly identifier")
     name: str = Field(..., description="Course display name")
-    description: Optional[str] = Field(None, description="Course description")
-    corpus_name: Optional[str] = Field(None, description="Reference corpus name (e.g., 'BABOK v3')")
+    description: str | None = Field(None, description="Course description")
+    corpus_name: str | None = Field(None, description="Reference corpus name (e.g., 'BABOK v3')")
 
 
 class CourseResponse(CourseBase):
     """Full course response with all details."""
     id: UUID = Field(..., description="Course UUID")
-    knowledge_areas: List[KnowledgeArea] = Field(..., description="List of knowledge areas")
+    knowledge_areas: list[KnowledgeArea] = Field(..., description="List of knowledge areas")
     default_diagnostic_count: int = Field(..., description="Default number of diagnostic questions")
     mastery_threshold: float = Field(..., description="Threshold for mastery (0.0-1.0)")
     gap_threshold: float = Field(..., description="Threshold for knowledge gap (0.0-1.0)")
     confidence_threshold: float = Field(..., description="Threshold for confidence (0.0-1.0)")
-    icon_url: Optional[str] = Field(None, description="URL to course icon")
-    color_hex: Optional[str] = Field(None, description="Hex color for course branding")
+    icon_url: str | None = Field(None, description="URL to course icon")
+    color_hex: str | None = Field(None, description="Hex color for course branding")
     is_active: bool = Field(..., description="Whether course is active")
     is_public: bool = Field(..., description="Whether course is publicly visible")
     created_at: datetime = Field(..., description="Creation timestamp")
@@ -48,10 +47,10 @@ class CourseListItem(BaseModel):
     id: UUID = Field(..., description="Course UUID")
     slug: str = Field(..., description="URL-friendly identifier")
     name: str = Field(..., description="Course display name")
-    description: Optional[str] = Field(None, description="Course description")
-    corpus_name: Optional[str] = Field(None, description="Reference corpus name")
-    icon_url: Optional[str] = Field(None, description="URL to course icon")
-    color_hex: Optional[str] = Field(None, description="Hex color for course branding")
+    description: str | None = Field(None, description="Course description")
+    corpus_name: str | None = Field(None, description="Reference corpus name")
+    icon_url: str | None = Field(None, description="URL to course icon")
+    color_hex: str | None = Field(None, description="Hex color for course branding")
     knowledge_area_count: int = Field(..., description="Number of knowledge areas")
 
     model_config = {"from_attributes": True}
@@ -59,7 +58,7 @@ class CourseListItem(BaseModel):
 
 class CourseListResponse(BaseModel):
     """Response for listing courses."""
-    data: List[CourseListItem] = Field(..., description="List of courses")
+    data: list[CourseListItem] = Field(..., description="List of courses")
     meta: dict = Field(default_factory=dict, description="Response metadata")
 
 
