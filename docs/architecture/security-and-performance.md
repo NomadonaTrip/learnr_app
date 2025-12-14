@@ -20,7 +20,8 @@
 **Data Security:**
 - **Encryption at rest:** PostgreSQL encryption via Supabase, S3 server-side encryption (AES-256)
 - **Encryption in transit:** HTTPS/TLS 1.3 for all API communication, WSS for future WebSocket features
-- **PII Protection:** User email, password hashes, study data never logged, GDPR-ready data export/deletion
+- **PII Protection:** User email, password hashes, study data never logged
+- **GDPR Compliance:** Full data export and account deletion implemented (see GDPR Compliance section below)
 
 ### Admin Security Controls
 
@@ -320,6 +321,84 @@ def generate_posthog_url(user_id: UUID) -> str:
 
 ---
 
+### GDPR Compliance
+
+**Purpose:** Implement GDPR Article 15 (Right of Access) and Article 17 (Right to Erasure) for EU user data protection.
+
+#### Data Export (Article 15 - Right of Access)
+
+**Endpoint:** `GET /users/me/export`
+
+**Implementation:**
+- User can request complete export of all personal data
+- Export includes: profile, enrollments, belief states, quiz sessions, responses, reading history
+- Excludes: password hashes, internal system IDs, admin flags
+- Format: JSON with human-readable field names
+- Rate limited: 1 export per hour per user
+- Large exports (>10MB): Async processing with email delivery
+
+**Data Included:**
+```
+├── user_profile (email, preferences, dates)
+├── enrollments (all course enrollments)
+├── belief_states (mastery data per concept)
+├── quiz_sessions (session summaries)
+├── responses (individual answers - question text, not IDs)
+├── reading_queue (reading history)
+└── statistics_summary (aggregated metrics)
+```
+
+#### Account Deletion (Article 17 - Right to Erasure)
+
+**Endpoint:** `DELETE /users/me`
+
+**Deletion Process:**
+
+1. **Request Phase:**
+   - User confirms with password + typed confirmation phrase
+   - Account marked as `pending_deletion`
+   - All active sessions invalidated (JWT blacklist)
+   - Confirmation email sent with cancellation link
+
+2. **Grace Period (7 days):**
+   - User cannot log in
+   - User can cancel via email link
+   - No data deleted yet
+
+3. **Execution Phase (after grace period):**
+   - Background job (Celery) processes pending deletions
+   - Explicit cascade deletion with audit logging:
+     1. `reading_queue` (enrollment-scoped)
+     2. `responses` (session-scoped)
+     3. `quiz_sessions` (enrollment-scoped)
+     4. `belief_states` (user-scoped)
+     5. `enrollments` (user-scoped)
+     6. `users` (primary record)
+   - Redis session cache purged
+   - Qdrant: No user-specific vectors (course content only)
+
+4. **Data Retention (Anonymized):**
+   - `admin_audit_log`: Target user anonymized to `deleted_user_{hash}`
+   - Aggregate question statistics preserved (difficulty calibration)
+
+**Database Support:**
+- `users.account_status` column: `active`, `pending_deletion`, `deleted`
+- `users.deletion_scheduled_at`: Effective deletion timestamp
+- `users.deletion_cancellation_token`: Secure token for cancellation
+- PostgreSQL functions: `schedule_user_deletion()`, `cancel_user_deletion()`, `execute_user_deletion()`
+
+**Compliance Checklist:**
+- [x] Data export endpoint implemented (`GET /users/me/export`)
+- [x] Account deletion endpoint implemented (`DELETE /users/me`)
+- [x] Grace period with cancellation option (7 days)
+- [x] Cascade deletion documented with FK constraints
+- [x] Audit log preserved (anonymized)
+- [x] No orphaned data after deletion
+- [ ] Data retention policy page (frontend - Epic 8)
+- [ ] Cookie consent banner (frontend - Epic 8)
+
+---
+
 ### Performance Optimization
 
 **Frontend Performance:**
@@ -337,6 +416,91 @@ def generate_posthog_url(user_id: UUID) -> str:
 - **HNSW Index:** m=16, ef_construct=100 (balance speed/accuracy)
 - **Search Performance:** < 50ms for semantic search (3072-dim vectors, 1000+ questions)
 - **Payload Filtering:** Index on `knowledge_area`, `difficulty` for fast filtered search
+
+---
+
+### Accessibility Compliance
+
+**Purpose:** Ensure LearnR is accessible to all users, including those with disabilities, meeting WCAG 2.1 Level AA standards.
+
+#### Accessibility Standards
+
+| Standard | Level | Status |
+|----------|-------|--------|
+| **WCAG 2.1** | AA | Target compliance |
+| **ADA** (Americans with Disabilities Act) | Section 508 | Design meets requirements |
+| **EN 301 549** (EU) | Harmonized | Design meets requirements |
+
+#### Accessibility Testing Tools
+
+| Tool | Purpose | Integration |
+|------|---------|-------------|
+| **axe-core** | Automated accessibility testing | Vitest unit tests |
+| **eslint-plugin-jsx-a11y** | Lint-time accessibility checks | ESLint configuration |
+| **pa11y-ci** | CI pipeline accessibility scanning | GitHub Actions |
+| **WAVE** | Manual accessibility evaluation | Developer browser extension |
+| **Lighthouse** | Accessibility audit scoring | Chrome DevTools / CI |
+
+#### Accessibility Audit Schedule
+
+| Audit Type | Frequency | Scope | Owner | Documentation |
+|------------|-----------|-------|-------|---------------|
+| **Automated (axe-core)** | Every PR | Changed components | CI Pipeline | PR check results |
+| **Lint checks (jsx-a11y)** | Every commit | All JSX/TSX files | Pre-commit hook | ESLint report |
+| **Manual testing** | Every sprint | New features | QA Team | Sprint test report |
+| **Screen reader testing** | Monthly | Full application flow | QA Team | A11y test matrix |
+| **Third-party audit** | Pre-launch | Full application | External vendor | Audit report |
+| **Annual re-certification** | Yearly | Full application | External vendor | VPAT document |
+
+#### Screen Reader Testing Matrix
+
+| Screen Reader | Browser | Platform | Test Frequency |
+|--------------|---------|----------|----------------|
+| **NVDA** | Firefox, Chrome | Windows | Monthly |
+| **JAWS** | Chrome | Windows | Quarterly |
+| **VoiceOver** | Safari | macOS, iOS | Monthly |
+| **TalkBack** | Chrome | Android | Quarterly |
+
+#### Accessibility Compliance Checklist (Pre-Release)
+
+- [ ] All automated axe-core tests passing (0 critical/serious violations)
+- [ ] No new `jsx-a11y` ESLint errors
+- [ ] Keyboard navigation tested for all user flows
+- [ ] Screen reader testing completed (NVDA + VoiceOver minimum)
+- [ ] Color contrast verified (4.5:1 text, 3:1 UI components)
+- [ ] Focus indicators visible on all interactive elements
+- [ ] Skip links functional
+- [ ] Form error messages linked via `aria-describedby`
+- [ ] Dynamic content uses appropriate ARIA live regions
+- [ ] 200% browser zoom tested (no horizontal scrolling)
+- [ ] `prefers-reduced-motion` respected for animations
+- [ ] High contrast mode tested (Windows)
+
+#### Third-Party Audit Requirements
+
+When engaging external accessibility auditors:
+
+1. **Scope:** Full application including all user-facing pages
+2. **Standards:** WCAG 2.1 Level AA conformance
+3. **Testing:** Manual + automated, with real assistive technology
+4. **Deliverables:**
+   - Detailed findings report with severity ratings
+   - Remediation recommendations with code examples
+   - VPAT (Voluntary Product Accessibility Template)
+   - Compliance certification upon passing
+5. **Timeline:** Complete remediation within 30 days of audit completion
+6. **Retention:** Store audit reports for 3 years (compliance documentation)
+
+#### Accessibility Incident Response
+
+If accessibility issues are reported post-launch:
+
+| Severity | Response Time | Fix Timeline |
+|----------|---------------|--------------|
+| **Critical** (blocks core functionality for assistive tech users) | 4 hours | 24-48 hours |
+| **Serious** (significant barrier to use) | 24 hours | 1 sprint |
+| **Moderate** (workaround available) | 1 week | 2 sprints |
+| **Minor** (enhancement) | Backlog | As capacity allows |
 
 ---
 

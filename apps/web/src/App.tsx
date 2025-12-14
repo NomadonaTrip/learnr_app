@@ -1,18 +1,36 @@
-import { BrowserRouter as Router } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { LandingPage } from './pages/LandingPage'
 
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-4xl font-bold text-gray-900">
-            Welcome to LearnR
-          </h1>
-          <p className="mt-4 text-lg text-gray-600">
-            AI-Powered Adaptive Learning Platform for Professional Certification Exam Preparation
-          </p>
-        </div>
-      </div>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        {/* Placeholder for onboarding - will be implemented in Story 3.2 */}
+        <Route
+          path="/onboarding"
+          element={
+            <div className="min-h-screen bg-cream flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-charcoal">Onboarding</h1>
+                <p className="mt-2 text-charcoal/70">Coming soon...</p>
+              </div>
+            </div>
+          }
+        />
+        {/* Placeholder for login - will be implemented in Story 1.4 */}
+        <Route
+          path="/login"
+          element={
+            <div className="min-h-screen bg-cream flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-charcoal">Login</h1>
+                <p className="mt-2 text-charcoal/70">Coming soon...</p>
+              </div>
+            </div>
+          }
+        />
+      </Routes>
     </Router>
   )
 }
