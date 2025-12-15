@@ -1,18 +1,20 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { LandingPage } from './pages/LandingPage'
+import { OnboardingPage } from './pages/OnboardingPage'
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        {/* Placeholder for onboarding - will be implemented in Story 3.2 */}
+        <Route path="/onboarding" element={<OnboardingPage />} />
+        {/* Placeholder for register - will be implemented in Story 3.3 */}
         <Route
-          path="/onboarding"
+          path="/register"
           element={
             <div className="min-h-screen bg-cream flex items-center justify-center">
               <div className="text-center">
-                <h1 className="text-2xl font-bold text-charcoal">Onboarding</h1>
+                <h1 className="text-2xl font-bold text-charcoal">Create Account</h1>
                 <p className="mt-2 text-charcoal/70">Coming soon...</p>
               </div>
             </div>
