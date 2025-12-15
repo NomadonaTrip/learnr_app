@@ -55,6 +55,15 @@ export const OnboardingEvents = {
 } as const
 
 /**
+ * Account events
+ */
+export const AccountEvents = {
+  REGISTRATION_STARTED: 'account_registration_started',
+  REGISTRATION_COMPLETED: 'account_registration_completed',
+  REGISTRATION_FAILED: 'account_registration_failed',
+} as const
+
+/**
  * Track landing page view
  */
 export function trackLandingPageViewed(): void {
@@ -102,6 +111,30 @@ export function trackOnboardingCompleted(data: {
   initialBeliefPrior: number
 }): void {
   trackEvent(OnboardingEvents.COMPLETED, data)
+}
+
+/**
+ * Track account registration started (page viewed)
+ */
+export function trackRegistrationStarted(): void {
+  trackEvent(AccountEvents.REGISTRATION_STARTED)
+}
+
+/**
+ * Track successful account registration
+ */
+export function trackRegistrationCompleted(data: {
+  course: string
+  motivation: string
+}): void {
+  trackEvent(AccountEvents.REGISTRATION_COMPLETED, data)
+}
+
+/**
+ * Track failed account registration
+ */
+export function trackRegistrationFailed(reason: string): void {
+  trackEvent(AccountEvents.REGISTRATION_FAILED, { reason })
 }
 
 // Type declaration for PostHog on window
