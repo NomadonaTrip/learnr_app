@@ -33,6 +33,21 @@ from src.config import settings
 from src.utils.auth import create_access_token
 from uuid import uuid4
 
+# Import all models to ensure they're registered with Base.metadata before create_all
+# This is critical for test_engine fixture to create all tables
+from src.models import (
+    User,
+    PasswordResetToken,
+    Question,
+    QuestionConcept,
+    Course,
+    Enrollment,
+    Concept,
+    ConceptPrerequisite,
+    ReadingChunk,
+    BeliefState,
+)
+
 
 # ============================================================================
 # Test Application Fixture
@@ -204,6 +219,8 @@ async def db_session(test_engine):
         # Order matters due to foreign key constraints
         await session.rollback()
         await session.execute(Base.metadata.tables['questions'].delete())
+        if 'belief_states' in Base.metadata.tables:
+            await session.execute(Base.metadata.tables['belief_states'].delete())
         if 'enrollments' in Base.metadata.tables:
             await session.execute(Base.metadata.tables['enrollments'].delete())
         if 'concept_prerequisites' in Base.metadata.tables:

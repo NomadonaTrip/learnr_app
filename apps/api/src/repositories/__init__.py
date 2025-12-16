@@ -1,4 +1,5 @@
 """Repository layer for database access."""
+from .belief_repository import BeliefRepository
 from .concept_repository import ConceptRepository
 from .course_repository import CourseRepository
 from .password_reset_repository import PasswordResetRepository
@@ -11,4 +12,5 @@ __all__ = [
     "CourseRepository",
     "ConceptRepository",
     "ReadingChunkRepository",
+    "BeliefRepository",
 ]

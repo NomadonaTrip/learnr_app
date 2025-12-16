@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.config import settings
 from src.db.session import get_db
 from src.exceptions import RateLimitError
+from src.repositories.belief_repository import BeliefRepository
+from src.repositories.concept_repository import ConceptRepository
 from src.repositories.password_reset_repository import PasswordResetRepository
 from src.repositories.user_repository import UserRepository
 from src.schemas.auth import (
@@ -23,6 +25,7 @@ from src.schemas.auth import (
 )
 from src.schemas.user import UserCreate
 from src.services.auth_service import AuthService
+from src.services.belief_initialization_service import BeliefInitializationService
 from src.utils.rate_limit import check_rate_limit, reset_rate_limit
 from src.utils.rate_limiter import limiter
 
@@ -62,6 +65,32 @@ async def register(
 
     # Register user
     user, token = await auth_service.register_user(user_data.email, user_data.password)
+
+    # Initialize belief states for all concepts (Story 3.4)
+    # Uses database function for maximum performance
+    # Errors are logged but don't fail registration
+    try:
+        belief_repo = BeliefRepository(db)
+        concept_repo = ConceptRepository(db)
+        belief_service = BeliefInitializationService(belief_repo, concept_repo)
+
+        result = await belief_service.initialize_beliefs_via_db_function(user.id)
+
+        logger.info(
+            f"Initialized {result.belief_count} belief states for user {user.id} "
+            f"in {result.duration_ms:.2f}ms"
+        )
+    except Exception as e:
+        # Log error but don't fail registration
+        # User can retry via /v1/beliefs/initialize endpoint
+        logger.error(
+            f"Failed to initialize beliefs for user {user.id}: {str(e)}",
+            extra={
+                "user_id": str(user.id),
+                "error": str(e),
+                "security_event": "belief_initialization_failure"
+            }
+        )
 
     # Return response
     return RegisterResponse(

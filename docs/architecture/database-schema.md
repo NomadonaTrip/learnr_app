@@ -300,6 +300,7 @@ CREATE TABLE responses (
     is_correct BOOLEAN NOT NULL,
     time_taken_ms INTEGER,
     request_id UUID UNIQUE,
+    info_gain_actual FLOAT,  -- Actual entropy reduction; populated by belief update (Story 4.4)
     belief_updates JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     CHECK (selected_answer IN ('A', 'B', 'C', 'D'))

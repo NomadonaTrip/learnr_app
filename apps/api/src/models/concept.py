@@ -13,6 +13,7 @@ from sqlalchemy.sql import func
 from ..db.session import Base
 
 if TYPE_CHECKING:
+    from .belief_state import BeliefState
     from .concept_prerequisite import ConceptPrerequisite
     from .course import Course
     from .question_concept import QuestionConcept
@@ -88,6 +89,13 @@ class Concept(Base):
     # Many-to-many with questions via junction table
     question_concepts: Mapped[list["QuestionConcept"]] = relationship(
         "QuestionConcept",
+        back_populates="concept",
+        cascade="all, delete-orphan"
+    )
+
+    # User belief states for this concept
+    belief_states: Mapped[list["BeliefState"]] = relationship(
+        "BeliefState",
         back_populates="concept",
         cascade="all, delete-orphan"
     )

@@ -2,6 +2,18 @@
 Pydantic schemas module.
 Exports all request/response validation schemas.
 """
+from .belief_state import (
+    BeliefInitializationStatus,
+    BeliefStateBase,
+    BeliefStateCreate,
+    BeliefStateInDB,
+    BeliefStateResponse,
+    BeliefStateUpdate,
+    BeliefStateWithConcept,
+    BeliefStatus,
+    BeliefSummary,
+    InitializationResult,
+)
 from .concept import (
     ConceptBase,
     ConceptCountByKA,
@@ -61,6 +73,16 @@ from .reading_chunk import (
 from .user import UserCreate, UserResponse, UserUpdate
 
 __all__ = [
+    "BeliefStateBase",
+    "BeliefStateCreate",
+    "BeliefStateUpdate",
+    "BeliefStateResponse",
+    "BeliefStateInDB",
+    "BeliefStateWithConcept",
+    "BeliefStatus",
+    "BeliefInitializationStatus",
+    "InitializationResult",
+    "BeliefSummary",
     "UserCreate",
     "UserUpdate",
     "UserResponse",

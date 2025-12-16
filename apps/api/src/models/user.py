@@ -13,6 +13,7 @@ from sqlalchemy.sql import func
 from ..db.session import Base
 
 if TYPE_CHECKING:
+    from .belief_state import BeliefState
     from .enrollment import Enrollment
 
 
@@ -61,6 +62,11 @@ class User(Base):
     # Relationships
     enrollments: Mapped[list["Enrollment"]] = relationship(
         "Enrollment",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    belief_states: Mapped[list["BeliefState"]] = relationship(
+        "BeliefState",
         back_populates="user",
         cascade="all, delete-orphan"
     )

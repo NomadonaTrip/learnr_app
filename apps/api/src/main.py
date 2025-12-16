@@ -18,6 +18,7 @@ from src.db.redis_client import close_redis, test_redis_connection
 from src.exceptions import (
     AuthenticationError,
     AuthorizationError,
+    BeliefInitializationError,
     ConflictError,
     DatabaseError,
     NotFoundError,
@@ -39,7 +40,7 @@ from src.middleware.error_handler import (
     token_invalid_error_handler,
     validation_error_handler,
 )
-from src.routes import auth, concepts, courses, health, questions, reading, users
+from src.routes import auth, beliefs, concepts, courses, health, questions, reading, users
 from src.utils.rate_limiter import limiter
 
 
@@ -214,6 +215,7 @@ app.add_exception_handler(RateLimitError, rate_limit_error_handler)
 app.add_exception_handler(TokenInvalidError, token_invalid_error_handler)
 app.add_exception_handler(TokenExpiredError, token_expired_error_handler)
 app.add_exception_handler(TokenAlreadyUsedError, token_already_used_error_handler)
+app.add_exception_handler(BeliefInitializationError, database_error_handler)
 
 # Include routers
 app.include_router(health.router)  # Health check (no prefix - root level)
@@ -223,6 +225,7 @@ app.include_router(courses.router, prefix="/v1")
 app.include_router(concepts.router, prefix="/v1")
 app.include_router(questions.router, prefix="/v1")
 app.include_router(reading.router, prefix="/v1")
+app.include_router(beliefs.router, prefix="/v1")
 
 
 @app.get("/")
