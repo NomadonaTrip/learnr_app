@@ -31,7 +31,7 @@ vi.mock('react-router-dom', async () => {
 })
 
 const mockOnboardingData = {
-  course: 'business-analysis',
+  course: 'cbap',
   motivation: 'certification',
   familiarity: 'basics',
   initialBeliefPrior: 0.3,
@@ -496,7 +496,7 @@ describe('AccountCreationPage - Missing Onboarding Data', () => {
     const useOnboardingStorageModule = await import('../../hooks/useOnboardingStorage')
     vi.spyOn(useOnboardingStorageModule, 'useOnboardingStorage').mockReturnValue({
       answers: {
-        course: 'business-analysis',
+        course: 'cbap',
         motivation: null,
         familiarity: 'basics',
         initialBeliefPrior: 0.3,
@@ -522,7 +522,7 @@ describe('AccountCreationPage - Missing Onboarding Data', () => {
     const useOnboardingStorageModule = await import('../../hooks/useOnboardingStorage')
     vi.spyOn(useOnboardingStorageModule, 'useOnboardingStorage').mockReturnValue({
       answers: {
-        course: 'business-analysis',
+        course: 'cbap',
         motivation: 'certification',
         familiarity: null,
         initialBeliefPrior: 0.3,

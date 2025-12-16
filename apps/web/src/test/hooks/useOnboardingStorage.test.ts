@@ -25,14 +25,14 @@ describe('useOnboardingStorage', () => {
     const { result } = renderHook(() => useOnboardingStorage())
 
     act(() => {
-      result.current.setAnswer('course', 'business-analysis')
+      result.current.setAnswer('course', 'cbap')
     })
 
-    expect(result.current.answers.course).toBe('business-analysis')
+    expect(result.current.answers.course).toBe('cbap')
     const stored = sessionStorage.getItem(STORAGE_KEY)
     expect(stored).toBeTruthy()
     expect(JSON.parse(stored!)).toEqual({
-      course: 'business-analysis',
+      course: 'cbap',
     })
   })
 
@@ -60,7 +60,7 @@ describe('useOnboardingStorage', () => {
   it('loads existing answers from sessionStorage on mount', () => {
     // Set up storage before hook renders
     const existingData = {
-      course: 'business-analysis',
+      course: 'cbap',
       motivation: 'career-change',
     }
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(existingData))
@@ -68,7 +68,7 @@ describe('useOnboardingStorage', () => {
     // Render hook AFTER setting storage
     const { result } = renderHook(() => useOnboardingStorage())
 
-    expect(result.current.answers.course).toBe('business-analysis')
+    expect(result.current.answers.course).toBe('cbap')
     expect(result.current.answers.motivation).toBe('career-change')
   })
 
@@ -76,7 +76,7 @@ describe('useOnboardingStorage', () => {
     const { result } = renderHook(() => useOnboardingStorage())
 
     act(() => {
-      result.current.setAnswer('course', 'business-analysis')
+      result.current.setAnswer('course', 'cbap')
       result.current.setAnswer('motivation', 'certification')
     })
 

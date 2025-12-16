@@ -10,10 +10,11 @@ export interface Course {
 
 /**
  * Available courses for onboarding.
+ * Note: Course IDs must match the slug in the backend database.
  */
 export const COURSES: Course[] = [
   {
-    id: 'business-analysis',
+    id: 'cbap',
     name: 'Business Analysis',
     description: 'CBAP, CCBA, and ECBA certification prep',
   },
@@ -24,7 +25,7 @@ export const COURSES: Course[] = [
  * Course display names for dynamic text in Q2/Q3.
  */
 export const COURSE_DISPLAY_NAMES: Record<string, string> = {
-  'business-analysis': 'Business Analysis',
+  'cbap': 'Business Analysis',
 }
 
 /**

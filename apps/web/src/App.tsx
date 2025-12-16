@@ -1,66 +1,94 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { LandingPage } from './pages/LandingPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { AccountCreationPage } from './pages/AccountCreationPage'
+import { LoginPage } from './pages/LoginPage'
+import { DiagnosticPage } from './pages/DiagnosticPage'
+import { useAuthStore } from './stores/authStore'
+
+/** Route guard that redirects to login if not authenticated */
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+  return <>{children}</>
+}
+
+/** Placeholder pages */
+function ForgotPasswordPlaceholder() {
+  return (
+    <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-charcoal">Forgot Password</h1>
+        <p className="mt-2 text-charcoal/70">Password recovery coming soon...</p>
+      </div>
+    </div>
+  )
+}
+
+function DiagnosticResultsPlaceholder() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900">Diagnostic Complete!</h1>
+        <p className="mt-2 text-gray-600">Your results are being processed...</p>
+      </div>
+    </div>
+  )
+}
+
+function TermsPlaceholder() {
+  return (
+    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
+      <div className="max-w-2xl text-center">
+        <h1 className="text-2xl font-bold text-charcoal">Terms of Service</h1>
+        <p className="mt-4 text-charcoal/70">Terms of Service content will be added here.</p>
+      </div>
+    </div>
+  )
+}
+
+function PrivacyPlaceholder() {
+  return (
+    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
+      <div className="max-w-2xl text-center">
+        <h1 className="text-2xl font-bold text-charcoal">Privacy Policy</h1>
+        <p className="mt-4 text-charcoal/70">Privacy Policy content will be added here.</p>
+      </div>
+    </div>
+  )
+}
+
+/** Data router configuration - required for useBlocker hook */
+const router = createBrowserRouter([
+  { path: '/', element: <LandingPage /> },
+  { path: '/onboarding', element: <OnboardingPage /> },
+  { path: '/register', element: <AccountCreationPage /> },
+  { path: '/login', element: <LoginPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPlaceholder /> },
+  {
+    path: '/diagnostic',
+    element: (
+      <ProtectedRoute>
+        <DiagnosticPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/diagnostic/results',
+    element: (
+      <ProtectedRoute>
+        <DiagnosticResultsPlaceholder />
+      </ProtectedRoute>
+    ),
+  },
+  { path: '/terms', element: <TermsPlaceholder /> },
+  { path: '/privacy', element: <PrivacyPlaceholder /> },
+])
 
 function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/register" element={<AccountCreationPage />} />
-        {/* Placeholder for login - will be implemented in Story 1.4 */}
-        <Route
-          path="/login"
-          element={
-            <div className="min-h-screen bg-cream flex items-center justify-center">
-              <div className="text-center">
-                <h1 className="text-2xl font-bold text-charcoal">Login</h1>
-                <p className="mt-2 text-charcoal/70">Coming soon...</p>
-              </div>
-            </div>
-          }
-        />
-        {/* Placeholder for diagnostic - will be implemented in Story 3.6 */}
-        <Route
-          path="/diagnostic"
-          element={
-            <div className="min-h-screen bg-cream flex items-center justify-center">
-              <div className="text-center">
-                <h1 className="text-2xl font-bold text-charcoal">Diagnostic Assessment</h1>
-                <p className="mt-2 text-charcoal/70">Coming soon...</p>
-              </div>
-            </div>
-          }
-        />
-        {/* Placeholder for terms - static page */}
-        <Route
-          path="/terms"
-          element={
-            <div className="min-h-screen bg-cream flex items-center justify-center px-4">
-              <div className="max-w-2xl text-center">
-                <h1 className="text-2xl font-bold text-charcoal">Terms of Service</h1>
-                <p className="mt-4 text-charcoal/70">Terms of Service content will be added here.</p>
-              </div>
-            </div>
-          }
-        />
-        {/* Placeholder for privacy - static page */}
-        <Route
-          path="/privacy"
-          element={
-            <div className="min-h-screen bg-cream flex items-center justify-center px-4">
-              <div className="max-w-2xl text-center">
-                <h1 className="text-2xl font-bold text-charcoal">Privacy Policy</h1>
-                <p className="mt-4 text-charcoal/70">Privacy Policy content will be added here.</p>
-              </div>
-            </div>
-          }
-        />
-      </Routes>
-    </Router>
-  )
+  return <RouterProvider router={router} />
 }
 
 export default App

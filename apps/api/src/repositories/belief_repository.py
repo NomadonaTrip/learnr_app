@@ -375,3 +375,50 @@ class BeliefRepository:
             "uncertain": status_counts["uncertain"],
             "average_mean": round(total_mean / len(beliefs), 4)
         }
+
+    async def get_beliefs_for_concepts(
+        self,
+        user_id: UUID,
+        concept_ids: list[UUID],
+    ) -> dict[UUID, BeliefState]:
+        """
+        Get belief states for specific concepts with row-level locking.
+
+        Uses SELECT ... FOR UPDATE to prevent concurrent modification
+        during belief updates. This ensures atomic updates when multiple
+        answers are submitted simultaneously.
+
+        Args:
+            user_id: User UUID
+            concept_ids: List of concept UUIDs to fetch beliefs for
+
+        Returns:
+            Dictionary mapping concept_id to BeliefState
+        """
+        if not concept_ids:
+            return {}
+
+        result = await self.session.execute(
+            select(BeliefState)
+            .where(BeliefState.user_id == user_id)
+            .where(BeliefState.concept_id.in_(concept_ids))
+            .with_for_update()  # Row-level lock for concurrent safety
+        )
+        beliefs = result.scalars().all()
+        return {b.concept_id: b for b in beliefs}
+
+    async def flush_updates(self, beliefs: list[BeliefState]) -> None:
+        """
+        Flush belief state updates to the database.
+
+        This method flushes changes to beliefs that have been modified
+        in memory. Used after bulk updates to persist changes atomically.
+
+        Args:
+            beliefs: List of BeliefState models that have been modified
+        """
+        # Beliefs are already tracked by the session since they were
+        # loaded with get_beliefs_for_concepts. We just need to flush.
+        for belief in beliefs:
+            belief.last_response_at = func.now()
+        await self.session.flush()
