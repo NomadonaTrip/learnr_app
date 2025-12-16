@@ -24,12 +24,12 @@ describe('QuestionCourseSelection', () => {
     render(<QuestionCourseSelection onChange={onChange} />)
 
     await user.click(screen.getByText('Business Analysis'))
-    expect(onChange).toHaveBeenCalledWith('business-analysis')
+    expect(onChange).toHaveBeenCalledWith('cbap')
   })
 
   it('marks selected course as pressed', () => {
     render(
-      <QuestionCourseSelection value="business-analysis" onChange={vi.fn()} />
+      <QuestionCourseSelection value="cbap" onChange={vi.fn()} />
     )
     const button = screen.getByRole('button', { name: /business analysis/i })
     expect(button).toHaveAttribute('aria-pressed', 'true')
@@ -54,13 +54,13 @@ describe('QuestionCourseSelection', () => {
     const button = screen.getByRole('button', { name: /business analysis/i })
     button.focus()
     await user.keyboard('{Enter}')
-    expect(onChange).toHaveBeenCalledWith('business-analysis')
+    expect(onChange).toHaveBeenCalledWith('cbap')
   })
 })
 
 describe('getCourseDisplayName', () => {
-  it('returns "Business Analysis" for business-analysis', () => {
-    expect(getCourseDisplayName('business-analysis')).toBe('Business Analysis')
+  it('returns "Business Analysis" for cbap', () => {
+    expect(getCourseDisplayName('cbap')).toBe('Business Analysis')
   })
 
   it('returns "this subject" for unknown course', () => {

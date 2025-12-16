@@ -40,7 +40,17 @@ from src.middleware.error_handler import (
     token_invalid_error_handler,
     validation_error_handler,
 )
-from src.routes import auth, beliefs, concepts, courses, health, questions, reading, users
+from src.routes import (
+    auth,
+    beliefs,
+    concepts,
+    courses,
+    diagnostic,
+    health,
+    questions,
+    reading,
+    users,
+)
 from src.utils.rate_limiter import limiter
 
 
@@ -226,6 +236,7 @@ app.include_router(concepts.router, prefix="/v1")
 app.include_router(questions.router, prefix="/v1")
 app.include_router(reading.router, prefix="/v1")
 app.include_router(beliefs.router, prefix="/v1")
+app.include_router(diagnostic.router, prefix="/v1")
 
 
 @app.get("/")

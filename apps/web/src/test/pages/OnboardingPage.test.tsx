@@ -200,7 +200,7 @@ describe('OnboardingPage', () => {
       await user.click(screen.getByRole('button', { name: /continue/i }))
 
       const stored = JSON.parse(sessionStorage.getItem('learnr_onboarding')!)
-      expect(stored.course).toBe('business-analysis')
+      expect(stored.course).toBe('cbap')
     })
 
     it('stores all answers after completion', async () => {
@@ -221,7 +221,7 @@ describe('OnboardingPage', () => {
 
       const stored = JSON.parse(sessionStorage.getItem('learnr_onboarding')!)
       expect(stored).toEqual({
-        course: 'business-analysis',
+        course: 'cbap',
         motivation: 'certification',
         familiarity: 'basics',
         initialBeliefPrior: 0.3,
@@ -233,7 +233,7 @@ describe('OnboardingPage', () => {
     it('resumes at Q2 when course is already answered', () => {
       sessionStorage.setItem(
         'learnr_onboarding',
-        JSON.stringify({ course: 'business-analysis' })
+        JSON.stringify({ course: 'cbap' })
       )
 
       renderWithRouter()
@@ -244,7 +244,7 @@ describe('OnboardingPage', () => {
       sessionStorage.setItem(
         'learnr_onboarding',
         JSON.stringify({
-          course: 'business-analysis',
+          course: 'cbap',
           motivation: 'certification',
         })
       )

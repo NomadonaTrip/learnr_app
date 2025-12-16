@@ -112,7 +112,8 @@ class QuestionRepository:
     async def get_question_by_id(
         self,
         question_id: UUID,
-        course_id: UUID | None = None
+        course_id: UUID | None = None,
+        load_concepts: bool = False
     ) -> Question | None:
         """
         Retrieve question by ID, optionally scoped to a course.
@@ -120,6 +121,7 @@ class QuestionRepository:
         Args:
             question_id: UUID of the question
             course_id: Optional course_id to scope the query
+            load_concepts: Whether to eagerly load concept relationships
 
         Returns:
             Question instance or None if not found
@@ -127,6 +129,8 @@ class QuestionRepository:
         query = select(Question).where(Question.id == question_id)
         if course_id:
             query = query.where(Question.course_id == course_id)
+        if load_concepts:
+            query = query.options(selectinload(Question.question_concepts))
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
