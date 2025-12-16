@@ -70,6 +70,15 @@ from .reading_chunk import (
     ReadingListResponse,
     ReadingQueryParams,
 )
+from .diagnostic_results import (
+    ConceptGap,
+    ConfidenceLevel,
+    DiagnosticFeedbackRequest,
+    DiagnosticFeedbackResponse,
+    DiagnosticResultsResponse,
+    KnowledgeAreaResult,
+    Recommendations,
+)
 from .user import UserCreate, UserResponse, UserUpdate
 
 __all__ = [
@@ -130,4 +139,12 @@ __all__ = [
     "QuestionListParams",
     "QuestionListResponse",
     "PaginatedQuestionResponse",
+    # Diagnostic results
+    "DiagnosticResultsResponse",
+    "KnowledgeAreaResult",
+    "ConceptGap",
+    "Recommendations",
+    "ConfidenceLevel",
+    "DiagnosticFeedbackRequest",
+    "DiagnosticFeedbackResponse",
 ]

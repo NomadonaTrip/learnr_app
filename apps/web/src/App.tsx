@@ -4,6 +4,7 @@ import { OnboardingPage } from './pages/OnboardingPage'
 import { AccountCreationPage } from './pages/AccountCreationPage'
 import { LoginPage } from './pages/LoginPage'
 import { DiagnosticPage } from './pages/DiagnosticPage'
+import { DiagnosticResultsPage } from './pages/DiagnosticResultsPage'
 import { useAuthStore } from './stores/authStore'
 
 /** Route guard that redirects to login if not authenticated */
@@ -27,16 +28,6 @@ function ForgotPasswordPlaceholder() {
   )
 }
 
-function DiagnosticResultsPlaceholder() {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Diagnostic Complete!</h1>
-        <p className="mt-2 text-gray-600">Your results are being processed...</p>
-      </div>
-    </div>
-  )
-}
 
 function TermsPlaceholder() {
   return (
@@ -79,7 +70,7 @@ const router = createBrowserRouter([
     path: '/diagnostic/results',
     element: (
       <ProtectedRoute>
-        <DiagnosticResultsPlaceholder />
+        <DiagnosticResultsPage />
       </ProtectedRoute>
     ),
   },

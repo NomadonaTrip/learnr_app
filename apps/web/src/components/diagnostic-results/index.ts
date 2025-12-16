@@ -1,0 +1,6 @@
+export { ResultsHeroSection } from './ResultsHeroSection'
+export { KnowledgeAreaBreakdown } from './KnowledgeAreaBreakdown'
+export { GapHighlights } from './GapHighlights'
+export { UncertaintyCallout } from './UncertaintyCallout'
+export { RecommendationsSection } from './RecommendationsSection'
+export { FeedbackSurvey } from './FeedbackSurvey'

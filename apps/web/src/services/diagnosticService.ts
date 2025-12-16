@@ -3,6 +3,9 @@ import type {
   DiagnosticQuestionsResponse,
   DiagnosticAnswerRequest,
   DiagnosticAnswerResponse,
+  DiagnosticResultsResponse,
+  DiagnosticFeedbackRequest,
+  DiagnosticFeedbackResponse,
 } from '../types/diagnostic'
 
 /**
@@ -49,6 +52,40 @@ export const diagnosticService = {
       selected_answer: selectedAnswer,
     }
     const response = await api.post<DiagnosticAnswerResponse>('/diagnostic/answer', payload)
+    return response.data
+  },
+
+  /**
+   * Fetch diagnostic results after completing the assessment.
+   * @param courseId - UUID of the course
+   * @returns Comprehensive diagnostic results with coverage stats
+   * @throws AxiosError with status 401 if not authenticated
+   * @throws AxiosError with status 404 if no diagnostic completed
+   */
+  async fetchDiagnosticResults(courseId: string): Promise<DiagnosticResultsResponse> {
+    const response = await api.get<DiagnosticResultsResponse>('/diagnostic/results', {
+      params: { course_id: courseId },
+    })
+    return response.data
+  },
+
+  /**
+   * Submit post-diagnostic feedback survey.
+   * @param courseId - UUID of the course
+   * @param rating - Accuracy rating 1-5
+   * @param comment - Optional feedback comment
+   * @returns Confirmation response
+   * @throws AxiosError with status 401 if not authenticated
+   */
+  async submitDiagnosticFeedback(
+    courseId: string,
+    rating: number,
+    comment?: string
+  ): Promise<DiagnosticFeedbackResponse> {
+    const payload: DiagnosticFeedbackRequest = { rating, comment }
+    const response = await api.post<DiagnosticFeedbackResponse>('/diagnostic/feedback', payload, {
+      params: { course_id: courseId },
+    })
     return response.data
   },
 }

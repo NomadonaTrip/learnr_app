@@ -7,9 +7,12 @@ import time
 from uuid import UUID
 
 import structlog
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from src.exceptions import BeliefInitializationError
 from src.models.belief_state import BeliefState
+from src.models.enrollment import Enrollment
 from src.repositories.belief_repository import BeliefRepository
 from src.repositories.concept_repository import ConceptRepository
 from src.schemas.belief_state import BeliefInitializationStatus, InitializationResult
@@ -65,6 +68,17 @@ class BeliefInitializationService:
             # Check if already initialized (idempotency)
             existing_count = await self.belief_repo.get_belief_count(user_id)
             if existing_count > 0:
+                # Ensure enrollment exists even if beliefs were already initialized
+                # This handles cases where enrollment was deleted but beliefs remain
+                enrollment_stmt = pg_insert(Enrollment).values(
+                    user_id=user_id,
+                    course_id=course_id,
+                    status="active",
+                ).on_conflict_do_nothing(
+                    index_elements=["user_id", "course_id"]
+                )
+                await self.belief_repo.session.execute(enrollment_stmt)
+
                 duration_ms = (time.perf_counter() - start_time) * 1000
 
                 self._log_info(
@@ -82,6 +96,23 @@ class BeliefInitializationService:
                     duration_ms=duration_ms,
                     message=f"Beliefs already initialized ({existing_count} existing)"
                 )
+
+            # Create enrollment if it doesn't exist (idempotent)
+            # This ensures the user is enrolled in the course when beliefs are initialized
+            enrollment_stmt = pg_insert(Enrollment).values(
+                user_id=user_id,
+                course_id=course_id,
+                status="active",
+            ).on_conflict_do_nothing(
+                index_elements=["user_id", "course_id"]
+            )
+            await self.belief_repo.session.execute(enrollment_stmt)
+
+            self._log_info(
+                "Ensured enrollment exists for user/course",
+                user_id=user_id,
+                course_id=course_id,
+            )
 
             # Fetch all concepts for the course
             concepts = await self.concept_repo.get_all_concepts(course_id)
