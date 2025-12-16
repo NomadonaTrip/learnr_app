@@ -102,8 +102,9 @@ export function useDiagnostic() {
       // Record answer in store
       submitAnswer(questionId, answer)
 
-      // Check if this was the last question
-      const isLastQuestion = currentIndex >= questions.length - 1
+      // Get fresh state values to avoid stale closure issue
+      const state = useDiagnosticStore.getState()
+      const isLastQuestion = state.currentIndex >= state.questions.length - 1
 
       if (isLastQuestion) {
         // Complete diagnostic and redirect to results
