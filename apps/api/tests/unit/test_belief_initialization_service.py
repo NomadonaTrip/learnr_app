@@ -269,10 +269,10 @@ async def test_initialize_beliefs_includes_timing(
 
 @pytest.mark.asyncio
 async def test_initialize_different_users_independent(
-    db_session, test_course_init, test_concepts_init
+    db_session, belief_service, test_course_init, test_concepts_init
 ):
     """Test that different users have independent belief states."""
-    # Create two users
+    # Create two users - use flush instead of commit to stay in same transaction
     user1 = User(
         email="user1@example.com",
         hashed_password=hash_password("testpass123"),
@@ -284,20 +284,16 @@ async def test_initialize_different_users_independent(
         is_admin=False
     )
     db_session.add_all([user1, user2])
-    await db_session.commit()
+    await db_session.flush()
     await db_session.refresh(user1)
     await db_session.refresh(user2)
 
-    belief_repo = BeliefRepository(db_session)
-    concept_repo = ConceptRepository(db_session)
-    service = BeliefInitializationService(belief_repo, concept_repo)
-
-    # Initialize both users
-    result1 = await service.initialize_beliefs_for_user(
+    # Initialize both users using the shared belief_service fixture
+    result1 = await belief_service.initialize_beliefs_for_user(
         user_id=user1.id,
         course_id=test_course_init.id
     )
-    result2 = await service.initialize_beliefs_for_user(
+    result2 = await belief_service.initialize_beliefs_for_user(
         user_id=user2.id,
         course_id=test_course_init.id
     )
@@ -307,6 +303,7 @@ async def test_initialize_different_users_independent(
     assert result2.belief_count == 10
 
     # Verify each user has their own beliefs
+    belief_repo = BeliefRepository(db_session)
     beliefs1 = await belief_repo.get_all_beliefs(user1.id)
     beliefs2 = await belief_repo.get_all_beliefs(user2.id)
 
