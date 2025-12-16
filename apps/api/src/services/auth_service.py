@@ -4,10 +4,7 @@ Handles business logic for authentication operations.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
-from uuid import UUID
-
-from sqlalchemy import select
+from datetime import UTC, datetime, timedelta
 
 from src.config import settings
 from src.exceptions import (
@@ -17,7 +14,6 @@ from src.exceptions import (
     TokenExpiredError,
     TokenInvalidError,
 )
-from src.models.password_reset_token import PasswordResetToken
 from src.models.user import User
 from src.repositories.password_reset_repository import PasswordResetRepository
 from src.repositories.user_repository import UserRepository
@@ -93,10 +89,10 @@ class AuthService:
         # Always verify password even if user not found to prevent timing attacks
         if user is None:
             # Perform dummy hash verification to maintain constant timing
-            # Using a known bcrypt hash format to ensure timing is similar
+            # Using a valid bcrypt hash to ensure timing is similar to real verification
             verify_password(
                 "dummy_password_for_timing_safety",
-                "$2b$12$dummyhashformaintainingtimingsafety.abcdefghijklmnopqrstuvwxyz"
+                "$2b$12$nbnaTwK8eZWPYgqkvl4fV.H.x8xuFE6tbqfZ/DWQdsYJX6Jkqa2VW"
             )
             raise AuthenticationError("Invalid email or password")
 
@@ -170,7 +166,7 @@ class AuthService:
             if existing_token:
                 if existing_token.used_at is not None:
                     raise TokenAlreadyUsedError("This password reset token has already been used.")
-                elif existing_token.expires_at < datetime.now(timezone.utc):
+                elif existing_token.expires_at < datetime.now(UTC):
                     raise TokenExpiredError("Password reset token has expired. Please request a new one.")
 
             # Token doesn't exist or is invalid

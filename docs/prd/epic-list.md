@@ -60,6 +60,13 @@ Delivers: Settings/profile management, accessibility compliance (WCAG 2.1 AA), e
 
 ---
 
+**Epic 9: Multi-Course Platform Architecture**
+**Goal:** Transform LearnR from a single-course CBAP application into a multi-course platform capable of supporting multiple certifications (PSM1, CFA Level 1, etc.) while maintaining full backward compatibility.
+
+Delivers: Course and enrollment data model, course-scoped content (concepts, questions, reading), enrollment management API, course catalog, dynamic knowledge areas, migration of existing CBAP users, content import pipeline for new courses.
+
+---
+
 ### Epic Sequencing Rationale
 
 **Why This Structure:**
@@ -80,6 +87,8 @@ Delivers: Settings/profile management, accessibility compliance (WCAG 2.1 AA), e
 
 8. **Epic 8** focuses on polish and deployment after all features functional - prepares for production launch
 
+9. **Epic 9** adds multi-course capability post-launch - validates BKT engine is course-agnostic before Phase 2 (user-generated content)
+
 **Incremental Value Delivery:**
 - After Epic 1: Team can develop and deploy code
 - After Epic 2: Content is loaded and queryable
@@ -89,6 +98,7 @@ Delivers: Settings/profile management, accessibility compliance (WCAG 2.1 AA), e
 - After Epic 6: Users have full progress transparency
 - After Epic 7: Retention system ensures long-term learning
 - After Epic 8: Platform ready for production case study validation
+- After Epic 9: **Platform supports multiple certifications - ready for PSM1/CFA expansion**
 
 ---
 

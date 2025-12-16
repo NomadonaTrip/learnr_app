@@ -63,3 +63,8 @@ class TokenInvalidError(AppException):
 class TokenAlreadyUsedError(AppException):
     """Raised when token has already been used (400)."""
     pass
+
+
+class BeliefInitializationError(AppException):
+    """Raised when belief state initialization fails (500)."""
+    pass

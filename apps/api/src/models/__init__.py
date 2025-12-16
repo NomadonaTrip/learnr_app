@@ -2,7 +2,26 @@
 SQLAlchemy models module.
 Exports all database models for easy importing.
 """
+from .belief_state import BeliefState
+from .concept import Concept
+from .concept_prerequisite import ConceptPrerequisite
+from .course import Course
+from .enrollment import Enrollment
 from .password_reset_token import PasswordResetToken
+from .question import Question
+from .question_concept import QuestionConcept
+from .reading_chunk import ReadingChunk
 from .user import User
 
-__all__ = ["User", "PasswordResetToken"]
+__all__ = [
+    "User",
+    "PasswordResetToken",
+    "Question",
+    "QuestionConcept",
+    "Course",
+    "Enrollment",
+    "Concept",
+    "ConceptPrerequisite",
+    "ReadingChunk",
+    "BeliefState",
+]

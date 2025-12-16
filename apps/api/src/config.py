@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://:learnr123@localhost:6379/0"  # Default for local Docker Redis
     REDIS_PASSWORD: str | None = "learnr123"  # Password for local Docker Redis
 
+    # Qdrant Vector Database
+    QDRANT_URL: str = "http://localhost:6333"
+    QDRANT_API_KEY: str | None = None  # For Qdrant Cloud (leave None for local)
+    QDRANT_TIMEOUT: int = 10  # Seconds
+
     # JWT
     SECRET_KEY: str = "your-secret-key-for-jwt-signing-change-this-in-production"
     JWT_ALGORITHM: str = "HS256"

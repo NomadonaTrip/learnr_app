@@ -86,6 +86,141 @@ The API will be available at:
 - `alembic upgrade head` - Run database migrations
 - `alembic revision --autogenerate -m "message"` - Create new migration
 
+## Qdrant Vector Database Setup
+
+Qdrant is used for semantic search of questions and BABOK reading content. The API requires Qdrant to be running and properly configured.
+
+### Starting Qdrant Locally
+
+Start Qdrant using Docker Compose:
+
+```bash
+docker-compose -f infrastructure/docker/docker-compose.dev.yml up -d qdrant
+```
+
+Verify Qdrant is running:
+
+```bash
+curl http://localhost:6333/
+```
+
+Expected response:
+```json
+{"title":"qdrant - vector search engine","version":"1.7.3"}
+```
+
+### Accessing Qdrant Web UI
+
+Once Qdrant is running, access the web dashboard at:
+
+```
+http://localhost:6333/dashboard
+```
+
+The dashboard allows you to:
+- Browse collections
+- View collection schemas and statistics
+- Search vectors manually
+- Monitor performance
+
+### Initializing Collections
+
+Before using the API, initialize the required Qdrant collections:
+
+```bash
+python apps/api/scripts/init_qdrant_collections.py
+```
+
+This script creates two collections with multi-course support:
+- **`questions`** - Exam questions with embeddings (3072 dimensions, course-agnostic)
+- **`reading_chunks`** - Reading content chunks with embeddings (3072 dimensions, course-agnostic)
+
+**Payload Schema (Multi-Course):**
+
+| Collection | Fields |
+|------------|--------|
+| `questions` | `question_id`, `course_id`, `knowledge_area_id`, `difficulty` (float), `concept_ids`, `question_text`, `options`, `correct_answer` |
+| `reading_chunks` | `chunk_id`, `course_id`, `knowledge_area_id`, `section_ref`, `difficulty` (float), `concept_ids`, `text_content` |
+
+The script is idempotent - safe to run multiple times. It also handles migration from old collection names (`cbap_questions`, `babok_chunks`).
+
+### Verifying Collections
+
+**Via Web UI:**
+1. Open http://localhost:6333/dashboard
+2. Click "Collections" in the sidebar
+3. Verify `questions` and `reading_chunks` are listed
+
+**Via API:**
+```bash
+curl http://localhost:6333/collections
+```
+
+**Via Health Check:**
+```bash
+curl http://localhost:8000/health
+```
+
+Look for the `qdrant` section in the response:
+```json
+{
+  "qdrant": {
+    "status": "connected",
+    "response_time_ms": 10,
+    "collections_count": 2,
+    "collections": ["questions", "reading_chunks"]
+  }
+}
+```
+
+### Qdrant Configuration
+
+Qdrant connection is configured in `.env`:
+
+```bash
+# Local Qdrant (default for development)
+QDRANT_URL=http://localhost:6333
+QDRANT_API_KEY=  # Leave empty for local
+QDRANT_TIMEOUT=10
+
+# Qdrant Cloud (production)
+# QDRANT_URL=https://your-cluster.cloud.qdrant.io:6333
+# QDRANT_API_KEY=your-api-key-here
+```
+
+### Troubleshooting Qdrant
+
+**"Connection refused" errors:**
+- Verify Qdrant container is running: `docker ps | grep qdrant`
+- Check logs: `docker logs learnr-qdrant-dev`
+- Restart Qdrant: `docker-compose -f infrastructure/docker/docker-compose.dev.yml restart qdrant`
+
+**Collections not found:**
+- Run initialization script: `python apps/api/scripts/init_qdrant_collections.py`
+- Verify script completed successfully (check output)
+- Verify collections in web UI or via API
+
+**Health check shows Qdrant disconnected:**
+- Check QDRANT_URL in `.env` matches running instance
+- Verify no firewall blocking port 6333
+- Try accessing web UI manually: `http://localhost:6333/dashboard`
+
+**Vector dimension mismatch errors:**
+- LearnR uses `text-embedding-3-large` with **3072 dimensions**
+- Do NOT use `text-embedding-3-small` (1536 dimensions)
+- Collections are configured for 3072 dimensions only
+
+**Data persistence issues:**
+- Qdrant data is persisted in Docker volume `learnr-qdrant-data-dev`
+- View volumes: `docker volume ls | grep qdrant`
+- Delete volume (⚠️ destroys all data): `docker volume rm learnr-qdrant-data-dev`
+
+**Performance issues:**
+- Check Docker resource limits (CPU, Memory)
+- Qdrant recommends 2GB+ RAM for production
+- Monitor dashboard for collection stats
+- Consider indexing optimization for large datasets
+
 ## Project Structure
 
 ```
@@ -385,16 +520,29 @@ Response (healthy):
   "database": {
     "status": "connected",
     "response_time_ms": 5
+  },
+  "qdrant": {
+    "status": "connected",
+    "response_time_ms": 10,
+    "collections_count": 2
   }
 }
 ```
 
-Use this endpoint for:
+The health check verifies:
+- **API** is running and responding
+- **PostgreSQL** database connection is healthy
+- **Qdrant** vector database connection is healthy
 
+Use this endpoint for:
 - Load balancer health checks
 - Container orchestration (Docker, Kubernetes)
 - Monitoring tools (Prometheus, Datadog)
 - CI/CD health verification
+
+The endpoint returns:
+- **200 OK** - All services healthy
+- **503 Service Unavailable** - Database or Qdrant connection failed
 
 ## Endpoints Summary
 

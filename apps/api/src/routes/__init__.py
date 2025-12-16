@@ -1,5 +1,5 @@
 """API route handlers."""
 
-from . import auth, health, users
+from . import auth, beliefs, concepts, courses, health, questions, reading, users
 
-__all__ = ["auth", "health", "users"]
+__all__ = ["auth", "beliefs", "concepts", "courses", "health", "questions", "reading", "users"]

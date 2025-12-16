@@ -3,7 +3,6 @@ Pydantic schemas for User model.
 Handles request/response validation and serialization.
 """
 from datetime import date, datetime
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, field_validator
@@ -46,17 +45,17 @@ class UserUpdate(BaseModel):
     Schema for updating user profile/onboarding data.
     All fields optional to support partial updates.
     """
-    exam_date: Optional[date] = None
-    target_score: Optional[int] = None
-    daily_study_time: Optional[int] = None
-    knowledge_level: Optional[str] = None
-    motivation: Optional[str] = None
-    referral_source: Optional[str] = None
-    dark_mode: Optional[str] = None
+    exam_date: date | None = None
+    target_score: int | None = None
+    daily_study_time: int | None = None
+    knowledge_level: str | None = None
+    motivation: str | None = None
+    referral_source: str | None = None
+    dark_mode: str | None = None
 
     @field_validator('target_score')
     @classmethod
-    def validate_target_score(cls, v: Optional[int]) -> Optional[int]:
+    def validate_target_score(cls, v: int | None) -> int | None:
         """Target score must be between 0 and 100."""
         if v is not None and not (0 <= v <= 100):
             raise ValueError('Target score must be between 0 and 100')
@@ -64,7 +63,7 @@ class UserUpdate(BaseModel):
 
     @field_validator('knowledge_level')
     @classmethod
-    def validate_knowledge_level(cls, v: Optional[str]) -> Optional[str]:
+    def validate_knowledge_level(cls, v: str | None) -> str | None:
         """Knowledge level must be one of: Beginner, Intermediate, Advanced."""
         if v is not None and v not in ('Beginner', 'Intermediate', 'Advanced'):
             raise ValueError('Knowledge level must be Beginner, Intermediate, or Advanced')
@@ -72,7 +71,7 @@ class UserUpdate(BaseModel):
 
     @field_validator('referral_source')
     @classmethod
-    def validate_referral_source(cls, v: Optional[str]) -> Optional[str]:
+    def validate_referral_source(cls, v: str | None) -> str | None:
         """Referral source must be one of: Search, Friend, Social, Other."""
         if v is not None and v not in ('Search', 'Friend', 'Social', 'Other'):
             raise ValueError('Referral source must be Search, Friend, Social, or Other')
@@ -80,7 +79,7 @@ class UserUpdate(BaseModel):
 
     @field_validator('dark_mode')
     @classmethod
-    def validate_dark_mode(cls, v: Optional[str]) -> Optional[str]:
+    def validate_dark_mode(cls, v: str | None) -> str | None:
         """Dark mode must be one of: light, dark, auto."""
         if v is not None and v not in ('light', 'dark', 'auto'):
             raise ValueError('Dark mode must be light, dark, or auto')
@@ -108,12 +107,12 @@ class UserResponse(BaseModel):
     """
     id: UUID
     email: str
-    exam_date: Optional[date] = None
-    target_score: Optional[int] = None
-    daily_study_time: Optional[int] = None
-    knowledge_level: Optional[str] = None
-    motivation: Optional[str] = None
-    referral_source: Optional[str] = None
+    exam_date: date | None = None
+    target_score: int | None = None
+    daily_study_time: int | None = None
+    knowledge_level: str | None = None
+    motivation: str | None = None
+    referral_source: str | None = None
     is_admin: bool
     dark_mode: str
     created_at: datetime

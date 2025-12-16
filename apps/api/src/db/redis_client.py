@@ -4,7 +4,9 @@ Provides async Redis connection for caching and rate limiting
 """
 
 import asyncio
+
 from redis.asyncio import Redis
+
 from src.config import settings
 
 # Global Redis client instance

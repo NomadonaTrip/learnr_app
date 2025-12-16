@@ -100,3 +100,7 @@ logs/
 tmp/
 temp/
 *.tmp
+
+#document files
+docs/
+.ignore/

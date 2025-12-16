@@ -1,29 +1,217 @@
 # Components
 
+## Status
+
+**ALIGNED** with BKT Architecture (bkt-architecture.md)
+
+---
+
 ### Frontend Components
 
 1. **Authentication Module** - User auth state, login/logout, JWT refresh, protected routes
-2. **Quiz Session Manager** - Session lifecycle, question navigation, answer submission
-3. **Reading Library Manager** - Async reading queue, filters, engagement tracking
-4. **Dashboard & Analytics Viewer** - Progress visualization, competency bars, trends
-5. **Competency Visualizer** - Chart rendering, progress animations
-6. **Reading Badge Component** - Navigation badge with unread count and priority indicator
+2. **Quiz Session Manager** - Session lifecycle, BKT question navigation, answer submission with belief updates
+3. **Reading Library Manager** - Async reading queue linked to gap concepts, filters, engagement tracking
+4. **Dashboard & Analytics Viewer** - KA-level progress bars (aggregated from beliefs), coverage summary
+5. **Coverage Visualizer** - Heatmap, gap analysis panel, concept-level belief display
+6. **Belief Update Indicator** - Shows users how answers affect their knowledge (simplified view)
+7. **Reading Badge Component** - Navigation badge with unread count and priority indicator
+
+---
+
+### BKT Coverage Components
+
+#### Coverage Heatmap
+
+**Purpose:** Visual representation of concept mastery across the corpus (optional advanced view).
+
+**Component Location:** `apps/web/src/components/coverage/CoverageHeatmap.tsx`
+
+```tsx
+interface CoverageHeatmapProps {
+  beliefs: BeliefState[];
+  onConceptClick: (conceptId: string) => void;
+}
+
+export function CoverageHeatmap({ beliefs, onConceptClick }: CoverageHeatmapProps) {
+  const getColor = (belief: BeliefState) => {
+    const mean = belief.alpha / (belief.alpha + belief.beta);
+    const confidence = (belief.alpha + belief.beta) / (belief.alpha + belief.beta + 10);
+
+    if (confidence < 0.7) return 'gray';      // Uncertain
+    if (mean >= 0.8) return 'green';          // Mastered
+    if (mean <= 0.5) return 'red';            // Gap
+    return 'yellow';                          // Borderline
+  };
+
+  return (
+    <div className="heatmap-grid">
+      {beliefs.map((belief) => (
+        <div
+          key={belief.concept_id}
+          className="concept-cell"
+          style={{ backgroundColor: getColor(belief) }}
+          onClick={() => onConceptClick(belief.concept_id)}
+          aria-label={`${belief.concept_name}: ${Math.round(belief.mean * 100)}% mastery`}
+        />
+      ))}
+    </div>
+  );
+}
+```
+
+**Color Legend:**
+| Color | Status | Criteria |
+|-------|--------|----------|
+| Green | Mastered | mean ≥ 0.8, confidence ≥ 0.7 |
+| Red | Gap | mean ≤ 0.5, confidence ≥ 0.7 |
+| Yellow | Borderline | 0.5 < mean < 0.8, confidence ≥ 0.7 |
+| Gray | Uncertain | confidence < 0.7 |
+
+---
+
+#### Gap Analysis Panel
+
+**Purpose:** Display identified knowledge gaps sorted by priority for focused study.
+
+**Component Location:** `apps/web/src/components/coverage/GapAnalysis.tsx`
+
+```tsx
+interface GapAnalysisProps {
+  gaps: ConceptStatus[];
+  onFocusGap: (conceptId: string) => void;
+}
+
+export function GapAnalysis({ gaps, onFocusGap }: GapAnalysisProps) {
+  // Sort gaps by priority (lowest mastery × highest confidence)
+  const sortedGaps = [...gaps].sort((a, b) => {
+    const priorityA = (1 - a.probability) * a.confidence;
+    const priorityB = (1 - b.probability) * b.confidence;
+    return priorityB - priorityA;
+  });
+
+  return (
+    <div className="gap-analysis">
+      <h2>Focus Areas ({gaps.length} gaps identified)</h2>
+      <p className="description">
+        These concepts need attention. We're confident you haven't mastered them yet.
+      </p>
+      <ul className="gap-list">
+        {sortedGaps.map((gap) => (
+          <li key={gap.concept_id} className="gap-item">
+            <ConceptCard
+              concept={gap}
+              onAction={() => onFocusGap(gap.concept_id)}
+              actionLabel="Practice This"
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+---
+
+#### Belief Update Indicator
+
+**Purpose:** Show users (in simplified terms) how their answer affected their knowledge.
+
+**Component Location:** `apps/web/src/components/quiz/BeliefUpdateIndicator.tsx`
+
+```tsx
+interface BeliefUpdateIndicatorProps {
+  updates: BeliefUpdate[];
+  isCorrect: boolean;
+}
+
+export function BeliefUpdateIndicator({ updates, isCorrect }: BeliefUpdateIndicatorProps) {
+  const conceptsAffected = updates.length;
+
+  return (
+    <div className={`belief-indicator ${isCorrect ? 'positive' : 'negative'}`}>
+      {isCorrect ? (
+        <span>
+          <CheckIcon /> Strengthened understanding of {conceptsAffected} concept{conceptsAffected !== 1 ? 's' : ''}
+        </span>
+      ) : (
+        <span>
+          <InfoIcon /> Identified area for review: {updates[0]?.concept_name}
+        </span>
+      )}
+    </div>
+  );
+}
+```
+
+**Design Principle:** BKT complexity is hidden from users. They see friendly messages like "Strengthened 3 concepts" instead of "Updated α from 3.2 to 4.1".
+
+---
+
+#### Knowledge Area Progress Bar
+
+**Purpose:** Display user-facing progress for each of the 6 Knowledge Areas (aggregated from beliefs).
+
+**Component Location:** `apps/web/src/components/coverage/KnowledgeAreaProgress.tsx`
+
+```tsx
+interface KnowledgeAreaProgressProps {
+  knowledgeArea: string;
+  masteredCount: number;
+  totalConcepts: number;
+  readinessScore: number; // 0-100
+}
+
+export function KnowledgeAreaProgress({
+  knowledgeArea,
+  masteredCount,
+  totalConcepts,
+  readinessScore,
+}: KnowledgeAreaProgressProps) {
+  return (
+    <div className="ka-progress">
+      <div className="ka-header">
+        <h3>{knowledgeArea}</h3>
+        <span className="readiness">{readinessScore}% Ready</span>
+      </div>
+      <div
+        className="progress-bar"
+        role="progressbar"
+        aria-valuenow={readinessScore}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${knowledgeArea}: ${readinessScore}% ready`}
+      >
+        <div
+          className="progress-fill"
+          style={{ width: `${readinessScore}%` }}
+        />
+      </div>
+      <p className="concept-count">
+        {masteredCount} of {totalConcepts} concepts mastered
+      </p>
+    </div>
+  );
+}
+```
+
+---
 
 ### Reading Badge UI Pattern
 
 **Purpose:** Display unread reading queue count in navigation with silent updates (zero-interruption learning flow).
 
-**Component Location:** `apps/web/src/components/layout/Navigation.tsx` or `ReadingBadge.tsx`
+**Component Location:** `apps/web/src/components/layout/ReadingBadge.tsx`
 
 **Visual Design:**
 
 ```
-┌─────────────────────────────┐
-│  Navigation                  │
+┌─────────────────────────────────┐
+│  Navigation                      │
 │  [Dashboard] [Quiz] [Reading│ 7] [Settings]
-│                         └─┬─┘
-│                   Badge: count + priority
-└─────────────────────────────┘
+│                           └─┬─┘
+│                     Badge: count + priority
+└─────────────────────────────────┘
 ```
 
 **Badge States:**
@@ -35,34 +223,13 @@
 | **High Priority** | 1-10 | ≥1 high | Red/orange badge, white text | `Reading Library [7]` |
 | **Many Items** | 10+ | Any | Badge with "10+" | `Reading Library [10+]` |
 
-**TypeScript Interface:**
-
-```typescript
-interface ReadingBadgeProps {
-  count: number;
-  hasHighPriority: boolean;
-  className?: string;
-}
-
-interface ReadingBadgeState {
-  count: number;
-  hasHighPriority: boolean;
-  previousCount: number; // For animation
-}
-```
-
-**Implementation Example:**
+**Implementation:**
 
 ```tsx
-// apps/web/src/components/layout/ReadingBadge.tsx
-import { useReadingQueue } from '@/hooks/useReadingQueue';
-import { useEffect, useState } from 'react';
-
 export function ReadingBadge() {
   const { unreadCount, hasHighPriority } = useReadingQueue();
   const [shouldPulse, setShouldPulse] = useState(false);
 
-  // Pulse animation when count increases (silent notification)
   useEffect(() => {
     if (unreadCount > 0) {
       setShouldPulse(true);
@@ -75,20 +242,12 @@ export function ReadingBadge() {
 
   const displayCount = unreadCount > 10 ? '10+' : unreadCount.toString();
   const badgeColor = hasHighPriority
-    ? 'bg-error-500 text-white' // High priority: red/orange
-    : 'bg-primary-500 text-white'; // Normal: blue
+    ? 'bg-error-500 text-white'
+    : 'bg-primary-500 text-white';
 
   return (
     <span
-      className={`
-        inline-flex items-center justify-center
-        min-w-[24px] h-[24px] px-2
-        text-xs font-semibold
-        rounded-full
-        ${badgeColor}
-        ${shouldPulse ? 'animate-pulse-subtle' : ''}
-        transition-all duration-200
-      `}
+      className={`badge ${badgeColor} ${shouldPulse ? 'animate-pulse-subtle' : ''}`}
       aria-label={`${unreadCount} unread reading items${hasHighPriority ? ', including high priority' : ''}`}
       role="status"
     >
@@ -98,261 +257,56 @@ export function ReadingBadge() {
 }
 ```
 
-**Navigation Integration:**
-
-```tsx
-// apps/web/src/components/layout/Navigation.tsx
-import { ReadingBadge } from './ReadingBadge';
-
-export function Navigation() {
-  return (
-    <nav className="navigation">
-      <NavLink to="/dashboard">Dashboard</NavLink>
-      <NavLink to="/quiz">Quiz</NavLink>
-      <NavLink to="/reading" className="flex items-center gap-2">
-        Reading Library
-        <ReadingBadge />
-      </NavLink>
-      <NavLink to="/settings">Settings</NavLink>
-    </nav>
-  );
-}
-```
-
-**State Management (Zustand Store):**
-
-```typescript
-// apps/web/src/stores/readingStore.ts
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-
-interface ReadingState {
-  unreadCount: number;
-  hasHighPriority: boolean;
-  updateBadge: (count: number, hasHigh: boolean) => void;
-}
-
-export const useReadingStore = create<ReadingState>()(
-  persist(
-    (set) => ({
-      unreadCount: 0,
-      hasHighPriority: false,
-      updateBadge: (count, hasHigh) => set({ unreadCount: count, hasHighPriority: hasHigh }),
-    }),
-    {
-      name: 'reading-badge-storage',
-    }
-  )
-);
-```
-
-**Silent Badge Updates (Background Service):**
-
-```typescript
-// apps/web/src/services/readingQueueService.ts
-import { useReadingStore } from '@/stores/readingStore';
-
-export async function syncReadingBadge() {
-  // Called after answer submission (background)
-  const response = await fetch('/api/v1/reading-queue/summary');
-  const data = await response.json();
-
-  // Update badge silently (no toast, no modal, no interruption)
-  useReadingStore.getState().updateBadge(
-    data.unread_count,
-    data.has_high_priority
-  );
-}
-
-// Hook into answer submission workflow
-export async function submitAnswer(questionId: string, answer: string) {
-  const response = await fetch(`/api/v1/questions/${questionId}/answer`, {
-    method: 'POST',
-    body: JSON.stringify({ answer }),
-  });
-
-  // Background sync (non-blocking)
-  syncReadingBadge();
-
-  return response.json();
-}
-```
-
-**API Endpoint for Badge Data:**
-
-```
-GET /api/v1/reading-queue/summary
-```
-
-**Response:**
-```json
-{
-  "unread_count": 7,
-  "has_high_priority": true,
-  "priority_breakdown": {
-    "high": 2,
-    "medium": 3,
-    "low": 2
-  }
-}
-```
-
-**Accessibility:**
-
-- Badge has `aria-label` with full description
-- `role="status"` announces updates to screen readers
-- Color is supplemental; count is primary indicator (colorblind-friendly)
-- High priority communicated via text in `aria-label`, not just color
-
-**Animation (Tailwind Config):**
-
-```javascript
-// tailwind.config.js
-module.exports = {
-  theme: {
-    extend: {
-      keyframes: {
-        'pulse-subtle': {
-          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
-          '50%': { transform: 'scale(1.1)', opacity: '0.9' },
-        },
-      },
-      animation: {
-        'pulse-subtle': 'pulse-subtle 1s ease-in-out',
-      },
-    },
-  },
-};
-```
-
-**Dashboard Widget (Optional):**
-
-Display top 3 high-priority reading items on dashboard:
-
-```tsx
-// apps/web/src/components/dashboard/ReadingWidget.tsx
-export function ReadingWidget() {
-  const { topPriorityItems } = useReadingQueue();
-
-  if (topPriorityItems.length === 0) return null;
-
-  return (
-    <div className="reading-widget card">
-      <h3>Recommended Reading</h3>
-      <ul className="space-y-2">
-        {topPriorityItems.slice(0, 3).map((item) => (
-          <li key={item.id} className="flex items-center gap-3">
-            <Badge priority={item.priority} />
-            <div>
-              <p className="font-medium">{item.title}</p>
-              <p className="text-sm text-gray-600">
-                {item.knowledge_area} · {item.estimated_read_time_minutes} min
-              </p>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <Button as={Link} to="/reading" variant="secondary" size="sm">
-        View All Reading →
-      </Button>
-    </div>
-  );
-}
-```
-
-**Key Benefits:**
-
-1. **Zero Interruption:** Badge updates silently in background (no popups/toasts during quiz)
-2. **Priority Awareness:** Visual indicator (color) for high-priority items
-3. **Engagement Signal:** Subtle pulse animation draws attention without disrupting flow
-4. **Accessibility:** Screen reader friendly with descriptive labels
+---
 
 ### Knowledge Area Detail View
 
-**Purpose:** Provide deep-dive analytics into user's performance on a specific knowledge area (KA) when they click a competency bar on dashboard.
+**Purpose:** Provide deep-dive analytics into user's performance on a specific knowledge area when they click a progress bar on dashboard.
 
-**Trigger:** User clicks/taps any of the 6 KA competency bars on dashboard
+**Trigger:** User clicks/taps any of the 6 KA progress bars on dashboard
 
-**Implementation:** Modal dialog or dedicated page (`/knowledge-area/{ka-slug}`)
+**Component Location:** `apps/web/src/pages/KnowledgeAreaDetailPage.tsx`
 
 **Data Requirements:**
 
 ```typescript
 interface KADetailView {
   knowledge_area: KnowledgeArea;
-  current_competency: number; // 0-100
-  target_competency: number; // From user onboarding
-  gap: number; // target - current
-  confidence: number; // 0-1 (IRT uncertainty)
+  readiness_score: number; // 0-100 (aggregated from beliefs)
+  total_concepts: number;
+  mastered_count: number;
+  gap_count: number;
+  uncertain_count: number;
 
-  // Performance breakdown
-  total_questions_answered: number;
-  correct_count: number;
-  recent_accuracy: number; // Last 10 questions
-
-  // Concept-level gaps
-  concept_gaps: Array<{
-    concept_tag: string;
-    competency: number;
-    questions_answered: number;
-    last_correct: boolean;
+  // Concept-level breakdown
+  concept_beliefs: Array<{
+    concept_id: string;
+    concept_name: string;
+    probability: number; // mean
+    confidence: number;
+    status: 'mastered' | 'gap' | 'borderline' | 'uncertain';
+    response_count: number;
   }>;
 
   // Recent performance
   recent_questions: Array<{
     question_id: string;
-    text: string; // Truncated
+    text: string;
     is_correct: boolean;
     answered_at: string;
-    difficulty: number;
+    concepts_tested: string[];
   }>;
 
-  // Time tracking
-  total_time_spent_minutes: number;
-  avg_time_per_question_seconds: number;
-
   // Recommendations
-  recommended_difficulty: number; // Next questions should be difficulty X
-  recommended_reading_chunks: Array<ReadingChunk>;
+  top_gaps: ConceptStatus[];
+  recommended_reading: ReadingChunk[];
 }
 ```
 
 **API Endpoint:**
 
 ```
-GET /api/v1/knowledge-areas/{ka_slug}/detail
-```
-
-**Response Example:**
-```json
-{
-  "knowledge_area": "Business Analysis Planning and Monitoring",
-  "current_competency": 68,
-  "target_competency": 80,
-  "gap": 12,
-  "confidence": 0.75,
-  "total_questions_answered": 42,
-  "correct_count": 28,
-  "recent_accuracy": 0.70,
-  "concept_gaps": [
-    {
-      "concept_tag": "Stakeholder Analysis",
-      "competency": 55,
-      "questions_answered": 8,
-      "last_correct": false
-    },
-    {
-      "concept_tag": "Business Analysis Planning",
-      "competency": 72,
-      "questions_answered": 12,
-      "last_correct": true
-    }
-  ],
-  "recent_questions": [ /* Last 10 questions */ ],
-  "total_time_spent_minutes": 78,
-  "avg_time_per_question_seconds": 65,
-  "recommended_difficulty": 3
-}
+GET /api/v1/coverage/by-knowledge-area/{ka_slug}
 ```
 
 **UI Layout:**
@@ -363,35 +317,27 @@ GET /api/v1/knowledge-areas/{ka_slug}/detail
 ├────────────────────────────────────────────────────────┤
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐  │
-│  │  Current Competency:  68%  ▓▓▓▓▓▓▓▓░░░░ (75% confidence) │
-│  │  Target Competency:   80%  ▓▓▓▓▓▓▓▓▓▓▓░              │
-│  │  Gap:                 12 points                     │
+│  │  Readiness Score:  71%  ▓▓▓▓▓▓▓▓░░░░            │  │
+│  │  145 of 203 concepts mastered                    │  │
+│  │  28 gaps identified • 30 need more data          │  │
 │  └─────────────────────────────────────────────────┘  │
 │                                                         │
-│  Performance Summary                                   │
-│  • 42 questions answered (28 correct, 67%)            │
-│  • Recent accuracy: 70% (last 10 questions)           │
-│  • 78 minutes spent on this knowledge area            │
-│                                                         │
-│  Concept-Level Gaps                                    │
+│  Top Gaps to Address                                   │
 │  ┌─────────────────────────────────────────────────┐  │
-│  │ Stakeholder Analysis            55%  [Weak]     │  │
-│  │   └─ 8 questions answered, last: incorrect      │  │
-│  │ Business Analysis Planning      72%  [Good]     │  │
-│  │   └─ 12 questions answered, last: correct       │  │
-│  │ ...                                              │  │
+│  │ Stakeholder Analysis        32%  [Practice]     │  │
+│  │ BA Planning Approach        41%  [Practice]     │  │
+│  │ Governance Planning         45%  [Practice]     │  │
 │  └─────────────────────────────────────────────────┘  │
 │                                                         │
 │  Recent Performance (Last 10 Questions)                │
 │  ┌─────────────────────────────────────────────────┐  │
-│  │ ✓ Nov 21, 2:30pm - Medium difficulty             │  │
-│  │ ✗ Nov 21, 2:28pm - Hard difficulty               │  │
-│  │ ✓ Nov 21, 2:25pm - Easy difficulty               │  │
-│  │ ...                                              │  │
+│  │ ✓ Nov 21, 2:30pm - Stakeholder Mapping          │  │
+│  │ ✗ Nov 21, 2:28pm - BA Planning                  │  │
+│  │ ✓ Nov 21, 2:25pm - Requirements Management      │  │
 │  └─────────────────────────────────────────────────┘  │
 │                                                         │
 │  Recommended Reading                                   │
-│  [Reading chunk cards with "Add to Queue" button]     │
+│  [Reading chunk cards linked to gap concepts]         │
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐  │
 │  │  [Study This Knowledge Area]  [Close]            │  │
@@ -399,179 +345,99 @@ GET /api/v1/knowledge-areas/{ka_slug}/detail
 └────────────────────────────────────────────────────────┘
 ```
 
-**Component Implementation:**
-
-```tsx
-// apps/web/src/pages/KnowledgeAreaDetailPage.tsx
-import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { CompetencyBar } from '@/components/dashboard/CompetencyBar';
-import { ConceptGapList } from '@/components/ka-detail/ConceptGapList';
-import { RecentPerformance } from '@/components/ka-detail/RecentPerformance';
-import { RecommendedReading } from '@/components/ka-detail/RecommendedReading';
-
-export function KnowledgeAreaDetailPage() {
-  const { kaSlug } = useParams<{ kaSlug: string }>();
-  const { data, isLoading } = useQuery({
-    queryKey: ['ka-detail', kaSlug],
-    queryFn: () => fetch(`/api/v1/knowledge-areas/${kaSlug}/detail`).then(r => r.json()),
-  });
-
-  if (isLoading) return <Loading />;
-
-  const {
-    knowledge_area,
-    current_competency,
-    target_competency,
-    gap,
-    confidence,
-    concept_gaps,
-    recent_questions,
-    total_questions_answered,
-    correct_count,
-    recent_accuracy,
-  } = data;
-
-  return (
-    <div className="ka-detail-page">
-      <header>
-        <h1>{knowledge_area}</h1>
-        <button aria-label="Close" onClick={() => navigate(-1)}>×</button>
-      </header>
-
-      <section className="competency-summary">
-        <CompetencyBar
-          label="Current Competency"
-          value={current_competency}
-          max={100}
-          confidence={confidence}
-        />
-        <CompetencyBar
-          label="Target Competency"
-          value={target_competency}
-          max={100}
-          variant="target"
-        />
-        <div className="gap-indicator">
-          Gap: <strong>{gap} points</strong>
-        </div>
-      </section>
-
-      <section className="performance-summary">
-        <h2>Performance Summary</h2>
-        <ul>
-          <li>{total_questions_answered} questions answered ({correct_count} correct, {Math.round((correct_count / total_questions_answered) * 100)}%)</li>
-          <li>Recent accuracy: {Math.round(recent_accuracy * 100)}% (last 10 questions)</li>
-        </ul>
-      </section>
-
-      <section className="concept-gaps">
-        <h2>Concept-Level Gaps</h2>
-        <ConceptGapList gaps={concept_gaps} />
-      </section>
-
-      <section className="recent-performance">
-        <h2>Recent Performance (Last 10 Questions)</h2>
-        <RecentPerformance questions={recent_questions} />
-      </section>
-
-      <section className="recommended-reading">
-        <h2>Recommended Reading</h2>
-        <RecommendedReading knowledgeArea={kaSlug} />
-      </section>
-
-      <footer className="actions">
-        <Button onClick={() => startFocusedSession(kaSlug)}>
-          Study This Knowledge Area
-        </Button>
-        <Button variant="secondary" onClick={() => navigate(-1)}>
-          Close
-        </Button>
-      </footer>
-    </div>
-  );
-}
-```
-
 **Focused Session Logic:**
 
-When user clicks "Study This Knowledge Area", start a quiz session filtered to only that KA:
+When user clicks "Study This Knowledge Area", start a quiz session filtered to only that KA with prerequisite-first strategy:
 
 ```typescript
-// apps/web/src/services/quizService.ts
 export async function startFocusedSession(knowledgeArea: string) {
   const response = await fetch('/api/v1/sessions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       session_type: 'focused',
+      question_strategy: 'prerequisite_first',
       knowledge_area_filter: knowledgeArea,
     }),
   });
-
-  const session = await response.json();
-  return session;
+  return response.json();
 }
 ```
-
-**Backend Endpoint:**
-
-```python
-# apps/api/src/routes/knowledge_areas.py
-from fastapi import APIRouter, Depends
-from src.services.analytics_service import AnalyticsService
-from src.dependencies import get_current_user
-
-router = APIRouter(prefix="/knowledge-areas", tags=["knowledge_areas"])
-
-@router.get("/{ka_slug}/detail")
-async def get_ka_detail(
-    ka_slug: str,
-    user = Depends(get_current_user),
-    analytics_service: AnalyticsService = Depends(),
-):
-    """
-    Get detailed analytics for a specific knowledge area.
-
-    Returns:
-    - Current competency
-    - Target competency
-    - Concept-level breakdown
-    - Recent performance
-    - Recommended reading
-    """
-    ka_name = slug_to_ka_name(ka_slug)
-
-    return await analytics_service.get_ka_detail(user.id, ka_name)
-```
-
-**Accessibility:**
-
-- Competency bars use `role="progressbar"` with `aria-valuenow`, `aria-valuemin`, `aria-valuemax`
-- Recent performance list uses semantic `<ul>` with checkmark/X icons that have `aria-label`
-- "Study This Knowledge Area" button has clear focus indicator
-- Modal is keyboard accessible (Esc to close, Tab navigation)
-
-**Mobile Optimization:**
-
-- Modal becomes full-screen on mobile (< 768px)
-- Collapsible sections for concept gaps and recent performance
-- Swipeable recent performance timeline (optional enhancement)
 
 ---
 
 ### Backend Components
 
-6. **API Gateway (FastAPI)** - Request routing, auth middleware, rate limiting, CORS
-7. **Authentication Service** - Password hashing, JWT generation/validation, token refresh
-8. **Adaptive Engine** - Question selection (IRT), competency updates, gap analysis
-9. **Spaced Repetition Engine** - SM-2 algorithm, review scheduling
-10. **Reading Queue Service** - Semantic search, priority calculation, async population
-11. **Session Management Service** - Session CRUD, response tracking, review orchestration
-12. **Data Access Layer** - Repository pattern for PostgreSQL and Qdrant
-13. **Vector Search Service** - Qdrant integration, embedding generation
-14. **LLM Service** - OpenAI API integration, rate limiting, cost tracking
-15. **Background Job Worker** - Celery tasks for async operations
+1. **API Gateway (FastAPI)** - Request routing, auth middleware, rate limiting, CORS
+2. **Authentication Service** - Password hashing, JWT generation/validation, token refresh
+3. **BKT Engine Services:**
+   - **BeliefUpdater** - Bayesian belief updates after each response
+   - **QuestionSelector** - Optimal question selection (max info gain, prerequisite-first, etc.)
+   - **CoverageAnalyzer** - Coverage reports, gap identification, mastery classification
+4. **Reading Queue Service** - Semantic search, gap-based priority calculation, async population
+5. **Session Management Service** - Session CRUD, response tracking, concurrency handling
+6. **Data Access Layer:**
+   - **BeliefRepository** - Belief state CRUD with row-level locking
+   - **ConceptRepository** - Concept DAG traversal, prerequisite lookups
+   - **QuestionRepository** - Question retrieval with concept mappings
+   - **ResponseRepository** - Response storage with belief update snapshots
+7. **Vector Search Service** - Qdrant integration, embedding generation, concept matching
+8. **LLM Service** - OpenAI API integration, rate limiting, cost tracking
+9. **Background Job Worker** - Celery tasks for async operations (prerequisite propagation, reading queue)
 
 ---
-
+
+### Component Interactions
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        FRONTEND                              │
+├─────────────────────────────────────────────────────────────┤
+│  Dashboard                                                   │
+│  ├── KnowledgeAreaProgress (×6)  ←── useCoverageByKA()      │
+│  └── ReadingWidget              ←── useReadingQueue()       │
+│                                                              │
+│  Quiz                                                        │
+│  ├── QuestionCard               ←── useQuiz().getNext()     │
+│  ├── AnswerFeedback             ←── useQuiz().submit()      │
+│  └── BeliefUpdateIndicator      ←── response.belief_updates │
+│                                                              │
+│  Coverage                                                    │
+│  ├── CoverageSummary            ←── useCoverageSummary()    │
+│  ├── CoverageHeatmap            ←── useBeliefs()            │
+│  └── GapAnalysis                ←── useGaps()               │
+│                                                              │
+│  Navigation                                                  │
+│  └── ReadingBadge               ←── useReadingStore()       │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                        BACKEND                               │
+├─────────────────────────────────────────────────────────────┤
+│  Routes                                                      │
+│  ├── /beliefs      → BeliefRepository                       │
+│  ├── /coverage     → CoverageAnalyzer                       │
+│  ├── /quiz         → QuestionSelector + BeliefUpdater       │
+│  └── /reading      → ReadingQueueService                    │
+│                                                              │
+│  Services                                                    │
+│  ├── BeliefUpdater     ─── Bayesian update logic            │
+│  ├── QuestionSelector  ─── Info gain calculation            │
+│  └── CoverageAnalyzer  ─── Classification logic             │
+│                                                              │
+│  Repositories                                                │
+│  ├── BeliefRepository  → belief_states table                │
+│  ├── ConceptRepository → concepts + prerequisites           │
+│  └── QuestionRepository → questions + question_concepts     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Change Log
+
+| Date | Version | Description | Author |
+|------|---------|-------------|--------|
+| 2025-12-03 | 2.0 | Aligned with BKT Architecture - added coverage components, belief update indicator, BKT backend services | Winston (Architect) |
+| 2025-11-01 | 1.0 | Initial components | Original |

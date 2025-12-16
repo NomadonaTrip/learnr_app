@@ -231,4 +231,208 @@ jobs:
 | **Production** | https://learnr.com | https://api.learnr.com | Live environment |
 
 ---
+
+### Rollback Procedures
+
+This section documents rollback procedures for each deployment component.
+
+#### Frontend Rollback (Vercel)
+
+**Automatic Rollback:**
+Vercel maintains deployment history with instant rollback capability.
+
+**Procedure:**
+```bash
+# Option 1: Vercel Dashboard
+# 1. Go to https://vercel.com/learnr/web/deployments
+# 2. Find the last known good deployment
+# 3. Click "..." menu → "Promote to Production"
+
+# Option 2: Vercel CLI
+vercel rollback                           # Rollback to previous deployment
+vercel rollback <deployment-url>          # Rollback to specific deployment
+
+# Option 3: Git revert (triggers new deployment)
+git revert HEAD
+git push origin main
+```
+
+**Rollback Time:** < 30 seconds (instant alias switch)
+
+**Verification:**
+1. Check https://learnr.com loads correctly
+2. Verify bundle hash in Network tab matches previous deployment
+3. Test critical user flows (login, quiz start)
+
+---
+
+#### Backend Rollback (Railway)
+
+**Automatic Rollback:**
+Railway maintains deployment history per service.
+
+**Procedure:**
+```bash
+# Option 1: Railway Dashboard
+# 1. Go to https://railway.app/project/learnr/service/api
+# 2. Click "Deployments" tab
+# 3. Find last known good deployment
+# 4. Click "..." menu → "Redeploy"
+
+# Option 2: Railway CLI
+railway up --detach                       # Deploy specific commit
+railway rollback                          # Rollback to previous deployment
+
+# Option 3: Git revert (triggers new deployment)
+git revert HEAD
+git push origin main
+```
+
+**Rollback Time:** 2-5 minutes (container rebuild and health check)
+
+**Verification:**
+1. Check https://api.learnr.com/health returns 200
+2. Verify `/docs` OpenAPI spec matches expected version
+3. Test authentication flow
+4. Monitor error rate in Sentry for 5 minutes
+
+---
+
+#### Database Rollback (Alembic Migrations)
+
+**CRITICAL:** Database rollbacks are destructive. Only perform if migration caused data corruption or critical bugs.
+
+**Pre-Rollback Checklist:**
+- [ ] Confirm rollback is necessary (not just application bug)
+- [ ] Verify backup exists (Supabase daily backup or manual)
+- [ ] Notify team of impending rollback
+- [ ] Schedule maintenance window if possible
+
+**Procedure:**
+```bash
+# 1. SSH into Railway container or run locally with production DB connection
+railway run bash
+
+# 2. Check current migration state
+alembic current
+
+# 3. View migration history
+alembic history
+
+# 4. Rollback one migration
+alembic downgrade -1
+
+# 5. Rollback to specific revision
+alembic downgrade <revision_id>
+
+# 6. Verify rollback
+alembic current
+```
+
+**Rollback Time:** 1-30 minutes (depends on migration complexity)
+
+**Post-Rollback:**
+1. Deploy matching application version
+2. Verify application connects successfully
+3. Test affected functionality
+4. Monitor for data integrity issues
+
+---
+
+#### Qdrant Rollback (Vector Database)
+
+**Scenario:** Corrupted embeddings or wrong vectors uploaded.
+
+**Procedure:**
+```bash
+# Option 1: Delete and recreate collection
+# 1. Export current collection (if partially valid)
+python scripts/export_qdrant_collection.py --collection cbap_questions --output backup.json
+
+# 2. Delete corrupted collection
+curl -X DELETE "https://qdrant.learnr.com/collections/cbap_questions"
+
+# 3. Recreate collection with correct schema
+python scripts/create_qdrant_collections.py
+
+# 4. Re-import from PostgreSQL source of truth
+python scripts/generate_question_embeddings.py
+python scripts/generate_babok_embeddings.py
+```
+
+**Rollback Time:** 30-60 minutes (full re-embedding)
+
+**Note:** Qdrant data is derived from PostgreSQL. Full rebuild is always possible.
+
+---
+
+#### Redis Rollback (Cache)
+
+**Scenario:** Corrupted cache causing application errors.
+
+**Procedure:**
+```bash
+# Option 1: Flush specific key patterns
+redis-cli KEYS "session:*" | xargs redis-cli DEL      # Clear sessions
+redis-cli KEYS "coverage:*" | xargs redis-cli DEL    # Clear coverage cache
+redis-cli KEYS "rate_limit:*" | xargs redis-cli DEL  # Clear rate limits
+
+# Option 2: Full flush (nuclear option)
+redis-cli FLUSHALL
+
+# Option 3: Railway Redis addon - recreate
+# Delete and recreate Redis addon in Railway dashboard
+```
+
+**Rollback Time:** < 1 minute
+
+**Note:** Redis is cache-only. Full flush causes temporary performance degradation but no data loss.
+
+---
+
+#### Rollback Decision Matrix
+
+| Symptom | Likely Cause | Rollback Action |
+|---------|--------------|-----------------|
+| Frontend blank page | Bad React build | Vercel rollback |
+| API 500 errors on all routes | Bad backend deploy | Railway rollback |
+| API 500 on specific route | Code bug in route | Railway rollback or hotfix |
+| Login failures | Auth code bug | Railway rollback |
+| Quiz not loading questions | Qdrant issue or code bug | Check Qdrant health, then Railway rollback |
+| Slow response times | Missing index or bad query | Check slow query log, consider DB rollback |
+| Data corruption visible | Bad migration | DB rollback (CRITICAL) |
+| Rate limiting broken | Redis config issue | Flush Redis |
+
+---
+
+#### Emergency Contacts
+
+| Role | Contact | Escalation Path |
+|------|---------|-----------------|
+| On-Call Engineer | PagerDuty rotation | First responder |
+| Backend Lead | [email] | Escalate after 15 min |
+| Infrastructure Lead | [email] | Database/infra issues |
+| Product Lead | [email] | User communication decisions |
+
+---
+
+#### Post-Rollback Checklist
+
+After any rollback:
+
+- [ ] Verify system health (all health checks passing)
+- [ ] Monitor error rates for 15 minutes
+- [ ] Document incident in runbook
+- [ ] Create post-mortem issue
+- [ ] Notify affected users if data loss occurred
+- [ ] Schedule root cause analysis meeting
+
+---
+
+## Change Log
+
+| Date | Version | Description | Author |
+|------|---------|-------------|--------|
+| 2025-12-08 | 1.1 | Added comprehensive Rollback Procedures section - frontend (Vercel), backend (Railway), database (Alembic), Qdrant, Redis; rollback decision matrix; emergency contacts; post-rollback checklist | Winston (Architect) |
+| 2025-11-01 | 1.0 | Initial deployment architecture | Original |
 

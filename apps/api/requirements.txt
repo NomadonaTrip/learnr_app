@@ -33,6 +33,13 @@ celery==5.3.6
 
 # AI/ML
 openai==1.10.0
+tiktoken==0.5.2  # Token counting for chunking
+
+# PDF Parsing (for concept extraction)
+pymupdf==1.23.8
+
+# Fuzzy String Matching (for deduplication)
+thefuzz==0.22.1
 
 # Vector Database
 qdrant-client==1.7.3
@@ -47,7 +54,11 @@ sentry-sdk[fastapi]==1.40.0
 # Analytics
 posthog==3.3.1
 
+# Graph Operations
+networkx>=3.2.0  # DAG validation, prerequisite graph operations
+
 # Utilities
 python-dateutil==2.8.2
 pytz==2024.1
 email-validator==2.2.0  # For Pydantic EmailStr validation
+tenacity==8.2.3  # Retry logic with exponential backoff

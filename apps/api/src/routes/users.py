@@ -7,9 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_db
 from src.dependencies import get_current_user
-from src.schemas.user import UserResponse, UserUpdate
 from src.models.user import User
-from src.repositories.user_repository import UserRepository
+from src.schemas.user import UserResponse, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -69,5 +68,15 @@ async def update_user_profile(
 
     await db.commit()
     await db.refresh(current_user)
+
+    # Invalidate user cache so subsequent requests get fresh data
+    try:
+        from src.db.redis_client import get_redis
+        redis = await get_redis()
+        cache_key = f"user_cache:{str(current_user.id)}"
+        await redis.delete(cache_key)
+    except Exception:
+        # Cache invalidation failure is not critical
+        pass
 
     return UserResponse.model_validate(current_user)

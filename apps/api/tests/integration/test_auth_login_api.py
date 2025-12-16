@@ -255,8 +255,8 @@ class TestLoginRateLimiting:
         email2 = "user2@example.com"
 
         # Register both users
-        await async_client.post("/v1/auth/register", json={"email": email1, "password": "Pass123"})
-        await async_client.post("/v1/auth/register", json={"email": email2, "password": "Pass123"})
+        await async_client.post("/v1/auth/register", json={"email": email1, "password": "Password123"})
+        await async_client.post("/v1/auth/register", json={"email": email2, "password": "Password123"})
 
         # Use all attempts for email1
         for i in range(5):
@@ -267,7 +267,7 @@ class TestLoginRateLimiting:
         assert response1.status_code == 429
 
         # email2 should still be allowed
-        response2 = await async_client.post("/v1/auth/login", json={"email": email2, "password": "Pass123"})
+        response2 = await async_client.post("/v1/auth/login", json={"email": email2, "password": "Password123"})
         assert response2.status_code == 200
 
         # Cleanup

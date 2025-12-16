@@ -5,6 +5,7 @@ Tests authentication-protected user endpoints.
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
 from src.utils.auth import create_access_token
 import uuid
@@ -15,7 +16,7 @@ import uuid
 class TestGetUserProfile:
     """Test GET /v1/users/me endpoint."""
 
-    async def test_get_user_profile_authenticated(self, client: AsyncClient):
+    async def test_get_user_profile_authenticated(self, client: AsyncClient, db_session: AsyncSession):
         """Test GET /v1/users/me with valid JWT returns profile."""
         # Register and login
         register_response = await client.post(
@@ -85,7 +86,7 @@ class TestGetUserProfile:
 
         assert response.status_code == 401
 
-    async def test_get_user_profile_includes_all_fields(self, client: AsyncClient):
+    async def test_get_user_profile_includes_all_fields(self, client: AsyncClient, db_session: AsyncSession):
         """Test that user profile includes all expected fields."""
         # Register user
         register_response = await client.post(
@@ -118,7 +119,7 @@ class TestGetUserProfile:
 class TestUpdateUserProfile:
     """Test PUT /v1/users/me endpoint."""
 
-    async def test_update_user_profile_authenticated(self, client: AsyncClient):
+    async def test_update_user_profile_authenticated(self, client: AsyncClient, db_session: AsyncSession):
         """Test PUT /v1/users/me with valid JWT updates profile."""
         # Register and login
         register_response = await client.post(
@@ -157,7 +158,7 @@ class TestUpdateUserProfile:
 
         assert response.status_code == 401
 
-    async def test_update_user_profile_partial_update(self, client: AsyncClient):
+    async def test_update_user_profile_partial_update(self, client: AsyncClient, db_session: AsyncSession):
         """Test that partial updates work (only updating some fields)."""
         # Register user
         register_response = await client.post(
@@ -179,7 +180,7 @@ class TestUpdateUserProfile:
         # Other fields should remain unchanged
         assert data["email"] == "partialupdate@example.com"
 
-    async def test_update_user_profile_invalid_data(self, client: AsyncClient):
+    async def test_update_user_profile_invalid_data(self, client: AsyncClient, db_session: AsyncSession):
         """Test that invalid data is rejected."""
         # Register user
         register_response = await client.post(
@@ -197,7 +198,7 @@ class TestUpdateUserProfile:
 
         assert response.status_code == 422  # Validation error
 
-    async def test_update_user_profile_invalid_knowledge_level(self, client: AsyncClient):
+    async def test_update_user_profile_invalid_knowledge_level(self, client: AsyncClient, db_session: AsyncSession):
         """Test that invalid knowledge level is rejected."""
         # Register user
         register_response = await client.post(
@@ -215,7 +216,7 @@ class TestUpdateUserProfile:
 
         assert response.status_code == 422  # Validation error
 
-    async def test_update_user_profile_persists(self, client: AsyncClient):
+    async def test_update_user_profile_persists(self, client: AsyncClient, db_session: AsyncSession):
         """Test that profile updates persist across requests."""
         # Register user
         register_response = await client.post(
@@ -225,11 +226,15 @@ class TestUpdateUserProfile:
         token = register_response.json()["token"]
 
         # Update profile
-        await client.put(
+        update_response = await client.put(
             "/v1/users/me",
             headers={"Authorization": f"Bearer {token}"},
             json={"target_score": 95, "dark_mode": "light"}
         )
+        assert update_response.status_code == 200
+        update_data = update_response.json()
+        assert update_data["target_score"] == 95
+        assert update_data["dark_mode"] == "light"
 
         # Fetch profile again to verify persistence
         response = await client.get(
@@ -248,7 +253,7 @@ class TestUpdateUserProfile:
 class TestProtectedEndpointWorkflow:
     """Test complete workflow: register → login → access protected endpoint."""
 
-    async def test_protected_endpoint_workflow(self, client: AsyncClient):
+    async def test_protected_endpoint_workflow(self, client: AsyncClient, db_session: AsyncSession):
         """Test complete workflow: register → login → access protected endpoint."""
         # Register
         register_response = await client.post(
@@ -273,7 +278,7 @@ class TestProtectedEndpointWorkflow:
         assert profile_response.status_code == 200
         assert profile_response.json()["email"] == "workflow@example.com"
 
-    async def test_multiple_users_isolated_profiles(self, client: AsyncClient):
+    async def test_multiple_users_isolated_profiles(self, client: AsyncClient, db_session: AsyncSession):
         """Test that different users have isolated profiles."""
         # Register first user
         register1 = await client.post(
