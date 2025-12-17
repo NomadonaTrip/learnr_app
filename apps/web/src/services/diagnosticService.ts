@@ -6,6 +6,8 @@ import type {
   DiagnosticResultsResponse,
   DiagnosticFeedbackRequest,
   DiagnosticFeedbackResponse,
+  DiagnosticResetRequest,
+  DiagnosticResetResponse,
 } from '../types/diagnostic'
 
 /**
@@ -40,16 +42,20 @@ export const diagnosticService = {
    * No immediate feedback returned during diagnostic.
    * @param questionId - UUID of the question
    * @param selectedAnswer - Letter of selected option (A/B/C/D)
-   * @returns Recording confirmation and progress
+   * @param sessionId - UUID of the diagnostic session (Story 3.9)
+   * @returns Recording confirmation, progress, and session status
    * @throws AxiosError with status 401 if not authenticated
+   * @throws AxiosError with status 400 if session validation fails
    */
   async submitDiagnosticAnswer(
     questionId: string,
-    selectedAnswer: DiagnosticAnswerRequest['selected_answer']
+    selectedAnswer: DiagnosticAnswerRequest['selected_answer'],
+    sessionId: string
   ): Promise<DiagnosticAnswerResponse> {
-    const payload: DiagnosticAnswerRequest = {
+    const payload = {
       question_id: questionId,
       selected_answer: selectedAnswer,
+      session_id: sessionId, // Story 3.9: Include session_id for validation
     }
     const response = await api.post<DiagnosticAnswerResponse>('/diagnostic/answer', payload)
     return response.data
@@ -84,6 +90,26 @@ export const diagnosticService = {
   ): Promise<DiagnosticFeedbackResponse> {
     const payload: DiagnosticFeedbackRequest = { rating, comment }
     const response = await api.post<DiagnosticFeedbackResponse>('/diagnostic/feedback', payload, {
+      params: { course_id: courseId },
+    })
+    return response.data
+  },
+
+  /**
+   * Reset diagnostic session and belief states. (Story 3.9)
+   * Requires explicit confirmation to prevent accidental resets.
+   * @param courseId - UUID of the course
+   * @param confirmation - Must be 'RESET DIAGNOSTIC' to confirm
+   * @returns Reset confirmation with counts
+   * @throws AxiosError with status 401 if not authenticated
+   * @throws AxiosError with status 400 if confirmation is incorrect
+   */
+  async resetDiagnostic(
+    courseId: string,
+    confirmation: string
+  ): Promise<DiagnosticResetResponse> {
+    const payload: DiagnosticResetRequest = { confirmation }
+    const response = await api.post<DiagnosticResetResponse>('/diagnostic/reset', payload, {
       params: { course_id: courseId },
     })
     return response.data

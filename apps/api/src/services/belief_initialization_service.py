@@ -79,6 +79,15 @@ class BeliefInitializationService:
                 )
                 await self.belief_repo.session.execute(enrollment_stmt)
 
+                # Get the enrollment_id
+                enrollment_result = await self.belief_repo.session.execute(
+                    select(Enrollment.id).where(
+                        Enrollment.user_id == user_id,
+                        Enrollment.course_id == course_id
+                    )
+                )
+                enrollment_id = enrollment_result.scalar_one_or_none()
+
                 duration_ms = (time.perf_counter() - start_time) * 1000
 
                 self._log_info(
@@ -94,7 +103,8 @@ class BeliefInitializationService:
                     already_initialized=True,
                     belief_count=existing_count,
                     duration_ms=duration_ms,
-                    message=f"Beliefs already initialized ({existing_count} existing)"
+                    message=f"Beliefs already initialized ({existing_count} existing)",
+                    enrollment_id=enrollment_id
                 )
 
             # Create enrollment if it doesn't exist (idempotent)
@@ -107,6 +117,15 @@ class BeliefInitializationService:
                 index_elements=["user_id", "course_id"]
             )
             await self.belief_repo.session.execute(enrollment_stmt)
+
+            # Get the enrollment_id
+            enrollment_result = await self.belief_repo.session.execute(
+                select(Enrollment.id).where(
+                    Enrollment.user_id == user_id,
+                    Enrollment.course_id == course_id
+                )
+            )
+            enrollment_id = enrollment_result.scalar_one_or_none()
 
             self._log_info(
                 "Ensured enrollment exists for user/course",
@@ -132,7 +151,8 @@ class BeliefInitializationService:
                     already_initialized=False,
                     belief_count=0,
                     duration_ms=duration_ms,
-                    message="No concepts found for course"
+                    message="No concepts found for course",
+                    enrollment_id=enrollment_id
                 )
 
             # Create belief states with uninformative prior
@@ -177,7 +197,8 @@ class BeliefInitializationService:
                 already_initialized=False,
                 belief_count=created_count,
                 duration_ms=duration_ms,
-                message=f"Initialized {created_count} belief states"
+                message=f"Initialized {created_count} belief states",
+                enrollment_id=enrollment_id
             )
 
         except Exception as e:

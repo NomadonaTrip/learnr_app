@@ -53,6 +53,13 @@ export function useDiagnostic() {
     resetDiagnostic,
     setSubmitting,
     completeDiagnostic,
+    // Session state (Story 3.9)
+    sessionId,
+    sessionStatus,
+    isResumed,
+    sessionProgress,
+    sessionTotal,
+    setSessionStatus,
   } = useDiagnosticStore()
 
   // Track if questions have been initialized to prevent re-fetching
@@ -79,33 +86,48 @@ export function useDiagnostic() {
     retry: 2,
   })
 
-  // Initialize store when questions are fetched
+  // Initialize store when questions are fetched (updated for Story 3.9)
   useEffect(() => {
     if (questionsQuery.data && !isInitializedRef.current) {
       isInitializedRef.current = true
-      setQuestions(
-        questionsQuery.data.questions,
-        questionsQuery.data.concepts_covered,
-        questionsQuery.data.coverage_percentage
-      )
+      setQuestions({
+        questions: questionsQuery.data.questions,
+        totalConcepts: questionsQuery.data.concepts_covered,
+        coveragePercentage: questionsQuery.data.coverage_percentage,
+        // Session fields (Story 3.9)
+        sessionId: questionsQuery.data.session_id,
+        sessionStatus: questionsQuery.data.session_status,
+        // Track absolute progress separately from local array index
+        sessionProgress: questionsQuery.data.current_index,
+        sessionTotal: questionsQuery.data.total,
+        isResumed: questionsQuery.data.is_resumed,
+      })
     }
   }, [questionsQuery.data, setQuestions])
 
-  // Submit answer mutation
+  // Submit answer mutation (updated for Story 3.9)
   const answerMutation = useMutation({
-    mutationFn: ({ questionId, answer }: { questionId: string; answer: AnswerLetter }) =>
-      diagnosticService.submitDiagnosticAnswer(questionId, answer),
+    mutationFn: ({ questionId, answer }: { questionId: string; answer: AnswerLetter }) => {
+      if (!sessionId) {
+        throw new Error('No active session')
+      }
+      return diagnosticService.submitDiagnosticAnswer(questionId, answer, sessionId)
+    },
     onMutate: () => {
       setSubmitting(true)
     },
-    onSuccess: (_data, { questionId, answer }) => {
+    onSuccess: (data, { questionId, answer }) => {
       // Record answer in store
       submitAnswer(questionId, answer)
 
-      // Check if this was the last question
+      // Update session status from response (Story 3.9)
+      setSessionStatus(data.session_status)
+
+      // Check if session is completed
+      const isSessionComplete = data.session_status === 'completed'
       const isLastQuestion = currentIndex >= questions.length - 1
 
-      if (isLastQuestion) {
+      if (isSessionComplete || isLastQuestion) {
         // Complete diagnostic and redirect to results
         completeDiagnostic()
         navigate('/diagnostic/results')
@@ -161,6 +183,12 @@ export function useDiagnostic() {
     totalConcepts,
     coveragePercentage,
     progressPercentage: progressPercentage(),
+    // Session state (Story 3.9)
+    sessionId,
+    sessionStatus,
+    isResumed,
+    sessionProgress,
+    sessionTotal,
 
     // Query state (combine course and questions loading/error states)
     isLoading: courseQuery.isLoading || questionsQuery.isLoading,

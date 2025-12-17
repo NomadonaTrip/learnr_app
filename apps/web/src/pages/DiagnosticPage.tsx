@@ -24,6 +24,10 @@ export function DiagnosticPage() {
     handleSubmitAnswer,
     handleTimeout,
     refetch,
+    // Session state (Story 3.9)
+    isResumed,
+    sessionProgress,
+    sessionTotal,
   } = useDiagnostic()
 
   const diagnosticInProgress = questions.length > 0 && !isComplete
@@ -136,7 +140,7 @@ export function DiagnosticPage() {
 
       {/* Screen reader announcement for question changes */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
-        Question {currentIndex + 1} of {questions.length}: {currentQuestion.question_text}
+        Question {sessionProgress + currentIndex + 1} of {sessionTotal}: {currentQuestion.question_text}
       </div>
 
       <div className="w-full max-w-2xl">
@@ -152,10 +156,22 @@ export function DiagnosticPage() {
           />
         </div>
 
-        {/* Progress indicator */}
+        {/* Resume banner (Story 3.9) */}
+        {isResumed && (
+          <div
+            className="mb-4 px-4 py-3 bg-blue-50 border border-blue-200 rounded-card text-blue-800 text-sm"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="font-medium">Welcome back!</span> Resuming from question{' '}
+            {sessionProgress + 1} of {sessionTotal}.
+          </div>
+        )}
+
+        {/* Progress indicator - use absolute session progress for display */}
         <DiagnosticProgress
-          currentIndex={currentIndex}
-          total={questions.length}
+          currentIndex={sessionProgress + currentIndex}
+          total={sessionTotal}
           coveragePercentage={coveragePercentage}
         />
 
@@ -179,7 +195,7 @@ export function DiagnosticPage() {
         )}
       </div>
 
-      {/* Navigation blocker dialog */}
+      {/* Navigation blocker dialog (updated for Story 3.9 - session is saved) */}
       {blocker.state === 'blocked' && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -192,7 +208,8 @@ export function DiagnosticPage() {
               Leave diagnostic?
             </h2>
             <p className="text-gray-600 mb-6">
-              Your diagnostic progress will be lost. Are you sure you want to leave?
+              Your progress is saved. You can resume this diagnostic later, but the session will
+              expire after 30 minutes of inactivity.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -205,9 +222,9 @@ export function DiagnosticPage() {
               <button
                 type="button"
                 onClick={() => blocker.proceed?.()}
-                className="px-4 py-2 bg-red-600 text-white rounded-card font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                className="px-4 py-2 bg-primary-600 text-white rounded-card font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
-                Leave
+                Leave &amp; Resume Later
               </button>
             </div>
           </div>

@@ -6,6 +6,7 @@ from .belief_state import BeliefState
 from .concept import Concept
 from .concept_prerequisite import ConceptPrerequisite
 from .course import Course
+from .diagnostic_session import DiagnosticSession
 from .enrollment import Enrollment
 from .password_reset_token import PasswordResetToken
 from .question import Question
@@ -24,4 +25,5 @@ __all__ = [
     "ConceptPrerequisite",
     "ReadingChunk",
     "BeliefState",
+    "DiagnosticSession",
 ]

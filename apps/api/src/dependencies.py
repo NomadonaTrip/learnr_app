@@ -132,6 +132,9 @@ async def get_current_user(
         if cached_user_data:
             # Cache hit: deserialize and return user
             user_dict = json.loads(cached_user_data)
+            # Convert id back to UUID (was serialized as string for JSON)
+            if "id" in user_dict and isinstance(user_dict["id"], str):
+                user_dict["id"] = UUID(user_dict["id"])
             user = User(**user_dict)
             logger.debug(f"Cache hit for user {user_id}")
             return user

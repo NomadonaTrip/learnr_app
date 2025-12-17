@@ -1,7 +1,10 @@
-// Diagnostic Assessment Types (Story 3.6)
+// Diagnostic Assessment Types (Story 3.6, 3.9)
 
 /** Answer option letter type */
 export type AnswerLetter = 'A' | 'B' | 'C' | 'D'
+
+/** Diagnostic session status (Story 3.9) */
+export type DiagnosticSessionStatus = 'in_progress' | 'completed' | 'expired' | 'reset'
 
 /** Question as returned from GET /api/v1/diagnostic/questions */
 export interface DiagnosticQuestion {
@@ -24,6 +27,14 @@ export interface DiagnosticQuestionsResponse {
   total: number
   concepts_covered: number
   coverage_percentage: number
+  /** Session ID for tracking progress (Story 3.9) */
+  session_id: string
+  /** Current session status (Story 3.9) */
+  session_status: DiagnosticSessionStatus
+  /** Current position in question sequence (Story 3.9) */
+  current_index: number
+  /** Whether this is resuming an existing session (Story 3.9) */
+  is_resumed: boolean
 }
 
 /** Request body for POST /api/v1/diagnostic/answer */
@@ -38,6 +49,8 @@ export interface DiagnosticAnswerResponse {
   concepts_updated: string[]
   diagnostic_progress: number
   diagnostic_total: number
+  /** Updated session status after answer (Story 3.9) */
+  session_status: DiagnosticSessionStatus
 }
 
 /** User's answer record */
@@ -109,4 +122,20 @@ export interface DiagnosticFeedbackRequest {
 export interface DiagnosticFeedbackResponse {
   success: boolean
   message: string
+}
+
+// ==================== Diagnostic Session Management Types (Story 3.9) ====================
+
+/** Request body for POST /api/v1/diagnostic/reset */
+export interface DiagnosticResetRequest {
+  /** Must be 'RESET DIAGNOSTIC' to confirm */
+  confirmation: string
+}
+
+/** Response from POST /api/v1/diagnostic/reset */
+export interface DiagnosticResetResponse {
+  message: string
+  session_cleared: boolean
+  beliefs_reset_count: number
+  can_retake: boolean
 }

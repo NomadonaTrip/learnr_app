@@ -46,6 +46,7 @@ from src.models import (
     ConceptPrerequisite,
     ReadingChunk,
     BeliefState,
+    DiagnosticSession,
 )
 
 
@@ -221,6 +222,8 @@ async def db_session(test_engine):
         await session.execute(Base.metadata.tables['questions'].delete())
         if 'belief_states' in Base.metadata.tables:
             await session.execute(Base.metadata.tables['belief_states'].delete())
+        if 'diagnostic_sessions' in Base.metadata.tables:
+            await session.execute(Base.metadata.tables['diagnostic_sessions'].delete())
         if 'enrollments' in Base.metadata.tables:
             await session.execute(Base.metadata.tables['enrollments'].delete())
         if 'concept_prerequisites' in Base.metadata.tables:

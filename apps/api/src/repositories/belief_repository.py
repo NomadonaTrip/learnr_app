@@ -5,12 +5,14 @@ Implements repository pattern for BKT belief state data access.
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import and_, delete, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.exceptions import DatabaseError
 from src.models.belief_state import BeliefState
+from src.models.concept import Concept
+from src.models.enrollment import Enrollment
 
 
 class BeliefRepository:
@@ -422,3 +424,60 @@ class BeliefRepository:
         for belief in beliefs:
             belief.last_response_at = func.now()
         await self.session.flush()
+
+    async def reset_beliefs_for_enrollment(
+        self,
+        user_id: UUID,
+        enrollment_id: UUID,
+        alpha: float = 1.0,
+        beta: float = 1.0,
+    ) -> int:
+        """
+        Reset all belief states for a user's enrollment to uninformative prior.
+
+        This resets beliefs to Beta(1,1) which represents maximum uncertainty.
+        Used when user wants to retake the diagnostic assessment.
+
+        Args:
+            user_id: User UUID
+            enrollment_id: Enrollment UUID
+            alpha: New alpha value (default 1.0)
+            beta: New beta value (default 1.0)
+
+        Returns:
+            Count of beliefs reset
+        """
+        # Get course_id from enrollment
+        enrollment_result = await self.session.execute(
+            select(Enrollment).where(Enrollment.id == enrollment_id)
+        )
+        enrollment = enrollment_result.scalar_one_or_none()
+        if not enrollment:
+            return 0
+
+        # Reset beliefs for all concepts in this course
+        # Subquery to get concept IDs for this course
+        concept_ids_subquery = (
+            select(Concept.id)
+            .where(Concept.course_id == enrollment.course_id)
+            .scalar_subquery()
+        )
+
+        result = await self.session.execute(
+            update(BeliefState)
+            .where(
+                and_(
+                    BeliefState.user_id == user_id,
+                    BeliefState.concept_id.in_(concept_ids_subquery),
+                )
+            )
+            .values(
+                alpha=alpha,
+                beta=beta,
+                response_count=0,
+                last_response_at=None,
+            )
+        )
+
+        await self.session.flush()
+        return result.rowcount

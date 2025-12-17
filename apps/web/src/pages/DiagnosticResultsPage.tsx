@@ -3,24 +3,25 @@ import { useNavigate } from 'react-router-dom'
 import { useDiagnosticResults } from '../hooks/useDiagnosticResults'
 import {
   ResultsHeroSection,
-  KnowledgeAreaBreakdown,
-  GapHighlights,
-  UncertaintyCallout,
   RecommendationsSection,
   FeedbackSurvey,
+  DetailsAccordion,
 } from '../components/diagnostic-results'
+import { ResetDiagnosticButton } from '../components/diagnostic/ResetDiagnosticButton'
 
 /**
  * Diagnostic Results Page.
  * Displays comprehensive knowledge profile after completing diagnostic assessment.
  *
- * Sections:
+ * Sections (optimized for CTA visibility):
  * 1. Hero Section - Overall coverage donut chart and key stats
- * 2. Knowledge Area Breakdown - Per-KA mastery bars
- * 3. Top Gaps - Identified knowledge gaps
- * 4. Uncertainty Callout - Educational note about uncertain concepts
- * 5. Recommendations - Next steps with CTA buttons
- * 6. Feedback Survey - Post-diagnostic accuracy rating
+ * 2. Recommendations - Next steps with CTA buttons (visible without scrolling)
+ * 3. Details Accordion (collapsed by default):
+ *    - Knowledge Area Breakdown - Per-KA mastery bars
+ *    - Top Gaps - Identified knowledge gaps
+ *    - Uncertainty Callout - Educational note about uncertain concepts
+ * 4. Feedback Survey - Post-diagnostic accuracy rating
+ * 5. Reset Diagnostic Option
  */
 export function DiagnosticResultsPage() {
   const navigate = useNavigate()
@@ -134,24 +135,20 @@ export function DiagnosticResultsPage() {
           confidenceLevel={data.confidence_level}
         />
 
-        {/* Knowledge Area Breakdown */}
-        <KnowledgeAreaBreakdown areas={data.by_knowledge_area} />
-
-        {/* Top Gaps */}
-        <GapHighlights gaps={data.top_gaps} />
-
-        {/* Uncertainty Callout */}
-        <UncertaintyCallout
-          uncertainCount={data.uncertain}
-          confidenceLevel={data.confidence_level}
-          message={data.recommendations.message}
-        />
-
-        {/* Recommendations and CTAs */}
+        {/* Recommendations and CTAs - Moved up for visibility without scrolling */}
         <RecommendationsSection
           recommendations={data.recommendations}
           onStartQuiz={handleStartQuiz}
           onViewStudyPlan={handleViewStudyPlan}
+        />
+
+        {/* Details Accordion - Collapsed by default */}
+        <DetailsAccordion
+          areas={data.by_knowledge_area}
+          gaps={data.top_gaps}
+          uncertainCount={data.uncertain}
+          confidenceLevel={data.confidence_level}
+          message={data.recommendations.message}
         />
 
         {/* Feedback Survey */}
@@ -160,6 +157,20 @@ export function DiagnosticResultsPage() {
           isSubmitting={isFeedbackSubmitting}
           isSuccess={feedbackSuccess}
         />
+
+        {/* Retake Diagnostic Option (Story 3.9) */}
+        {course && (
+          <div className="text-center pt-4 pb-2 border-t border-gray-200">
+            <p className="text-sm text-gray-500 mb-3">
+              Want to start fresh? Retaking the diagnostic will reset your knowledge estimates.
+            </p>
+            <ResetDiagnosticButton
+              courseId={course.id}
+              variant="text"
+              buttonText="Retake Diagnostic"
+            />
+          </div>
+        )}
 
         {/* Footer note */}
         <p className="text-xs text-gray-400 text-center pt-4">

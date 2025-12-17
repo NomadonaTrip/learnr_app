@@ -2,10 +2,12 @@
 Diagnostic Results Pydantic schemas for response validation.
 Used for diagnostic results API after completing diagnostic assessment.
 """
-from typing import Literal
+from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from .diagnostic_session import DiagnosticSessionStatus
 
 
 class KnowledgeAreaResult(BaseModel):
@@ -73,6 +75,7 @@ class DiagnosticResultsResponse(BaseModel):
     Complete diagnostic results response after assessment completion.
 
     Provides comprehensive view of user's knowledge profile including:
+    - Session status (completed/in_progress)
     - Diagnostic score (correct/incorrect counts)
     - Overall coverage statistics
     - Per-knowledge area breakdown
@@ -80,6 +83,12 @@ class DiagnosticResultsResponse(BaseModel):
     - Personalized recommendations
     """
     model_config = ConfigDict(from_attributes=True)
+
+    # Session info
+    session_id: Optional[UUID] = Field(None, description="Diagnostic session UUID (if exists)")
+    session_status: Optional[DiagnosticSessionStatus] = Field(
+        None, description="Session status (completed, in_progress, etc.)"
+    )
 
     # Diagnostic score
     score: DiagnosticScore = Field(..., description="Diagnostic test score summary")
