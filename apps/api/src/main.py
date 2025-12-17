@@ -48,6 +48,7 @@ from src.routes import (
     diagnostic,
     health,
     questions,
+    quiz,
     reading,
     users,
 )
@@ -237,6 +238,7 @@ app.include_router(questions.router, prefix="/v1")
 app.include_router(reading.router, prefix="/v1")
 app.include_router(beliefs.router, prefix="/v1")
 app.include_router(diagnostic.router, prefix="/v1")
+app.include_router(quiz.router, prefix="/v1")
 
 
 @app.get("/")

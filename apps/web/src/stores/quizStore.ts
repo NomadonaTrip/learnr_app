@@ -1,0 +1,150 @@
+import { create } from 'zustand'
+import type { SessionType, QuestionStrategy } from '../services/quizService'
+
+/**
+ * Quiz session status.
+ */
+export type QuizSessionStatus =
+  | 'idle'
+  | 'loading'
+  | 'active'
+  | 'paused'
+  | 'ended'
+  | 'error'
+
+/**
+ * Session data for setting the store state.
+ */
+export interface SessionData {
+  sessionId: string
+  sessionType: SessionType
+  questionStrategy: QuestionStrategy
+  status: string
+  isResumed: boolean
+  totalQuestions: number
+  correctCount: number
+  version: number
+  startedAt: string
+}
+
+interface QuizState {
+  // Session state
+  sessionId: string | null
+  sessionType: SessionType | null
+  questionStrategy: QuestionStrategy | null
+  status: QuizSessionStatus
+  isResumed: boolean
+  totalQuestions: number
+  correctCount: number
+  version: number
+  startedAt: string | null
+  endedAt: string | null
+  error: string | null
+
+  // Computed: accuracy percentage
+  accuracy: () => number | null
+
+  // Actions
+  setSession: (session: SessionData) => void
+  setStatus: (status: QuizSessionStatus) => void
+  setPaused: (isPaused: boolean) => void
+  setEnded: (endedAt: string, finalStats?: { totalQuestions: number; correctCount: number }) => void
+  setError: (error: string | null) => void
+  incrementVersion: () => void
+  clearSession: () => void
+}
+
+/**
+ * Zustand store for quiz session state.
+ * Manages the adaptive quiz session including status, statistics, and error state.
+ */
+export const useQuizStore = create<QuizState>()((set, get) => ({
+  // Initial state
+  sessionId: null,
+  sessionType: null,
+  questionStrategy: null,
+  status: 'idle',
+  isResumed: false,
+  totalQuestions: 0,
+  correctCount: 0,
+  version: 0,
+  startedAt: null,
+  endedAt: null,
+  error: null,
+
+  // Computed: accuracy percentage (null if no questions answered)
+  accuracy: () => {
+    const { totalQuestions, correctCount } = get()
+    if (totalQuestions === 0) return null
+    return Math.round((correctCount / totalQuestions) * 100)
+  },
+
+  // Action: set session from API response
+  setSession: (session) => {
+    set({
+      sessionId: session.sessionId,
+      sessionType: session.sessionType,
+      questionStrategy: session.questionStrategy,
+      status: session.status === 'paused' ? 'paused' : 'active',
+      isResumed: session.isResumed,
+      totalQuestions: session.totalQuestions,
+      correctCount: session.correctCount,
+      version: session.version,
+      startedAt: session.startedAt,
+      endedAt: null,
+      error: null,
+    })
+  },
+
+  // Action: set session status
+  setStatus: (status) => {
+    set({ status })
+  },
+
+  // Action: set paused state
+  setPaused: (isPaused) => {
+    set({ status: isPaused ? 'paused' : 'active' })
+  },
+
+  // Action: set session as ended
+  setEnded: (endedAt, finalStats) => {
+    set({
+      status: 'ended',
+      endedAt,
+      ...(finalStats && {
+        totalQuestions: finalStats.totalQuestions,
+        correctCount: finalStats.correctCount,
+      }),
+    })
+  },
+
+  // Action: set error state
+  setError: (error) => {
+    set({
+      error,
+      status: error ? 'error' : get().status,
+    })
+  },
+
+  // Action: increment version for optimistic locking
+  incrementVersion: () => {
+    set((state) => ({ version: state.version + 1 }))
+  },
+
+  // Action: clear session state
+  clearSession: () => {
+    set({
+      sessionId: null,
+      sessionType: null,
+      questionStrategy: null,
+      status: 'idle',
+      isResumed: false,
+      totalQuestions: 0,
+      correctCount: 0,
+      version: 0,
+      startedAt: null,
+      endedAt: null,
+      error: null,
+    })
+  },
+}))
