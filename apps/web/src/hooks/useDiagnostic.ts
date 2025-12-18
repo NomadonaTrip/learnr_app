@@ -120,12 +120,14 @@ export function useDiagnostic() {
       // Record answer in store
       submitAnswer(questionId, answer)
 
+
       // Update session status from response (Story 3.9)
       setSessionStatus(data.session_status)
 
       // Check if session is completed
       const isSessionComplete = data.session_status === 'completed'
       const isLastQuestion = currentIndex >= questions.length - 1
+
 
       if (isSessionComplete || isLastQuestion) {
         // Complete diagnostic and redirect to results
