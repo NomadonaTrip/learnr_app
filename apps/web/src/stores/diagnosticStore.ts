@@ -1,9 +1,29 @@
 import { create } from 'zustand'
-import type { DiagnosticQuestion, DiagnosticAnswer, AnswerLetter } from '../types/diagnostic'
+import type {
+  DiagnosticQuestion,
+  DiagnosticAnswer,
+  AnswerLetter,
+  DiagnosticSessionStatus,
+} from '../types/diagnostic'
+
+/** Parameters for setQuestions action (Story 3.9) */
+interface SetQuestionsParams {
+  questions: DiagnosticQuestion[]
+  totalConcepts: number
+  coveragePercentage: number
+  sessionId: string
+  sessionStatus: DiagnosticSessionStatus
+  /** Absolute progress in session (questions already answered) */
+  sessionProgress: number
+  /** Total questions in the session */
+  sessionTotal: number
+  isResumed: boolean
+}
 
 interface DiagnosticState {
   // State
   questions: DiagnosticQuestion[]
+  /** Index into the questions array (always 0-based for remaining questions) */
   currentIndex: number
   answers: DiagnosticAnswer[]
   startTime: Date | null
@@ -11,18 +31,27 @@ interface DiagnosticState {
   isComplete: boolean
   totalConcepts: number
   coveragePercentage: number
+  // Session state (Story 3.9)
+  sessionId: string | null
+  sessionStatus: DiagnosticSessionStatus | null
+  isResumed: boolean
+  /** Absolute progress - questions already answered in session */
+  sessionProgress: number
+  /** Total questions in the session */
+  sessionTotal: number
 
   // Computed
   progressPercentage: () => number
   currentQuestion: () => DiagnosticQuestion | null
 
   // Actions
-  setQuestions: (questions: DiagnosticQuestion[], totalConcepts: number, coveragePercentage: number) => void
+  setQuestions: (params: SetQuestionsParams) => void
   submitAnswer: (questionId: string, answer: AnswerLetter) => void
   nextQuestion: () => void
   resetDiagnostic: () => void
   setSubmitting: (isSubmitting: boolean) => void
   completeDiagnostic: () => void
+  setSessionStatus: (status: DiagnosticSessionStatus) => void
 }
 
 /**
@@ -39,12 +68,20 @@ export const useDiagnosticStore = create<DiagnosticState>()((set, get) => ({
   isComplete: false,
   totalConcepts: 0,
   coveragePercentage: 0,
+  // Session state (Story 3.9)
+  sessionId: null,
+  sessionStatus: null,
+  isResumed: false,
+  sessionProgress: 0,
+  sessionTotal: 0,
 
-  // Computed: progress percentage (0-100)
+  // Computed: progress percentage (0-100) based on absolute session progress
   progressPercentage: () => {
-    const { questions, currentIndex } = get()
-    if (questions.length === 0) return 0
-    return Math.round((currentIndex / questions.length) * 100)
+    const { sessionProgress, currentIndex, sessionTotal } = get()
+    if (sessionTotal === 0) return 0
+    // Total answered = questions answered before + current local progress
+    const totalAnswered = sessionProgress + currentIndex
+    return Math.round((totalAnswered / sessionTotal) * 100)
   },
 
   // Computed: current question
@@ -53,17 +90,35 @@ export const useDiagnosticStore = create<DiagnosticState>()((set, get) => ({
     return questions[currentIndex] ?? null
   },
 
-  // Action: set questions from API
-  setQuestions: (questions, totalConcepts, coveragePercentage) => {
+  // Action: set questions from API (updated for Story 3.9 session support)
+  setQuestions: (params) => {
+    const {
+      questions,
+      totalConcepts,
+      coveragePercentage,
+      sessionId,
+      sessionStatus,
+      sessionProgress,
+      sessionTotal,
+      isResumed,
+    } = params
     set({
       questions,
       totalConcepts,
       coveragePercentage,
+      // Always start at index 0 of the questions array (which contains remaining questions)
       currentIndex: 0,
       answers: [],
       startTime: new Date(),
       isComplete: false,
       isSubmitting: false,
+      // Session state (Story 3.9)
+      sessionId,
+      sessionStatus,
+      isResumed,
+      // Track absolute progress separately from array index
+      sessionProgress,
+      sessionTotal,
     })
   },
 
@@ -88,7 +143,7 @@ export const useDiagnosticStore = create<DiagnosticState>()((set, get) => ({
     }
   },
 
-  // Action: reset diagnostic state
+  // Action: reset diagnostic state (updated for Story 3.9 session support)
   resetDiagnostic: () => {
     set({
       questions: [],
@@ -99,6 +154,12 @@ export const useDiagnosticStore = create<DiagnosticState>()((set, get) => ({
       isComplete: false,
       totalConcepts: 0,
       coveragePercentage: 0,
+      // Clear session state (Story 3.9)
+      sessionId: null,
+      sessionStatus: null,
+      isResumed: false,
+      sessionProgress: 0,
+      sessionTotal: 0,
     })
   },
 
@@ -110,5 +171,10 @@ export const useDiagnosticStore = create<DiagnosticState>()((set, get) => ({
   // Action: mark diagnostic as complete
   completeDiagnostic: () => {
     set({ isComplete: true })
+  },
+
+  // Action: update session status from answer response (Story 3.9)
+  setSessionStatus: (status) => {
+    set({ sessionStatus: status })
   },
 }))

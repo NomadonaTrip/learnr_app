@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { useDiagnosticStore } from './diagnosticStore'
 
 export interface User {
   id: string
@@ -33,6 +34,9 @@ export const useAuthStore = create<AuthState>()(
         // Store token in localStorage for Axios interceptor
         localStorage.setItem('auth_token', token)
 
+        // Reset diagnostic state when logging in to prevent stale session data
+        useDiagnosticStore.getState().resetDiagnostic()
+
         set({
           user,
           token,
@@ -42,6 +46,10 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         localStorage.removeItem('auth_token')
+
+        // Reset diagnostic state to clear any session data from the previous user
+        useDiagnosticStore.getState().resetDiagnostic()
+
         set({
           user: null,
           token: null,

@@ -14,7 +14,9 @@ from ..db.session import Base
 
 if TYPE_CHECKING:
     from .belief_state import BeliefState
+    from .diagnostic_session import DiagnosticSession
     from .enrollment import Enrollment
+    from .quiz_session import QuizSession
 
 
 class User(Base):
@@ -67,6 +69,16 @@ class User(Base):
     )
     belief_states: Mapped[list["BeliefState"]] = relationship(
         "BeliefState",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    diagnostic_sessions: Mapped[list["DiagnosticSession"]] = relationship(
+        "DiagnosticSession",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    quiz_sessions: Mapped[list["QuizSession"]] = relationship(
+        "QuizSession",
         back_populates="user",
         cascade="all, delete-orphan"
     )

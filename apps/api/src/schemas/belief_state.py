@@ -143,6 +143,7 @@ class InitializationResult(BaseModel):
     belief_count: int = 0
     duration_ms: float = 0
     message: str = ""
+    enrollment_id: UUID | None = None
 
 
 class BeliefSummary(BaseModel):

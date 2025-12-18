@@ -651,3 +651,46 @@ class QuestionRepository:
         await self.db.commit()
         logger.info(f"Deactivated {result.rowcount} questions")
         return result.rowcount
+
+    # =====================================
+    # Diagnostic Session Support
+    # =====================================
+
+    async def get_questions_by_ids(
+        self,
+        question_ids: list[str],
+        preserve_order: bool = True,
+        load_concepts: bool = False,
+    ) -> list[Question]:
+        """
+        Fetch questions by list of IDs, optionally preserving order.
+
+        Used for resuming diagnostic sessions with cached question order.
+
+        Args:
+            question_ids: List of question UUID strings
+            preserve_order: Whether to preserve input order (default True)
+            load_concepts: Whether to eagerly load concept relationships
+
+        Returns:
+            List of Question instances
+        """
+        if not question_ids:
+            return []
+
+        # Convert string IDs to UUIDs
+        uuid_list = [UUID(qid) for qid in question_ids]
+
+        query = select(Question).where(Question.id.in_(uuid_list))
+        if load_concepts:
+            query = query.options(selectinload(Question.question_concepts))
+
+        result = await self.db.execute(query)
+        questions = list(result.scalars().all())
+
+        if preserve_order:
+            # Reorder to match input order
+            question_map = {str(q.id): q for q in questions}
+            return [question_map[qid] for qid in question_ids if qid in question_map]
+
+        return questions

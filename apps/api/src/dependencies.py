@@ -12,8 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.redis_client import get_redis
 from src.db.session import get_db
 from src.exceptions import RateLimitError
+from src.models.enrollment import Enrollment
 from src.models.user import User
+from src.repositories.quiz_session_repository import QuizSessionRepository
 from src.repositories.user_repository import UserRepository
+from src.services.quiz_session_service import QuizSessionService
 from src.utils.auth import decode_token
 from src.utils.rate_limit import check_rate_limit
 
@@ -132,6 +135,9 @@ async def get_current_user(
         if cached_user_data:
             # Cache hit: deserialize and return user
             user_dict = json.loads(cached_user_data)
+            # Convert id back to UUID (was serialized as string for JSON)
+            if "id" in user_dict and isinstance(user_dict["id"], str):
+                user_dict["id"] = UUID(user_dict["id"])
             user = User(**user_dict)
             logger.debug(f"Cache hit for user {user_id}")
             return user
@@ -175,3 +181,91 @@ async def get_current_user(
             logger.warning(f"Failed to cache user data: {e}")
 
     return user
+
+
+def get_quiz_session_repository(
+    db: AsyncSession = Depends(get_db),
+) -> QuizSessionRepository:
+    """Dependency for QuizSessionRepository."""
+    return QuizSessionRepository(db)
+
+
+def get_quiz_session_service(
+    session_repo: QuizSessionRepository = Depends(get_quiz_session_repository),
+) -> QuizSessionService:
+    """Dependency for QuizSessionService."""
+    return QuizSessionService(session_repo)
+
+
+async def get_active_enrollment(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    x_enrollment_id: str | None = Header(None, alias="X-Enrollment-Id"),
+) -> Enrollment:
+    """
+    Get the active enrollment for a user.
+
+    If X-Enrollment-Id header is provided, look up that specific enrollment.
+    Otherwise, return the user's single active enrollment (error if multiple).
+
+    Args:
+        current_user: Authenticated user
+        db: Database session
+        x_enrollment_id: Optional enrollment ID header
+
+    Returns:
+        Enrollment object
+
+    Raises:
+        HTTPException 404: If enrollment not found
+        HTTPException 400: If multiple enrollments and no header provided
+    """
+    from sqlalchemy import select
+
+    if x_enrollment_id:
+        # Look up specific enrollment
+        try:
+            enrollment_uuid = UUID(x_enrollment_id)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid enrollment ID format",
+            ) from e
+
+        result = await db.execute(
+            select(Enrollment)
+            .where(Enrollment.id == enrollment_uuid)
+            .where(Enrollment.user_id == current_user.id)
+            .where(Enrollment.status == "active")
+        )
+        enrollment = result.scalar_one_or_none()
+
+        if not enrollment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Enrollment not found or not active",
+            )
+
+        return enrollment
+
+    # No header - try to get single active enrollment
+    result = await db.execute(
+        select(Enrollment)
+        .where(Enrollment.user_id == current_user.id)
+        .where(Enrollment.status == "active")
+    )
+    enrollments = list(result.scalars().all())
+
+    if not enrollments:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active enrollment found. Please enroll in a course first.",
+        )
+
+    if len(enrollments) > 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Multiple enrollments found. Please specify X-Enrollment-Id header.",
+        )
+
+    return enrollments[0]
