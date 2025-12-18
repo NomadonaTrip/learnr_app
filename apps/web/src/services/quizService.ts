@@ -116,6 +116,45 @@ export interface NextQuestionResponse {
 }
 
 /**
+ * Request for submitting an answer.
+ */
+export interface AnswerSubmissionRequest {
+  session_id: string
+  question_id: string
+  selected_answer: string
+}
+
+/**
+ * Concept update information after answer submission.
+ */
+export interface ConceptUpdate {
+  concept_id: string
+  name: string
+  new_mastery: number
+}
+
+/**
+ * Session statistics after answer submission.
+ */
+export interface SessionStats {
+  questions_answered: number
+  accuracy: number
+  total_info_gain: number
+  coverage_progress: number
+}
+
+/**
+ * Response from answer submission endpoint.
+ */
+export interface AnswerResponse {
+  is_correct: boolean
+  correct_answer: string
+  explanation: string
+  concepts_updated: ConceptUpdate[]
+  session_stats: SessionStats
+}
+
+/**
  * Service for quiz session API calls.
  * Uses axios with JWT token from authStore.
  */
@@ -213,6 +252,32 @@ export const quizService = {
     const response = await api.post<NextQuestionResponse>(
       '/quiz/next-question',
       request
+    )
+    return response.data
+  },
+
+  /**
+   * Submit an answer for the current question.
+   * @param request - Answer submission data (session_id, question_id, selected_answer)
+   * @param requestId - Unique request ID for idempotency
+   * @returns Answer feedback including correctness, explanation, and stats
+   * @throws AxiosError with status 401 if not authenticated
+   * @throws AxiosError with status 404 if session or question not found
+   * @throws AxiosError with status 409 if question already answered
+   * @throws AxiosError with status 400 if invalid answer format
+   */
+  async submitAnswer(
+    request: AnswerSubmissionRequest,
+    requestId: string
+  ): Promise<AnswerResponse> {
+    const response = await api.post<AnswerResponse>(
+      '/quiz/answer',
+      request,
+      {
+        headers: {
+          'X-Request-ID': requestId,
+        },
+      }
     )
     return response.data
   },

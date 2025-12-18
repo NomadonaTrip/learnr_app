@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { quizService, SessionConfig, NextQuestionRequest } from '../services/quizService'
+import { quizService, SessionConfig, NextQuestionRequest, AnswerSubmissionRequest } from '../services/quizService'
 import { useQuizStore, QuizSessionStatus } from '../stores/quizStore'
 import { AxiosError } from 'axios'
 
@@ -47,6 +47,7 @@ function getErrorMessage(error: unknown): string {
 export function useQuizSession(config?: SessionConfig) {
   const navigate = useNavigate()
   const isInitializedRef = useRef(false)
+  const questionStartTimeRef = useRef<number | null>(null)
 
   const {
     sessionId,
@@ -65,6 +66,9 @@ export function useQuizSession(config?: SessionConfig) {
     questionsRemaining,
     isLoadingQuestion,
     selectedAnswer,
+    feedbackResult,
+    isSubmitting,
+    showFeedback,
     setSession,
     setStatus,
     setPaused,
@@ -75,6 +79,9 @@ export function useQuizSession(config?: SessionConfig) {
     setLoadingQuestion,
     setSelectedAnswer,
     clearQuestion,
+    setFeedback,
+    setSubmitting,
+    clearFeedback,
   } = useQuizStore()
 
   // Start session mutation
@@ -150,6 +157,8 @@ export function useQuizSession(config?: SessionConfig) {
     },
     onSuccess: (data) => {
       setQuestion(data.question, data.questions_remaining)
+      // Reset question start time when new question loads
+      questionStartTimeRef.current = Date.now()
     },
     onError: (error) => {
       setLoadingQuestion(false)
@@ -158,6 +167,28 @@ export function useQuizSession(config?: SessionConfig) {
       if (!message.includes('No questions available')) {
         setError(message)
       }
+    },
+  })
+
+  // Submit answer mutation
+  const submitAnswerMutation = useMutation({
+    mutationFn: ({ request, requestId }: { request: AnswerSubmissionRequest; requestId: string }) =>
+      quizService.submitAnswer(request, requestId),
+    onMutate: () => {
+      setSubmitting(true)
+    },
+    onSuccess: (data) => {
+      setFeedback(data)
+      // Update session stats from response
+      useQuizStore.setState({
+        totalQuestions: data.session_stats.questions_answered,
+        correctCount: Math.round(data.session_stats.accuracy * data.session_stats.questions_answered),
+      })
+    },
+    onError: (error) => {
+      setSubmitting(false)
+      const message = getErrorMessage(error)
+      setError(message)
     },
   })
 
@@ -230,6 +261,31 @@ export function useQuizSession(config?: SessionConfig) {
     setSelectedAnswer(answer)
   }, [setSelectedAnswer])
 
+  // Submit answer handler
+  const submitAnswer = useCallback(() => {
+    if (!sessionId || !currentQuestion || !selectedAnswer) {
+      return
+    }
+
+    const requestId = crypto.randomUUID()
+    const request: AnswerSubmissionRequest = {
+      session_id: sessionId,
+      question_id: currentQuestion.question_id,
+      selected_answer: selectedAnswer,
+    }
+
+    submitAnswerMutation.mutate({ request, requestId })
+  }, [sessionId, currentQuestion, selectedAnswer, submitAnswerMutation])
+
+  // Proceed to next question after feedback
+  const proceedToNextQuestion = useCallback(() => {
+    clearFeedback()
+    if (sessionId && status === 'active') {
+      clearQuestion()
+      fetchQuestionMutation.mutate({ session_id: sessionId })
+    }
+  }, [sessionId, status, clearFeedback, clearQuestion, fetchQuestionMutation])
+
   // Computed loading states
   const isLoading = status === 'loading'
   const isPausing = pauseMutation.isPending
@@ -258,6 +314,11 @@ export function useQuizSession(config?: SessionConfig) {
     questionsRemaining,
     selectedAnswer,
 
+    // Feedback state
+    feedbackResult,
+    isSubmitting,
+    showFeedback,
+
     // Loading states
     isLoading,
     isPausing,
@@ -275,5 +336,7 @@ export function useQuizSession(config?: SessionConfig) {
     returnToDashboard,
     fetchNextQuestion,
     selectAnswer,
+    submitAnswer,
+    proceedToNextQuestion,
   }
 }

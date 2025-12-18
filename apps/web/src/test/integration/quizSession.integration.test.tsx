@@ -10,6 +10,7 @@ import {
   quizHandlers,
   quizResumedHandlers,
   resetQuizMocks,
+  setMockNextAnswerCorrect,
 } from '../mocks/handlers/quizHandlers'
 import { http, HttpResponse } from 'msw'
 
@@ -272,6 +273,140 @@ describe('Quiz Session Integration', () => {
       // Should succeed on retry
       await waitFor(() => {
         expect(screen.getByText('Session Info')).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('Answer Submission Flow', () => {
+    it('selects answer and enables submit button', async () => {
+      server.use(...quizHandlers)
+
+      renderWithRouter('/quiz', [{ path: '/quiz', element: <QuizPage /> }])
+
+      // Wait for question to load (using default mock question)
+      await waitFor(() => {
+        expect(screen.getByText('Default mock question?')).toBeInTheDocument()
+      })
+
+      // Select an answer
+      fireEvent.click(screen.getByRole('radio', { name: /option a/i }))
+
+      // Submit button should appear
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit answer/i })).toBeInTheDocument()
+      })
+    })
+
+    it('shows correct feedback after correct answer submission', async () => {
+      setMockNextAnswerCorrect(true)
+      server.use(...quizHandlers)
+
+      renderWithRouter('/quiz', [{ path: '/quiz', element: <QuizPage /> }])
+
+      // Wait for question
+      await waitFor(() => {
+        expect(screen.getByText('Default mock question?')).toBeInTheDocument()
+      })
+
+      // Select answer and submit
+      fireEvent.click(screen.getByRole('radio', { name: /option a/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit answer/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
+
+      // Should show correct feedback
+      await waitFor(() => {
+        expect(screen.getByText('Correct!')).toBeInTheDocument()
+      })
+
+      expect(screen.getByRole('alert')).toHaveClass('bg-green-50')
+    })
+
+    it('shows incorrect feedback after wrong answer submission', async () => {
+      setMockNextAnswerCorrect(false)
+      server.use(...quizHandlers)
+
+      renderWithRouter('/quiz', [{ path: '/quiz', element: <QuizPage /> }])
+
+      // Wait for question
+      await waitFor(() => {
+        expect(screen.getByText('Default mock question?')).toBeInTheDocument()
+      })
+
+      // Select wrong answer and submit
+      fireEvent.click(screen.getByRole('radio', { name: /option c/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit answer/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
+
+      // Should show incorrect feedback with correct answer
+      await waitFor(() => {
+        expect(screen.getByText(/incorrect.*correct answer is B/i)).toBeInTheDocument()
+      })
+
+      expect(screen.getByRole('alert')).toHaveClass('bg-orange-50')
+    })
+
+    it('proceeds to next question after clicking Next Question button', async () => {
+      setMockNextAnswerCorrect(true)
+      server.use(...quizHandlers)
+
+      renderWithRouter('/quiz', [{ path: '/quiz', element: <QuizPage /> }])
+
+      // Wait for first question
+      await waitFor(() => {
+        expect(screen.getByText('Default mock question?')).toBeInTheDocument()
+      })
+
+      // Answer and submit
+      fireEvent.click(screen.getByRole('radio', { name: /option a/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit answer/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
+
+      // Wait for feedback
+      await waitFor(() => {
+        expect(screen.getByText('Correct!')).toBeInTheDocument()
+      })
+
+      // Click Next Question
+      fireEvent.click(screen.getByRole('button', { name: /next question/i }))
+
+      // Feedback should be cleared and question should reload
+      await waitFor(() => {
+        expect(screen.queryByText('Correct!')).not.toBeInTheDocument()
+      })
+    })
+
+    it('submit button transitions to feedback after submission', async () => {
+      setMockNextAnswerCorrect(true)
+      server.use(...quizHandlers)
+
+      renderWithRouter('/quiz', [{ path: '/quiz', element: <QuizPage /> }])
+
+      // Wait for question
+      await waitFor(() => {
+        expect(screen.getByText('Default mock question?')).toBeInTheDocument()
+      })
+
+      // Select answer and submit
+      fireEvent.click(screen.getByRole('radio', { name: /option a/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit answer/i })).toBeInTheDocument()
+      })
+
+      // Submit button should be enabled
+      expect(screen.getByRole('button', { name: /submit answer/i })).not.toBeDisabled()
+
+      fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
+
+      // After submission, feedback should appear and submit button should be gone
+      await waitFor(() => {
+        expect(screen.getByText('Correct!')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /submit answer/i })).not.toBeInTheDocument()
       })
     })
   })

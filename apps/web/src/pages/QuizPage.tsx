@@ -1,5 +1,6 @@
 import { useQuizSession } from '../hooks/useQuizSession'
-import type { SelectedQuestion } from '../services/quizService'
+import type { SelectedQuestion, AnswerResponse } from '../services/quizService'
+import { FeedbackOverlay } from '../components/quiz/FeedbackOverlay'
 
 /**
  * Format session type for display.
@@ -301,6 +302,11 @@ function ActiveState({
   isPausing,
   isEnding,
   questionsRemaining,
+  onSubmit,
+  isSubmitting,
+  feedbackResult,
+  showFeedback,
+  onNextQuestion,
 }: {
   sessionType: string | null
   questionStrategy: string | null
@@ -316,6 +322,11 @@ function ActiveState({
   isPausing: boolean
   isEnding: boolean
   questionsRemaining: number
+  onSubmit: () => void
+  isSubmitting: boolean
+  feedbackResult: AnswerResponse | null
+  showFeedback: boolean
+  onNextQuestion: () => void
 }) {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -330,36 +341,48 @@ function ActiveState({
           accuracy={accuracy}
         />
 
-        {/* Question display */}
-        {isFetchingQuestion ? (
-          <QuestionLoading />
-        ) : question ? (
-          <QuestionCard
-            question={question}
-            selectedAnswer={selectedAnswer}
-            onSelectAnswer={onSelectAnswer}
-            questionsRemaining={questionsRemaining}
+        {/* Feedback display (when showing feedback) */}
+        {showFeedback && feedbackResult ? (
+          <FeedbackOverlay
+            feedbackResult={feedbackResult}
+            onNextQuestion={onNextQuestion}
+            isLastQuestion={questionsRemaining === 0}
           />
         ) : (
-          <div
-            className="bg-white rounded-[14px] shadow-sm border border-gray-200 p-8 text-center"
-            aria-label="No questions available"
-          >
-            <p className="text-gray-600">No questions available.</p>
-          </div>
-        )}
+          <>
+            {/* Question display */}
+            {isFetchingQuestion ? (
+              <QuestionLoading />
+            ) : question ? (
+              <QuestionCard
+                question={question}
+                selectedAnswer={selectedAnswer}
+                onSelectAnswer={onSelectAnswer}
+                questionsRemaining={questionsRemaining}
+              />
+            ) : (
+              <div
+                className="bg-white rounded-[14px] shadow-sm border border-gray-200 p-8 text-center"
+                aria-label="No questions available"
+              >
+                <p className="text-gray-600">No questions available.</p>
+              </div>
+            )}
 
-        {/* Submit button (shown when answer selected) */}
-        {selectedAnswer && (
-          <div className="flex justify-center">
-            <button
-              disabled
-              className="px-8 py-3 bg-primary-600 text-white rounded-[14px] font-medium opacity-50 cursor-not-allowed"
-              title="Answer submission will be available in Story 4.3"
-            >
-              Submit Answer (Coming Soon)
-            </button>
-          </div>
+            {/* Submit button (shown when answer selected) */}
+            {selectedAnswer && !showFeedback && (
+              <div className="flex justify-center">
+                <button
+                  onClick={onSubmit}
+                  disabled={isSubmitting}
+                  className="px-8 py-3 bg-primary-600 text-white rounded-[14px] font-medium hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Submit answer"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Answer'}
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {/* Action buttons */}
@@ -602,6 +625,9 @@ export function QuizPage() {
     currentQuestion,
     questionsRemaining,
     selectedAnswer,
+    feedbackResult,
+    isSubmitting,
+    showFeedback,
     isLoading,
     isPausing,
     isResuming,
@@ -614,6 +640,8 @@ export function QuizPage() {
     startNew,
     returnToDashboard,
     selectAnswer,
+    submitAnswer,
+    proceedToNextQuestion,
   } = useQuizSession()
 
   // Loading state
@@ -679,6 +707,11 @@ export function QuizPage() {
       isPausing={isPausing}
       isEnding={isEnding}
       questionsRemaining={questionsRemaining}
+      onSubmit={submitAnswer}
+      isSubmitting={isSubmitting}
+      feedbackResult={feedbackResult}
+      showFeedback={showFeedback}
+      onNextQuestion={proceedToNextQuestion}
     />
   )
 }

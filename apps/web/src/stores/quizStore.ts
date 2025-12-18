@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { SessionType, QuestionStrategy, SelectedQuestion } from '../services/quizService'
+import type { SessionType, QuestionStrategy, SelectedQuestion, AnswerResponse } from '../services/quizService'
 
 /**
  * Quiz session status.
@@ -47,6 +47,11 @@ interface QuizState {
   isLoadingQuestion: boolean
   selectedAnswer: string | null
 
+  // Feedback state
+  feedbackResult: AnswerResponse | null
+  isSubmitting: boolean
+  showFeedback: boolean
+
   // Computed: accuracy percentage
   accuracy: () => number | null
 
@@ -64,6 +69,11 @@ interface QuizState {
   setLoadingQuestion: (isLoading: boolean) => void
   setSelectedAnswer: (answer: string | null) => void
   clearQuestion: () => void
+
+  // Feedback actions
+  setFeedback: (result: AnswerResponse) => void
+  setSubmitting: (isSubmitting: boolean) => void
+  clearFeedback: () => void
 }
 
 /**
@@ -89,6 +99,11 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
   questionsRemaining: 0,
   isLoadingQuestion: false,
   selectedAnswer: null,
+
+  // Feedback state
+  feedbackResult: null,
+  isSubmitting: false,
+  showFeedback: false,
 
   // Computed: accuracy percentage (null if no questions answered)
   accuracy: () => {
@@ -167,6 +182,9 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       questionsRemaining: 0,
       isLoadingQuestion: false,
       selectedAnswer: null,
+      feedbackResult: null,
+      isSubmitting: false,
+      showFeedback: false,
     })
   },
 
@@ -177,6 +195,9 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       questionsRemaining,
       isLoadingQuestion: false,
       selectedAnswer: null,
+      feedbackResult: null,
+      isSubmitting: false,
+      showFeedback: false,
     })
   },
 
@@ -194,6 +215,29 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
   clearQuestion: () => {
     set({
       currentQuestion: null,
+      selectedAnswer: null,
+    })
+  },
+
+  // Action: set feedback result after answer submission
+  setFeedback: (result) => {
+    set({
+      feedbackResult: result,
+      isSubmitting: false,
+      showFeedback: true,
+    })
+  },
+
+  // Action: set submitting state
+  setSubmitting: (isSubmitting) => {
+    set({ isSubmitting })
+  },
+
+  // Action: clear feedback and prepare for next question
+  clearFeedback: () => {
+    set({
+      feedbackResult: null,
+      showFeedback: false,
       selectedAnswer: null,
     })
   },
