@@ -58,6 +58,12 @@ from .question import (
     QuestionListParams,
     QuestionListResponse,
 )
+from .question_selection import (
+    NoQuestionsAvailableResponse,
+    QuestionSelectionRequest,
+    QuestionSelectionResponse,
+    SelectedQuestion,
+)
 from .reading_chunk import (
     ChunkBase,
     ChunkCountByKA,
@@ -78,6 +84,13 @@ from .diagnostic_results import (
     DiagnosticResultsResponse,
     KnowledgeAreaResult,
     Recommendations,
+)
+from .quiz import (
+    AnswerResponse,
+    AnswerSubmission,
+    CachedAnswerResponse,
+    ConceptUpdate,
+    SessionStats,
 )
 from .user import UserCreate, UserResponse, UserUpdate
 
@@ -139,6 +152,11 @@ __all__ = [
     "QuestionListParams",
     "QuestionListResponse",
     "PaginatedQuestionResponse",
+    # Question selection
+    "QuestionSelectionRequest",
+    "QuestionSelectionResponse",
+    "SelectedQuestion",
+    "NoQuestionsAvailableResponse",
     # Diagnostic results
     "DiagnosticResultsResponse",
     "KnowledgeAreaResult",
@@ -147,4 +165,10 @@ __all__ = [
     "ConfidenceLevel",
     "DiagnosticFeedbackRequest",
     "DiagnosticFeedbackResponse",
+    # Quiz answer submission (Story 4.3)
+    "AnswerSubmission",
+    "AnswerResponse",
+    "CachedAnswerResponse",
+    "ConceptUpdate",
+    "SessionStats",
 ]

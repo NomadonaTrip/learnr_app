@@ -85,6 +85,37 @@ export interface SessionEndResponse {
 }
 
 /**
+ * Selected question returned from next-question endpoint.
+ */
+export interface SelectedQuestion {
+  question_id: string
+  question_text: string
+  options: Record<string, string>
+  knowledge_area_id: string
+  knowledge_area_name: string | null
+  difficulty: number
+  estimated_info_gain: number
+  concepts_tested: string[]
+}
+
+/**
+ * Request for getting next question.
+ */
+export interface NextQuestionRequest {
+  session_id: string
+  strategy?: QuestionStrategy
+}
+
+/**
+ * Response from next-question endpoint.
+ */
+export interface NextQuestionResponse {
+  session_id: string
+  question: SelectedQuestion
+  questions_remaining: number
+}
+
+/**
  * Service for quiz session API calls.
  * Uses axios with JWT token from authStore.
  */
@@ -165,6 +196,23 @@ export const quizService = {
     const response = await api.post<SessionEndResponse>(
       `/quiz/session/${sessionId}/end`,
       { expected_version: expectedVersion }
+    )
+    return response.data
+  },
+
+  /**
+   * Get the next question for an active quiz session.
+   * Uses Bayesian question selection to maximize information gain.
+   * @param request - Session ID and optional strategy override
+   * @returns Selected question with metadata
+   * @throws AxiosError with status 401 if not authenticated
+   * @throws AxiosError with status 404 if session not found
+   * @throws AxiosError with status 400 if no questions available
+   */
+  async getNextQuestion(request: NextQuestionRequest): Promise<NextQuestionResponse> {
+    const response = await api.post<NextQuestionResponse>(
+      '/quiz/next-question',
+      request
     )
     return response.data
   },

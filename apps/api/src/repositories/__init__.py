@@ -5,6 +5,7 @@ from .course_repository import CourseRepository
 from .diagnostic_session_repository import DiagnosticSessionRepository
 from .password_reset_repository import PasswordResetRepository
 from .reading_chunk_repository import ReadingChunkRepository
+from .response_repository import ResponseRepository
 from .user_repository import UserRepository
 
 __all__ = [
@@ -15,4 +16,5 @@ __all__ = [
     "ReadingChunkRepository",
     "BeliefRepository",
     "DiagnosticSessionRepository",
+    "ResponseRepository",
 ]

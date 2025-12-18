@@ -40,6 +40,8 @@ from src.models import (
     PasswordResetToken,
     Question,
     QuestionConcept,
+    QuizResponse,
+    QuizSession,
     Course,
     Enrollment,
     Concept,

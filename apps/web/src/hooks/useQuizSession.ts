@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { quizService, SessionConfig } from '../services/quizService'
+import { quizService, SessionConfig, NextQuestionRequest } from '../services/quizService'
 import { useQuizStore, QuizSessionStatus } from '../stores/quizStore'
 import { AxiosError } from 'axios'
 
@@ -61,12 +61,20 @@ export function useQuizSession(config?: SessionConfig) {
     endedAt,
     error,
     accuracy,
+    currentQuestion,
+    questionsRemaining,
+    isLoadingQuestion,
+    selectedAnswer,
     setSession,
     setStatus,
     setPaused,
     setEnded,
     setError,
     clearSession,
+    setQuestion,
+    setLoadingQuestion,
+    setSelectedAnswer,
+    clearQuestion,
   } = useQuizStore()
 
   // Start session mutation
@@ -133,6 +141,26 @@ export function useQuizSession(config?: SessionConfig) {
     },
   })
 
+  // Fetch next question mutation
+  const fetchQuestionMutation = useMutation({
+    mutationFn: (request: NextQuestionRequest) =>
+      quizService.getNextQuestion(request),
+    onMutate: () => {
+      setLoadingQuestion(true)
+    },
+    onSuccess: (data) => {
+      setQuestion(data.question, data.questions_remaining)
+    },
+    onError: (error) => {
+      setLoadingQuestion(false)
+      // Don't set error for "no questions" - this might mean quiz is complete
+      const message = getErrorMessage(error)
+      if (!message.includes('No questions available')) {
+        setError(message)
+      }
+    },
+  })
+
   // Start session on mount
   useEffect(() => {
     if (!isInitializedRef.current && status === 'idle') {
@@ -140,6 +168,13 @@ export function useQuizSession(config?: SessionConfig) {
       startMutation.mutate(config)
     }
   }, [config, status, startMutation])
+
+  // Fetch first question when session becomes active
+  useEffect(() => {
+    if (sessionId && status === 'active' && !currentQuestion && !isLoadingQuestion) {
+      fetchQuestionMutation.mutate({ session_id: sessionId })
+    }
+  }, [sessionId, status, currentQuestion, isLoadingQuestion, fetchQuestionMutation])
 
   // Pause session handler
   const pause = useCallback(() => {
@@ -182,11 +217,25 @@ export function useQuizSession(config?: SessionConfig) {
     navigate('/diagnostic/results')
   }, [clearSession, navigate])
 
+  // Fetch next question handler
+  const fetchNextQuestion = useCallback(() => {
+    if (sessionId && status === 'active') {
+      clearQuestion()
+      fetchQuestionMutation.mutate({ session_id: sessionId })
+    }
+  }, [sessionId, status, clearQuestion, fetchQuestionMutation])
+
+  // Select answer handler
+  const selectAnswer = useCallback((answer: string) => {
+    setSelectedAnswer(answer)
+  }, [setSelectedAnswer])
+
   // Computed loading states
   const isLoading = status === 'loading'
   const isPausing = pauseMutation.isPending
   const isResuming = resumeMutation.isPending
   const isEnding = endMutation.isPending
+  const isFetchingQuestion = fetchQuestionMutation.isPending || isLoadingQuestion
   const isActionPending = isPausing || isResuming || isEnding
 
   return {
@@ -204,11 +253,17 @@ export function useQuizSession(config?: SessionConfig) {
     error,
     accuracy: accuracy(),
 
+    // Question state
+    currentQuestion,
+    questionsRemaining,
+    selectedAnswer,
+
     // Loading states
     isLoading,
     isPausing,
     isResuming,
     isEnding,
+    isFetchingQuestion,
     isActionPending,
 
     // Actions
@@ -218,5 +273,7 @@ export function useQuizSession(config?: SessionConfig) {
     retry,
     startNew,
     returnToDashboard,
+    fetchNextQuestion,
+    selectAnswer,
   }
 }

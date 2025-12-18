@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { SessionType, QuestionStrategy } from '../services/quizService'
+import type { SessionType, QuestionStrategy, SelectedQuestion } from '../services/quizService'
 
 /**
  * Quiz session status.
@@ -41,6 +41,12 @@ interface QuizState {
   endedAt: string | null
   error: string | null
 
+  // Question state
+  currentQuestion: SelectedQuestion | null
+  questionsRemaining: number
+  isLoadingQuestion: boolean
+  selectedAnswer: string | null
+
   // Computed: accuracy percentage
   accuracy: () => number | null
 
@@ -52,6 +58,12 @@ interface QuizState {
   setError: (error: string | null) => void
   incrementVersion: () => void
   clearSession: () => void
+
+  // Question actions
+  setQuestion: (question: SelectedQuestion, questionsRemaining: number) => void
+  setLoadingQuestion: (isLoading: boolean) => void
+  setSelectedAnswer: (answer: string | null) => void
+  clearQuestion: () => void
 }
 
 /**
@@ -71,6 +83,12 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
   startedAt: null,
   endedAt: null,
   error: null,
+
+  // Question state
+  currentQuestion: null,
+  questionsRemaining: 0,
+  isLoadingQuestion: false,
+  selectedAnswer: null,
 
   // Computed: accuracy percentage (null if no questions answered)
   accuracy: () => {
@@ -145,6 +163,38 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       startedAt: null,
       endedAt: null,
       error: null,
+      currentQuestion: null,
+      questionsRemaining: 0,
+      isLoadingQuestion: false,
+      selectedAnswer: null,
+    })
+  },
+
+  // Action: set current question
+  setQuestion: (question, questionsRemaining) => {
+    set({
+      currentQuestion: question,
+      questionsRemaining,
+      isLoadingQuestion: false,
+      selectedAnswer: null,
+    })
+  },
+
+  // Action: set loading question state
+  setLoadingQuestion: (isLoading) => {
+    set({ isLoadingQuestion: isLoading })
+  },
+
+  // Action: set selected answer
+  setSelectedAnswer: (answer) => {
+    set({ selectedAnswer: answer })
+  },
+
+  // Action: clear current question
+  clearQuestion: () => {
+    set({
+      currentQuestion: null,
+      selectedAnswer: null,
     })
   },
 }))

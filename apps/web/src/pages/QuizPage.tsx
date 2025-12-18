@@ -1,4 +1,5 @@
 import { useQuizSession } from '../hooks/useQuizSession'
+import type { SelectedQuestion } from '../services/quizService'
 
 /**
  * Format session type for display.
@@ -169,6 +170,120 @@ function SessionInfoCard({
 }
 
 /**
+ * Question loading state component.
+ */
+function QuestionLoading() {
+  return (
+    <div
+      className="bg-white rounded-[14px] shadow-sm border border-gray-200 p-8"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading question"
+    >
+      <div className="animate-pulse space-y-4">
+        <div className="h-6 bg-gray-200 rounded w-3/4" />
+        <div className="h-4 bg-gray-200 rounded w-1/2" />
+        <div className="space-y-3 mt-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-12 bg-gray-200 rounded" />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Question card component.
+ */
+function QuestionCard({
+  question,
+  selectedAnswer,
+  onSelectAnswer,
+  questionsRemaining,
+}: {
+  question: SelectedQuestion
+  selectedAnswer: string | null
+  onSelectAnswer: (answer: string) => void
+  questionsRemaining: number
+}) {
+  const optionLabels = ['A', 'B', 'C', 'D']
+  const optionEntries = Object.entries(question.options)
+
+  return (
+    <div
+      className="bg-white rounded-[14px] shadow-sm border border-gray-200 p-6"
+      aria-label="Question card"
+    >
+      {/* Question header with metadata */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            {question.knowledge_area_name || question.knowledge_area_id}
+          </span>
+          <span className="text-xs text-gray-400">
+            Difficulty: {Math.round(question.difficulty * 100)}%
+          </span>
+        </div>
+        <span className="text-xs text-gray-400">
+          {questionsRemaining} questions remaining
+        </span>
+      </div>
+
+      {/* Question text */}
+      <h2 className="text-lg font-medium text-gray-900 mb-6 leading-relaxed">
+        {question.question_text}
+      </h2>
+
+      {/* Answer options */}
+      <div className="space-y-3" role="radiogroup" aria-label="Answer options">
+        {optionEntries.map(([key, text], index) => {
+          const label = optionLabels[index] || key
+          const isSelected = selectedAnswer === key
+
+          return (
+            <button
+              key={key}
+              onClick={() => onSelectAnswer(key)}
+              className={`w-full text-left p-4 rounded-[14px] border-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+                isSelected
+                  ? 'border-primary-500 bg-primary-50 text-primary-900'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700'
+              }`}
+              role="radio"
+              aria-checked={isSelected}
+              aria-label={`Option ${label}: ${text}`}
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                    isSelected
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {label}
+                </span>
+                <span className="pt-1">{text}</span>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Concepts tested (debug info) */}
+      {question.concepts_tested.length > 0 && (
+        <div className="mt-6 pt-4 border-t border-gray-100">
+          <p className="text-xs text-gray-400">
+            Testing: {question.concepts_tested.join(', ')}
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
  * Active session state component.
  */
 function ActiveState({
@@ -177,20 +292,30 @@ function ActiveState({
   totalQuestions,
   correctCount,
   accuracy,
+  question,
+  selectedAnswer,
+  isFetchingQuestion,
+  onSelectAnswer,
   onPause,
   onEnd,
   isPausing,
   isEnding,
+  questionsRemaining,
 }: {
   sessionType: string | null
   questionStrategy: string | null
   totalQuestions: number
   correctCount: number
   accuracy: number | null
+  question: SelectedQuestion | null
+  selectedAnswer: string | null
+  isFetchingQuestion: boolean
+  onSelectAnswer: (answer: string) => void
   onPause: () => void
   onEnd: () => void
   isPausing: boolean
   isEnding: boolean
+  questionsRemaining: number
 }) {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -205,31 +330,37 @@ function ActiveState({
           accuracy={accuracy}
         />
 
-        {/* Question placeholder */}
-        <div
-          className="bg-white rounded-[14px] shadow-sm border border-gray-200 p-8 text-center"
-          aria-label="Question area"
-        >
-          <div className="text-gray-400 mb-4" aria-hidden="true">
-            <svg
-              className="w-16 h-16 mx-auto"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+        {/* Question display */}
+        {isFetchingQuestion ? (
+          <QuestionLoading />
+        ) : question ? (
+          <QuestionCard
+            question={question}
+            selectedAnswer={selectedAnswer}
+            onSelectAnswer={onSelectAnswer}
+            questionsRemaining={questionsRemaining}
+          />
+        ) : (
+          <div
+            className="bg-white rounded-[14px] shadow-sm border border-gray-200 p-8 text-center"
+            aria-label="No questions available"
+          >
+            <p className="text-gray-600">No questions available.</p>
           </div>
-          <p className="text-gray-600 text-lg mb-2">Question Display Area</p>
-          <p className="text-gray-400 text-sm">
-            Questions will appear here in Story 4.2
-          </p>
-        </div>
+        )}
+
+        {/* Submit button (shown when answer selected) */}
+        {selectedAnswer && (
+          <div className="flex justify-center">
+            <button
+              disabled
+              className="px-8 py-3 bg-primary-600 text-white rounded-[14px] font-medium opacity-50 cursor-not-allowed"
+              title="Answer submission will be available in Story 4.3"
+            >
+              Submit Answer (Coming Soon)
+            </button>
+          </div>
+        )}
 
         {/* Action buttons */}
         <div
@@ -468,16 +599,21 @@ export function QuizPage() {
     correctCount,
     accuracy,
     error,
+    currentQuestion,
+    questionsRemaining,
+    selectedAnswer,
     isLoading,
     isPausing,
     isResuming,
     isEnding,
+    isFetchingQuestion,
     pause,
     resume,
     end,
     retry,
     startNew,
     returnToDashboard,
+    selectAnswer,
   } = useQuizSession()
 
   // Loading state
@@ -534,10 +670,15 @@ export function QuizPage() {
       totalQuestions={totalQuestions}
       correctCount={correctCount}
       accuracy={accuracy}
+      question={currentQuestion}
+      selectedAnswer={selectedAnswer}
+      isFetchingQuestion={isFetchingQuestion}
+      onSelectAnswer={selectAnswer}
       onPause={pause}
       onEnd={end}
       isPausing={isPausing}
       isEnding={isEnding}
+      questionsRemaining={questionsRemaining}
     />
   )
 }

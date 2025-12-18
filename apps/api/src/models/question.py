@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from .concept import Concept
     from .course import Course
     from .question_concept import QuestionConcept
+    from .quiz_response import QuizResponse
 
 
 class Question(Base):
@@ -94,6 +95,13 @@ class Question(Base):
     # Many-to-many with concepts via junction table
     question_concepts: Mapped[list["QuestionConcept"]] = relationship(
         "QuestionConcept",
+        back_populates="question",
+        cascade="all, delete-orphan"
+    )
+
+    # Responses to this question
+    quiz_responses: Mapped[list["QuizResponse"]] = relationship(
+        "QuizResponse",
         back_populates="question",
         cascade="all, delete-orphan"
     )

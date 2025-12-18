@@ -2,21 +2,37 @@
 Quiz API endpoints.
 Provides endpoints for adaptive quiz session management.
 Implements session lifecycle: create, get, pause, resume, end.
+Also includes question selection and answer submission endpoints.
+
+Story 4.3: Answer Submission and Immediate Feedback
 """
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_db
 from src.dependencies import (
     get_active_enrollment,
+    get_belief_repository,
     get_current_user,
+    get_question_repository,
+    get_question_selector,
+    get_quiz_answer_service,
     get_quiz_session_service,
 )
+from src.exceptions import AlreadyAnsweredError, InvalidQuestionError, InvalidSessionError
 from src.models.enrollment import Enrollment
 from src.models.user import User
+from src.repositories.belief_repository import BeliefRepository
+from src.repositories.question_repository import QuestionRepository
+from src.schemas.question_selection import (
+    QuestionSelectionRequest,
+    QuestionSelectionResponse,
+    SelectedQuestion,
+)
+from src.schemas.quiz import AnswerResponse, AnswerSubmission
 from src.schemas.quiz_session import (
     QuestionStrategy,
     QuizSessionCreate,
@@ -29,6 +45,8 @@ from src.schemas.quiz_session import (
     QuizSessionStatus,
     QuizSessionType,
 )
+from src.services.question_selector import QuestionSelector
+from src.services.quiz_answer_service import QuizAnswerService
 from src.services.quiz_session_service import QuizSessionService
 
 logger = structlog.get_logger(__name__)
@@ -410,3 +428,296 @@ async def end_quiz_session(
         correct_count=session.correct_count,
         accuracy=session.accuracy,
     )
+
+
+@router.post(
+    "/next-question",
+    response_model=QuestionSelectionResponse,
+    summary="Get next question for quiz session",
+    description=(
+        "Selects the next question that maximizes expected information gain "
+        "for the adaptive quiz session. Uses Bayesian question selection to "
+        "efficiently reduce uncertainty about user knowledge."
+    ),
+    responses={
+        200: {"description": "Question selected successfully"},
+        400: {"description": "Invalid session or no questions available"},
+        401: {"description": "Authentication required"},
+        403: {"description": "User does not own this session"},
+        404: {"description": "Session not found"},
+    },
+)
+async def get_next_question(
+    request: QuestionSelectionRequest,
+    current_user: User = Depends(get_current_user),
+    enrollment: Enrollment = Depends(get_active_enrollment),
+    session_service: QuizSessionService = Depends(get_quiz_session_service),
+    question_selector: QuestionSelector = Depends(get_question_selector),
+    question_repo: QuestionRepository = Depends(get_question_repository),
+    belief_repo: BeliefRepository = Depends(get_belief_repository),
+) -> QuestionSelectionResponse:
+    """
+    Get the next question for an active quiz session.
+
+    Uses Bayesian question selection to pick the question that will
+    provide the maximum expected information gain about user knowledge.
+
+    The response does NOT include correct_answer or explanation.
+    Those are revealed only after the user submits their answer.
+
+    Selection strategies:
+    - max_info_gain: Select question maximizing expected entropy reduction (default)
+    - max_uncertainty: Select question testing most uncertain concepts
+    - prerequisite_first: Prioritize foundational concepts
+    - balanced: Balance across all knowledge areas
+    """
+    # Validate session exists and belongs to user
+    try:
+        session = await session_service.get_session(request.session_id, current_user.id)
+    except ValueError as e:
+        error_msg = str(e)
+        if "not found" in error_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error": {
+                        "code": "SESSION_NOT_FOUND",
+                        "message": "Quiz session not found",
+                    }
+                },
+            ) from e
+        if "unauthorized" in error_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error": {
+                        "code": "SESSION_ACCESS_DENIED",
+                        "message": "You do not have access to this session",
+                    }
+                },
+            ) from e
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": {"code": "SESSION_ERROR", "message": error_msg}},
+        ) from e
+
+    # Check session is active
+    if session.status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": {
+                    "code": "SESSION_NOT_ACTIVE",
+                    "message": f"Session is {session.status}, not active",
+                }
+            },
+        )
+
+    # Load user beliefs
+    beliefs = await belief_repo.get_beliefs_as_dict(current_user.id)
+
+    # Load available questions with concepts eager-loaded
+    # Get course_id from enrollment
+    available_questions = await question_repo.get_questions_with_concepts(
+        enrollment.course_id
+    )
+
+    if not available_questions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": {
+                    "code": "NO_QUESTIONS_AVAILABLE",
+                    "message": "No questions available for this course",
+                }
+            },
+        )
+
+    # Use session's strategy unless override provided
+    strategy = request.strategy or session.question_strategy
+
+    # Get knowledge area filter from session
+    knowledge_area_filter = session.knowledge_area_filter
+
+    # Select next question
+    try:
+        question, info_gain = await question_selector.select_next_question(
+            user_id=current_user.id,
+            session_id=session.id,
+            beliefs=beliefs,
+            available_questions=available_questions,
+            strategy=strategy,
+            knowledge_area_filter=knowledge_area_filter,
+        )
+    except ValueError as e:
+        error_msg = str(e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": {
+                    "code": "NO_QUESTIONS_AVAILABLE",
+                    "message": error_msg,
+                }
+            },
+        ) from e
+
+    # Get concept names for the response
+    concept_names = []
+    for qc in question.question_concepts:
+        if qc.concept:
+            concept_names.append(qc.concept.name)
+
+    # Calculate questions remaining (estimate)
+    # Filter out already-answered questions from total
+    questions_remaining = len(available_questions) - session.total_questions
+
+    # Build response (without correct_answer or explanation)
+    selected_question = SelectedQuestion(
+        question_id=question.id,
+        question_text=question.question_text,
+        options=question.options,
+        knowledge_area_id=question.knowledge_area_id,
+        knowledge_area_name=None,  # Could lookup from course.knowledge_areas if needed
+        difficulty=question.difficulty,
+        estimated_info_gain=round(info_gain, 4),
+        concepts_tested=concept_names,
+    )
+
+    logger.info(
+        "next_question_served",
+        session_id=str(session.id),
+        question_id=str(question.id),
+        info_gain=round(info_gain, 4),
+        strategy=strategy,
+    )
+
+    return QuestionSelectionResponse(
+        session_id=session.id,
+        question=selected_question,
+        questions_remaining=max(0, questions_remaining),
+    )
+
+
+@router.post(
+    "/answer",
+    response_model=AnswerResponse,
+    summary="Submit answer and get feedback",
+    description=(
+        "Submit an answer to a quiz question and receive immediate feedback. "
+        "Includes correctness, explanation, concept updates, and session statistics. "
+        "Uses X-Request-ID header for idempotency."
+    ),
+    responses={
+        200: {"description": "Answer processed successfully"},
+        400: {"description": "Invalid answer format"},
+        401: {"description": "Authentication required"},
+        404: {"description": "Session or question not found"},
+        409: {"description": "Question already answered in this session"},
+    },
+)
+async def submit_answer(
+    answer_data: AnswerSubmission,
+    x_request_id: UUID | None = Header(None, alias="X-Request-ID"),
+    current_user: User = Depends(get_current_user),
+    answer_service: QuizAnswerService = Depends(get_quiz_answer_service),
+    db: AsyncSession = Depends(get_db),
+) -> AnswerResponse:
+    """
+    Submit an answer to a quiz question.
+
+    Processes the answer submission, determines correctness, updates beliefs
+    (Story 4.4), and returns immediate feedback including:
+    - Whether the answer was correct
+    - The correct answer
+    - An explanation
+    - Updated concept mastery levels
+    - Session statistics
+
+    **Idempotency:** If X-Request-ID header is provided and a response with
+    that ID already exists, returns the cached response. This prevents
+    duplicate answer processing on network retries.
+
+    **Error Handling:**
+    - 404: Session not found or expired, question not found or inactive
+    - 409: Question already answered in this session
+    - 400: Invalid answer format (not A, B, C, or D)
+    """
+    try:
+        response, was_cached = await answer_service.submit_answer(
+            user_id=current_user.id,
+            session_id=answer_data.session_id,
+            question_id=answer_data.question_id,
+            selected_answer=answer_data.selected_answer,
+            request_id=x_request_id,
+        )
+
+        if not was_cached:
+            # Commit the transaction for new responses
+            await db.commit()
+
+        if was_cached:
+            logger.debug(
+                "answer_returned_from_cache",
+                request_id=str(x_request_id),
+                session_id=str(answer_data.session_id),
+            )
+
+        return response
+
+    except InvalidSessionError as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": {
+                    "code": "INVALID_SESSION",
+                    "message": e.message,
+                    "details": e.details,
+                }
+            },
+        ) from e
+
+    except InvalidQuestionError as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": {
+                    "code": "INVALID_QUESTION",
+                    "message": e.message,
+                    "details": e.details,
+                }
+            },
+        ) from e
+
+    except AlreadyAnsweredError as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": {
+                    "code": "ALREADY_ANSWERED",
+                    "message": e.message,
+                    "details": e.details,
+                }
+            },
+        ) from e
+
+    except Exception as e:
+        await db.rollback()
+        logger.error(
+            "answer_submission_failed",
+            error=str(e),
+            session_id=str(answer_data.session_id),
+            question_id=str(answer_data.question_id),
+            user_id=str(current_user.id),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": {
+                    "code": "ANSWER_SUBMISSION_FAILED",
+                    "message": "Failed to process answer submission",
+                }
+            },
+        ) from e

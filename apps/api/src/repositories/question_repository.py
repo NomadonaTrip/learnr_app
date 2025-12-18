@@ -230,7 +230,9 @@ class QuestionRepository:
             select(Question)
             .where(Question.course_id == course_id)
             .where(Question.is_active.is_(True))
-            .options(selectinload(Question.question_concepts))
+            .options(
+                selectinload(Question.question_concepts).selectinload(QuestionConcept.concept)
+            )
         )
         return list(result.scalars().all())
 
