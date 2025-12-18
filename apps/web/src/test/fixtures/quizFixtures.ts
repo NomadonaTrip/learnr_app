@@ -4,6 +4,8 @@ import type {
   SessionPauseResponse,
   SessionResumeResponse,
   SessionEndResponse,
+  AnswerResponse,
+  AnswerSubmissionRequest,
 } from '../../services/quizService'
 
 /**
@@ -114,6 +116,71 @@ export function createMockEndResponse(
 ): SessionEndResponse {
   return {
     ...mockSessionEndResponse,
+    ...overrides,
+  }
+}
+
+/**
+ * Mock correct answer response.
+ */
+export const mockCorrectAnswerResponse: AnswerResponse = {
+  is_correct: true,
+  correct_answer: 'A',
+  explanation: 'Stakeholder analysis is the process of identifying individuals or groups that may be affected by a project.',
+  concepts_updated: [
+    {
+      concept_id: 'concept-uuid-1',
+      name: 'Stakeholder Analysis',
+      new_mastery: 0.72,
+    },
+  ],
+  session_stats: {
+    questions_answered: 8,
+    accuracy: 0.75,
+    total_info_gain: 12.4,
+    coverage_progress: 0.52,
+  },
+}
+
+/**
+ * Mock incorrect answer response.
+ */
+export const mockIncorrectAnswerResponse: AnswerResponse = {
+  is_correct: false,
+  correct_answer: 'B',
+  explanation: 'Requirements traceability ensures that all requirements are linked to their sources and downstream artifacts.',
+  concepts_updated: [
+    {
+      concept_id: 'concept-uuid-2',
+      name: 'Requirements Traceability',
+      new_mastery: 0.45,
+    },
+  ],
+  session_stats: {
+    questions_answered: 9,
+    accuracy: 0.67,
+    total_info_gain: 14.2,
+    coverage_progress: 0.58,
+  },
+}
+
+/**
+ * Mock answer submission request.
+ */
+export const mockAnswerSubmissionRequest: AnswerSubmissionRequest = {
+  session_id: 'session-uuid-123',
+  question_id: 'question-uuid-456',
+  selected_answer: 'A',
+}
+
+/**
+ * Create mock answer response with custom properties.
+ */
+export function createMockAnswerResponse(
+  overrides?: Partial<AnswerResponse>
+): AnswerResponse {
+  return {
+    ...mockCorrectAnswerResponse,
     ...overrides,
   }
 }

@@ -68,3 +68,21 @@ class TokenAlreadyUsedError(AppException):
 class BeliefInitializationError(AppException):
     """Raised when belief state initialization fails (500)."""
     pass
+
+
+# Story 4.3: Answer Submission and Immediate Feedback
+
+
+class InvalidSessionError(AppException):
+    """Raised when session is invalid, expired, or not found (404)."""
+    pass
+
+
+class InvalidQuestionError(AppException):
+    """Raised when question is not found or inactive (404)."""
+    pass
+
+
+class AlreadyAnsweredError(AppException):
+    """Raised when question has already been answered in this session (409)."""
+    pass

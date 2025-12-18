@@ -5,8 +5,15 @@ import {
   quizHandlers,
   quizErrorHandlers,
   quizConflictHandlers,
+  quizAnswerAlreadyAnsweredHandlers,
+  quizAnswerInvalidSessionHandlers,
   resetQuizMocks,
+  setMockNextAnswerCorrect,
+  getLastRequestId,
 } from '../mocks/handlers/quizHandlers'
+import {
+  mockAnswerSubmissionRequest,
+} from '../fixtures/quizFixtures'
 
 describe('quizService', () => {
   beforeAll(() => {
@@ -103,6 +110,65 @@ describe('quizService', () => {
       server.use(...quizConflictHandlers)
 
       await expect(quizService.endSession('session-uuid-123', 1)).rejects.toThrow()
+    })
+  })
+
+  describe('submitAnswer', () => {
+    it('calls POST /quiz/answer with X-Request-ID header', async () => {
+      server.use(...quizHandlers)
+      const requestId = 'test-request-id-123'
+
+      await quizService.submitAnswer(mockAnswerSubmissionRequest, requestId)
+
+      expect(getLastRequestId()).toBe(requestId)
+    })
+
+    it('returns correct answer response', async () => {
+      server.use(...quizHandlers)
+      setMockNextAnswerCorrect(true)
+
+      const response = await quizService.submitAnswer(
+        mockAnswerSubmissionRequest,
+        'test-request-id'
+      )
+
+      expect(response.is_correct).toBe(true)
+      expect(response.correct_answer).toBe('A')
+      expect(response.explanation).toBeDefined()
+      expect(response.concepts_updated).toBeInstanceOf(Array)
+      expect(response.session_stats).toBeDefined()
+      expect(response.session_stats.questions_answered).toBe(8)
+      expect(response.session_stats.accuracy).toBe(0.75)
+    })
+
+    it('returns incorrect answer response', async () => {
+      server.use(...quizHandlers)
+      setMockNextAnswerCorrect(false)
+
+      const response = await quizService.submitAnswer(
+        { ...mockAnswerSubmissionRequest, selected_answer: 'C' },
+        'test-request-id'
+      )
+
+      expect(response.is_correct).toBe(false)
+      expect(response.correct_answer).toBe('B')
+      expect(response.explanation).toBeDefined()
+    })
+
+    it('handles already answered error (409)', async () => {
+      server.use(...quizAnswerAlreadyAnsweredHandlers)
+
+      await expect(
+        quizService.submitAnswer(mockAnswerSubmissionRequest, 'test-request-id')
+      ).rejects.toThrow()
+    })
+
+    it('handles invalid session error (404)', async () => {
+      server.use(...quizAnswerInvalidSessionHandlers)
+
+      await expect(
+        quizService.submitAnswer(mockAnswerSubmissionRequest, 'test-request-id')
+      ).rejects.toThrow()
     })
   })
 })

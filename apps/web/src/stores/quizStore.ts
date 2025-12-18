@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { SessionType, QuestionStrategy } from '../services/quizService'
+import type { SessionType, QuestionStrategy, SelectedQuestion, AnswerResponse } from '../services/quizService'
 
 /**
  * Quiz session status.
@@ -41,6 +41,17 @@ interface QuizState {
   endedAt: string | null
   error: string | null
 
+  // Question state
+  currentQuestion: SelectedQuestion | null
+  questionsRemaining: number
+  isLoadingQuestion: boolean
+  selectedAnswer: string | null
+
+  // Feedback state
+  feedbackResult: AnswerResponse | null
+  isSubmitting: boolean
+  showFeedback: boolean
+
   // Computed: accuracy percentage
   accuracy: () => number | null
 
@@ -52,6 +63,17 @@ interface QuizState {
   setError: (error: string | null) => void
   incrementVersion: () => void
   clearSession: () => void
+
+  // Question actions
+  setQuestion: (question: SelectedQuestion, questionsRemaining: number) => void
+  setLoadingQuestion: (isLoading: boolean) => void
+  setSelectedAnswer: (answer: string | null) => void
+  clearQuestion: () => void
+
+  // Feedback actions
+  setFeedback: (result: AnswerResponse) => void
+  setSubmitting: (isSubmitting: boolean) => void
+  clearFeedback: () => void
 }
 
 /**
@@ -71,6 +93,17 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
   startedAt: null,
   endedAt: null,
   error: null,
+
+  // Question state
+  currentQuestion: null,
+  questionsRemaining: 0,
+  isLoadingQuestion: false,
+  selectedAnswer: null,
+
+  // Feedback state
+  feedbackResult: null,
+  isSubmitting: false,
+  showFeedback: false,
 
   // Computed: accuracy percentage (null if no questions answered)
   accuracy: () => {
@@ -145,6 +178,67 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       startedAt: null,
       endedAt: null,
       error: null,
+      currentQuestion: null,
+      questionsRemaining: 0,
+      isLoadingQuestion: false,
+      selectedAnswer: null,
+      feedbackResult: null,
+      isSubmitting: false,
+      showFeedback: false,
+    })
+  },
+
+  // Action: set current question
+  setQuestion: (question, questionsRemaining) => {
+    set({
+      currentQuestion: question,
+      questionsRemaining,
+      isLoadingQuestion: false,
+      selectedAnswer: null,
+      feedbackResult: null,
+      isSubmitting: false,
+      showFeedback: false,
+    })
+  },
+
+  // Action: set loading question state
+  setLoadingQuestion: (isLoading) => {
+    set({ isLoadingQuestion: isLoading })
+  },
+
+  // Action: set selected answer
+  setSelectedAnswer: (answer) => {
+    set({ selectedAnswer: answer })
+  },
+
+  // Action: clear current question
+  clearQuestion: () => {
+    set({
+      currentQuestion: null,
+      selectedAnswer: null,
+    })
+  },
+
+  // Action: set feedback result after answer submission
+  setFeedback: (result) => {
+    set({
+      feedbackResult: result,
+      isSubmitting: false,
+      showFeedback: true,
+    })
+  },
+
+  // Action: set submitting state
+  setSubmitting: (isSubmitting) => {
+    set({ isSubmitting })
+  },
+
+  // Action: clear feedback and prepare for next question
+  clearFeedback: () => {
+    set({
+      feedbackResult: null,
+      showFeedback: false,
+      selectedAnswer: null,
     })
   },
 }))

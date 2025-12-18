@@ -14,8 +14,13 @@ from src.db.session import get_db
 from src.exceptions import RateLimitError
 from src.models.enrollment import Enrollment
 from src.models.user import User
+from src.repositories.belief_repository import BeliefRepository
+from src.repositories.question_repository import QuestionRepository
 from src.repositories.quiz_session_repository import QuizSessionRepository
+from src.repositories.response_repository import ResponseRepository
 from src.repositories.user_repository import UserRepository
+from src.services.question_selector import QuestionSelector
+from src.services.quiz_answer_service import QuizAnswerService
 from src.services.quiz_session_service import QuizSessionService
 from src.utils.auth import decode_token
 from src.utils.rate_limit import check_rate_limit
@@ -269,3 +274,57 @@ async def get_active_enrollment(
         )
 
     return enrollments[0]
+
+
+def get_question_repository(
+    db: AsyncSession = Depends(get_db),
+) -> QuestionRepository:
+    """Dependency for QuestionRepository."""
+    return QuestionRepository(db)
+
+
+def get_belief_repository(
+    db: AsyncSession = Depends(get_db),
+) -> BeliefRepository:
+    """Dependency for BeliefRepository."""
+    return BeliefRepository(db)
+
+
+def get_question_selector(
+    db: AsyncSession = Depends(get_db),
+) -> QuestionSelector:
+    """
+    Dependency for QuestionSelector.
+
+    Provides the Bayesian question selection service with default parameters.
+    """
+    return QuestionSelector(
+        db=db,
+        recency_window_days=7,
+        prerequisite_weight=0.2,
+        min_info_gain_threshold=0.01,
+    )
+
+
+def get_response_repository(
+    db: AsyncSession = Depends(get_db),
+) -> ResponseRepository:
+    """Dependency for ResponseRepository."""
+    return ResponseRepository(db)
+
+
+def get_quiz_answer_service(
+    response_repo: ResponseRepository = Depends(get_response_repository),
+    question_repo: QuestionRepository = Depends(get_question_repository),
+    session_repo: QuizSessionRepository = Depends(get_quiz_session_repository),
+) -> QuizAnswerService:
+    """
+    Dependency for QuizAnswerService.
+
+    Provides the answer submission service with all required repositories.
+    """
+    return QuizAnswerService(
+        response_repo=response_repo,
+        question_repo=question_repo,
+        session_repo=session_repo,
+    )

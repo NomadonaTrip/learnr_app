@@ -98,15 +98,17 @@ describe('QuizPage', () => {
       expect(screen.getByText('Maximum Information Gain')).toBeInTheDocument()
     })
 
-    it('displays question placeholder area', async () => {
+    it('displays question card when question loads', async () => {
       server.use(...quizHandlers)
       renderQuizPage()
 
+      // Wait for default mock question to load
       await waitFor(() => {
-        expect(screen.getByText('Question Display Area')).toBeInTheDocument()
+        expect(screen.getByText('Default mock question?')).toBeInTheDocument()
       })
 
-      expect(screen.getByText(/questions will appear here/i)).toBeInTheDocument()
+      // Question card should display options
+      expect(screen.getByRole('radio', { name: /option a/i })).toBeInTheDocument()
     })
 
     it('renders Pause Session button', async () => {

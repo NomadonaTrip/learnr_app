@@ -15,6 +15,7 @@ from ..db.session import Base
 
 if TYPE_CHECKING:
     from .enrollment import Enrollment
+    from .quiz_response import QuizResponse
     from .user import User
 
 
@@ -86,6 +87,11 @@ class QuizSession(Base):
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="quiz_sessions")
     enrollment: Mapped["Enrollment"] = relationship("Enrollment", back_populates="quiz_sessions")
+    responses: Mapped[list["QuizResponse"]] = relationship(
+        "QuizResponse",
+        back_populates="session",
+        cascade="all, delete-orphan"
+    )
 
     # Table constraints
     __table_args__ = (
