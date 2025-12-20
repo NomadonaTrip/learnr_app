@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     QDRANT_API_KEY: str | None = None  # For Qdrant Cloud (leave None for local)
     QDRANT_TIMEOUT: int = 10  # Seconds
 
+    # OpenAI
+    OPENAI_API_KEY: str | None = None  # For embeddings and LLM calls
+
     # JWT
     SECRET_KEY: str = "your-secret-key-for-jwt-signing-change-this-in-production"
     JWT_ALGORITHM: str = "HS256"

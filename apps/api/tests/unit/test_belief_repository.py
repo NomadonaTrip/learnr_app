@@ -2,8 +2,9 @@
 Unit tests for Belief repository.
 Tests CRUD operations and belief state management.
 """
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from src.models.belief_state import BeliefState
 from src.models.concept import Concept
@@ -712,7 +713,7 @@ async def test_get_earliest_created_at(db_session, test_user_belief, test_concep
 @pytest.mark.asyncio
 async def test_bulk_create_database_error():
     """Test bulk_create raises DatabaseError on failure."""
-    from unittest.mock import AsyncMock, MagicMock, patch
+    from unittest.mock import AsyncMock
 
     from src.exceptions import DatabaseError
 

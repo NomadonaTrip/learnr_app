@@ -17,7 +17,7 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func, text
 
@@ -63,6 +63,12 @@ class Question(Base):
     difficulty = Column(Float, nullable=False, default=0.5)  # IRT difficulty parameter (0.0-1.0)
     source = Column(String(50), nullable=False, default="vendor")
     corpus_reference = Column(String(100), nullable=True)  # Generic reference (BABOK, PMBOK, etc.)
+
+    # Secondary tags for filtering/analysis (not primary assessment dimensions)
+    # BABOK Perspectives (Chapter 10): Agile, BI, IT, BPM
+    perspectives = Column(ARRAY(String), nullable=True, default=[])
+    # BABOK Underlying Competencies (Chapter 9): Analytical, Communication, etc.
+    competencies = Column(ARRAY(String), nullable=True, default=[])
 
     # IRT parameters for adaptive learning
     discrimination = Column(Float, nullable=False, default=1.0)  # IRT discrimination parameter

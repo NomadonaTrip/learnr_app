@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.redis_client import get_redis
 from src.db.session import get_db
 from src.dependencies import get_current_user
+from src.exceptions import AlreadyAnsweredError
 from src.models.belief_state import BeliefState
 from src.models.concept import Concept
 from src.models.enrollment import Enrollment
@@ -147,6 +148,22 @@ async def get_diagnostic_questions(
 
     Automatically initializes belief states if not already initialized.
     """
+    # Validate course exists before proceeding
+    from src.models.course import Course
+    course_result = await db.execute(
+        select(Course.id).where(Course.id == course_id)
+    )
+    if not course_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": {
+                    "code": "COURSE_NOT_FOUND",
+                    "message": f"Course {course_id} not found",
+                }
+            },
+        )
+
     # Auto-initialize beliefs if not already done (idempotent)
     try:
         init_result = await belief_init_service.initialize_beliefs_for_user(
@@ -291,6 +308,35 @@ async def submit_diagnostic_answer(
     Belief updates are persisted immediately after each answer (not batched)
     to prevent data loss on session interruption.
     """
+    # Validate session first (before any belief updates)
+    # This prevents belief state changes when session is invalid
+    try:
+        session = await session_service.validate_session_for_answer(
+            session_id=request.session_id,
+            question_id=request.question_id,
+            user_id=current_user.id,
+        )
+    except AlreadyAnsweredError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": {
+                    "code": "DUPLICATE_REQUEST",
+                    "message": "Question already answered in this session",
+                }
+            },
+        ) from e
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": {
+                    "code": "SESSION_VALIDATION_FAILED",
+                    "message": str(e),
+                }
+            },
+        ) from e
+
     # Verify question exists and load concepts for belief updates
     question = await question_repo.get_question_by_id(
         request.question_id, load_concepts=True
@@ -311,7 +357,7 @@ async def submit_diagnostic_answer(
 
     # Update belief states using BKT
     try:
-        updated_concept_ids = await belief_updater.update_beliefs(
+        belief_update_response = await belief_updater.update_beliefs(
             user_id=current_user.id,
             question=question,
             is_correct=is_correct,
@@ -334,7 +380,7 @@ async def submit_diagnostic_answer(
             },
         ) from e
 
-    # Update session progress
+    # Update session progress (session already validated above)
     try:
         session = await session_service.record_answer(
             session_id=request.session_id,
@@ -342,6 +388,24 @@ async def submit_diagnostic_answer(
             user_id=current_user.id,
         )
         await db.commit()
+    except AlreadyAnsweredError as e:
+        await db.rollback()
+        logger.warning(
+            "Duplicate answer submission",
+            error=str(e),
+            user_id=str(current_user.id),
+            session_id=str(request.session_id),
+            question_id=str(request.question_id),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": {
+                    "code": "DUPLICATE_REQUEST",
+                    "message": "Question already answered in this session",
+                }
+            },
+        ) from e
     except ValueError as e:
         await db.rollback()
         logger.warning(
@@ -405,12 +469,17 @@ async def submit_diagnostic_answer(
         question_id=str(request.question_id),
         progress=session.current_index,
         total=session.questions_total,
-        concepts_updated=len(updated_concept_ids),
+        concepts_updated=belief_update_response.concepts_updated_count,
     )
+
+    # Extract concept IDs from the update results
+    updated_concept_ids = [
+        str(update.concept_id) for update in belief_update_response.updates
+    ]
 
     return DiagnosticAnswerResponse(
         is_recorded=True,
-        concepts_updated=[str(cid) for cid in updated_concept_ids],
+        concepts_updated=updated_concept_ids,
         diagnostic_progress=session.current_index,
         diagnostic_total=session.questions_total,
         session_status=DiagnosticSessionStatus(session.status),

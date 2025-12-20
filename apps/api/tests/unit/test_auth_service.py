@@ -3,14 +3,16 @@ Unit tests for authentication service.
 Tests user registration business logic.
 """
 
-import pytest
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
-from datetime import datetime
-from src.services.auth_service import AuthService
-from src.repositories.user_repository import UserRepository
+
+import pytest
+
+from src.exceptions import AuthenticationError, ConflictError
 from src.models.user import User
-from src.exceptions import ConflictError, AuthenticationError
+from src.repositories.user_repository import UserRepository
+from src.services.auth_service import AuthService
 from src.utils.auth import hash_password
 
 
@@ -122,6 +124,7 @@ class TestAuthServiceRegistration:
     async def test_register_user_token_contains_user_id(self, auth_service, mock_user_repo, sample_user):
         """Test that JWT token contains user_id in 'sub' claim."""
         from jose import jwt
+
         from src.config import settings
 
         # Mock repository methods
@@ -146,6 +149,7 @@ class TestAuthServiceRegistration:
     async def test_register_user_token_has_expiration(self, auth_service, mock_user_repo, sample_user):
         """Test that JWT token has proper expiration."""
         from jose import jwt
+
         from src.config import settings
 
         # Mock repository methods
@@ -276,6 +280,7 @@ class TestAuthServiceLogin:
     async def test_login_token_contains_user_id(self, auth_service, mock_user_repo, sample_user):
         """Test that JWT token contains user_id in 'sub' claim."""
         from jose import jwt
+
         from src.config import settings
 
         # Mock repository to return user

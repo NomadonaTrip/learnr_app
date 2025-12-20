@@ -3,24 +3,25 @@ Unit tests for BeliefState Pydantic schemas.
 Tests computed properties and schema validation.
 """
 
-import pytest
 from datetime import datetime
 from uuid import uuid4
 
+import pytest
+
 from src.schemas.belief_state import (
+    CONFIDENCE_THRESHOLD,
+    GAP_THRESHOLD,
+    MASTERY_THRESHOLD,
+    BeliefInitializationStatus,
     BeliefStateBase,
     BeliefStateCreate,
-    BeliefStateUpdate,
-    BeliefStateResponse,
     BeliefStateInDB,
-    BeliefInitializationStatus,
-    InitializationResult,
-    BeliefSummary,
+    BeliefStateResponse,
+    BeliefStateUpdate,
     BeliefStateWithConcept,
     BeliefStatus,
-    MASTERY_THRESHOLD,
-    GAP_THRESHOLD,
-    CONFIDENCE_THRESHOLD,
+    BeliefSummary,
+    InitializationResult,
 )
 
 

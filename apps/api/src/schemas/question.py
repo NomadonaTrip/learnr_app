@@ -26,6 +26,9 @@ class QuestionBase(BaseModel):
     difficulty: float = Field(0.5, ge=0.0, le=1.0, description="IRT difficulty (0.0-1.0)")
     source: str = Field("vendor", max_length=50, description="Question source")
     corpus_reference: str | None = Field(None, max_length=100, description="Source reference")
+    # Story 2.15: Secondary tags for filtering/analysis
+    perspectives: list[str] | None = Field(None, description="Perspective IDs (e.g., 'agile', 'bi')")
+    competencies: list[str] | None = Field(None, description="Competency IDs (e.g., 'analytical', 'communication')")
 
 
 class QuestionCreate(QuestionBase):
@@ -203,6 +206,9 @@ class QuestionListParams(BaseModel):
     difficulty_min: float = Field(0.0, ge=0.0, le=1.0, description="Minimum difficulty")
     difficulty_max: float = Field(1.0, ge=0.0, le=1.0, description="Maximum difficulty")
     exclude_ids: list[UUID] | None = Field(None, description="Question IDs to exclude")
+    # Story 2.15: Secondary tag filters
+    perspectives: list[str] | None = Field(None, description="Filter by perspective IDs (e.g., 'agile', 'bi')")
+    competencies: list[str] | None = Field(None, description="Filter by competency IDs (e.g., 'analytical')")
     limit: int = Field(10, ge=1, le=100, description="Result limit")
     offset: int = Field(0, ge=0, description="Result offset")
 
@@ -219,6 +225,9 @@ class QuestionListResponse(BaseModel):
     difficulty: float
     discrimination: float
     concept_ids: list[UUID] = Field(default_factory=list, description="Mapped concept IDs")
+    # Story 2.15: Secondary tags
+    perspectives: list[str] = Field(default_factory=list, description="Perspective IDs")
+    competencies: list[str] = Field(default_factory=list, description="Competency IDs")
 
 
 class PaginatedQuestionResponse(BaseModel):

@@ -2,7 +2,7 @@
 Unit tests for DiagnosticSessionRepository.
 Tests database operations for diagnostic session management.
 """
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -13,7 +13,6 @@ from src.models.enrollment import Enrollment
 from src.models.user import User
 from src.repositories.diagnostic_session_repository import DiagnosticSessionRepository
 from src.utils.auth import hash_password
-
 
 # ============================================================================
 # Fixtures
@@ -337,12 +336,13 @@ class TestExpireStaleSessions:
 
         # Manually update started_at to be old
         from sqlalchemy import update
+
         from src.models.diagnostic_session import DiagnosticSession
 
         await db_session.execute(
             update(DiagnosticSession)
             .where(DiagnosticSession.id == session.id)
-            .values(started_at=datetime.utcnow() - timedelta(minutes=35))
+            .values(started_at=datetime.now(UTC) - timedelta(minutes=35))
         )
         await db_session.flush()
 

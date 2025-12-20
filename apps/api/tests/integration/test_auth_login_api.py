@@ -6,6 +6,7 @@ Tests complete login flow with database, rate limiting, and security features.
 import pytest
 from httpx import AsyncClient
 from jose import jwt
+
 from src.config import settings
 from src.db.redis_client import get_redis
 

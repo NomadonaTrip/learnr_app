@@ -48,6 +48,15 @@ from .course import (
     CourseResponse,
     KnowledgeArea,
 )
+from .diagnostic_results import (
+    ConceptGap,
+    ConfidenceLevel,
+    DiagnosticFeedbackRequest,
+    DiagnosticFeedbackResponse,
+    DiagnosticResultsResponse,
+    KnowledgeAreaResult,
+    Recommendations,
+)
 from .enrollment import (
     EnrollmentCreate,
     EnrollmentResponse,
@@ -64,6 +73,13 @@ from .question_selection import (
     QuestionSelectionResponse,
     SelectedQuestion,
 )
+from .quiz import (
+    AnswerResponse,
+    AnswerSubmission,
+    CachedAnswerResponse,
+    ConceptMasteryUpdate,
+    SessionStats,
+)
 from .reading_chunk import (
     ChunkBase,
     ChunkCountByKA,
@@ -75,22 +91,6 @@ from .reading_chunk import (
     ReadingChunkResponse,
     ReadingListResponse,
     ReadingQueryParams,
-)
-from .diagnostic_results import (
-    ConceptGap,
-    ConfidenceLevel,
-    DiagnosticFeedbackRequest,
-    DiagnosticFeedbackResponse,
-    DiagnosticResultsResponse,
-    KnowledgeAreaResult,
-    Recommendations,
-)
-from .quiz import (
-    AnswerResponse,
-    AnswerSubmission,
-    CachedAnswerResponse,
-    ConceptUpdate,
-    SessionStats,
 )
 from .user import UserCreate, UserResponse, UserUpdate
 
@@ -169,6 +169,6 @@ __all__ = [
     "AnswerSubmission",
     "AnswerResponse",
     "CachedAnswerResponse",
-    "ConceptUpdate",
+    "ConceptMasteryUpdate",
     "SessionStats",
 ]

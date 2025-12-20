@@ -7,9 +7,9 @@ Tests:
 - Semantic search with concept and course filter
 - Payload field correctness including course_id
 """
-import pytest
 from uuid import uuid4
 
+import pytest
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import Distance, FieldCondition, Filter, MatchValue, VectorParams
 
@@ -112,7 +112,6 @@ class TestVectorUpload:
     ):
         """Test uploading a single chunk vector to Qdrant."""
         # Override collection name for testing
-        from src.services.qdrant_upload_service import CHUNKS_COLLECTION_NAME
         import src.services.qdrant_upload_service as upload_module
         original_collection = upload_module.CHUNKS_COLLECTION_NAME
         upload_module.CHUNKS_COLLECTION_NAME = TEST_COLLECTION
@@ -148,7 +147,6 @@ class TestVectorUpload:
         cbap_course_id
     ):
         """Test batch upload of chunk vectors."""
-        from src.services.qdrant_upload_service import CHUNKS_COLLECTION_NAME
         import src.services.qdrant_upload_service as upload_module
         original_collection = upload_module.CHUNKS_COLLECTION_NAME
         upload_module.CHUNKS_COLLECTION_NAME = TEST_COLLECTION
@@ -205,7 +203,6 @@ class TestIdempotency:
         sample_chunk_vector_item
     ):
         """Test that uploading the same vector twice uses upsert (no duplicates)."""
-        from src.services.qdrant_upload_service import CHUNKS_COLLECTION_NAME
         import src.services.qdrant_upload_service as upload_module
         original_collection = upload_module.CHUNKS_COLLECTION_NAME
         upload_module.CHUNKS_COLLECTION_NAME = TEST_COLLECTION
@@ -249,7 +246,6 @@ class TestIdempotency:
         sample_chunk_vector_item
     ):
         """Test skip_if_exists flag."""
-        from src.services.qdrant_upload_service import CHUNKS_COLLECTION_NAME
         import src.services.qdrant_upload_service as upload_module
         original_collection = upload_module.CHUNKS_COLLECTION_NAME
         upload_module.CHUNKS_COLLECTION_NAME = TEST_COLLECTION
@@ -290,7 +286,6 @@ class TestPayloadCorrectness:
         sample_chunk_vector_item
     ):
         """Test that all payload fields are correctly stored."""
-        from src.services.qdrant_upload_service import CHUNKS_COLLECTION_NAME
         import src.services.qdrant_upload_service as upload_module
         original_collection = upload_module.CHUNKS_COLLECTION_NAME
         upload_module.CHUNKS_COLLECTION_NAME = TEST_COLLECTION
@@ -351,7 +346,6 @@ class TestMultiCourseFiltering:
         psm_course_id
     ):
         """Test that course filtering works correctly."""
-        from src.services.qdrant_upload_service import CHUNKS_COLLECTION_NAME
         import src.services.qdrant_upload_service as upload_module
         original_collection = upload_module.CHUNKS_COLLECTION_NAME
         upload_module.CHUNKS_COLLECTION_NAME = TEST_COLLECTION
@@ -448,7 +442,6 @@ class TestConceptFiltering:
         cbap_course_id
     ):
         """Test filtering chunks by concept_id."""
-        from src.services.qdrant_upload_service import CHUNKS_COLLECTION_NAME
         import src.services.qdrant_upload_service as upload_module
         original_collection = upload_module.CHUNKS_COLLECTION_NAME
         upload_module.CHUNKS_COLLECTION_NAME = TEST_COLLECTION
@@ -515,7 +508,6 @@ class TestVerificationMethods:
         cbap_course_id
     ):
         """Test course-specific vector count verification."""
-        from src.services.qdrant_upload_service import CHUNKS_COLLECTION_NAME
         import src.services.qdrant_upload_service as upload_module
         original_collection = upload_module.CHUNKS_COLLECTION_NAME
         upload_module.CHUNKS_COLLECTION_NAME = TEST_COLLECTION

@@ -2,7 +2,7 @@
 DiagnosticSessionRepository for database operations on DiagnosticSession model.
 Implements repository pattern for diagnostic session data access.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import structlog
@@ -267,7 +267,7 @@ class DiagnosticSessionRepository:
         Returns:
             Number of sessions expired
         """
-        cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=timeout_minutes)
+        cutoff_time = datetime.now(UTC) - timedelta(minutes=timeout_minutes)
 
         result = await self.session.execute(
             update(DiagnosticSession)

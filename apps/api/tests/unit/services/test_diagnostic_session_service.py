@@ -2,14 +2,13 @@
 Unit tests for DiagnosticSessionService.
 Tests session management lifecycle including creation, resumption, and reset.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 
 from src.services.diagnostic_session_service import DiagnosticSessionService
-
 
 # ============================================================================
 # Fixtures
@@ -71,7 +70,7 @@ def create_mock_session(
     session.status = status
     session.current_index = current_index
     session.question_ids = question_ids or [str(uuid4()) for _ in range(15)]
-    session.started_at = started_at or datetime.now(timezone.utc)
+    session.started_at = started_at or datetime.now(UTC)
     session.completed_at = completed_at
     session.questions_total = len(session.question_ids)
     session.questions_remaining = max(0, len(session.question_ids) - current_index)
@@ -206,7 +205,7 @@ class TestSessionResumption:
             user_id=user_id,
             enrollment_id=enrollment_id,
             current_index=5,
-            started_at=datetime.now(timezone.utc) - timedelta(minutes=10),  # Not expired
+            started_at=datetime.now(UTC) - timedelta(minutes=10),  # Not expired
         )
         mock_session_repo.get_active_session.return_value = existing_session
 
@@ -245,7 +244,7 @@ class TestSessionResumption:
             enrollment_id=enrollment_id,
             current_index=10,
             question_ids=question_ids,
-            started_at=datetime.now(timezone.utc) - timedelta(minutes=5),
+            started_at=datetime.now(UTC) - timedelta(minutes=5),
         )
         mock_session_repo.get_active_session.return_value = existing_session
 
@@ -288,7 +287,7 @@ class TestSessionExpiration:
         expired_session = create_mock_session(
             user_id=user_id,
             enrollment_id=enrollment_id,
-            started_at=datetime.now(timezone.utc) - timedelta(minutes=31),
+            started_at=datetime.now(UTC) - timedelta(minutes=31),
         )
         mock_session_repo.get_active_session.return_value = expired_session
 
@@ -322,21 +321,21 @@ class TestSessionExpiration:
     def test_is_session_expired_within_timeout(self, session_service):
         """Verify session within timeout is not expired."""
         session = create_mock_session(
-            started_at=datetime.now(timezone.utc) - timedelta(minutes=25)
+            started_at=datetime.now(UTC) - timedelta(minutes=25)
         )
         assert session_service._is_session_expired(session) is False
 
     def test_is_session_expired_after_timeout(self, session_service):
         """Verify session past timeout is expired."""
         session = create_mock_session(
-            started_at=datetime.now(timezone.utc) - timedelta(minutes=35)
+            started_at=datetime.now(UTC) - timedelta(minutes=35)
         )
         assert session_service._is_session_expired(session) is True
 
     def test_is_session_expired_exactly_at_timeout(self, session_service):
         """Verify session at exactly 30 minutes is expired."""
         session = create_mock_session(
-            started_at=datetime.now(timezone.utc) - timedelta(minutes=30, seconds=1)
+            started_at=datetime.now(UTC) - timedelta(minutes=30, seconds=1)
         )
         assert session_service._is_session_expired(session) is True
 
@@ -420,7 +419,7 @@ class TestAnswerRecording:
             user_id=user_id,
             current_index=15,
             status="completed",
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(UTC),
         )
         mock_session_repo.mark_completed.return_value = completed_session
 

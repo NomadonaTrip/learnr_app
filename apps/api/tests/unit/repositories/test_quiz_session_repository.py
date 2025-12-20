@@ -2,7 +2,7 @@
 Unit tests for QuizSessionRepository.
 Tests database operations for quiz session management.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -13,7 +13,6 @@ from src.models.enrollment import Enrollment
 from src.models.user import User
 from src.repositories.quiz_session_repository import QuizSessionRepository
 from src.utils.auth import hash_password
-
 
 # ============================================================================
 # Fixtures
@@ -391,12 +390,13 @@ class TestExpireStaleSessions:
 
         # Manually update updated_at to be old (3 hours ago)
         from sqlalchemy import update
+
         from src.models.quiz_session import QuizSession
 
         await db_session.execute(
             update(QuizSession)
             .where(QuizSession.id == session.id)
-            .values(updated_at=datetime.now(timezone.utc) - timedelta(hours=3))
+            .values(updated_at=datetime.now(UTC) - timedelta(hours=3))
         )
         await db_session.flush()
 
@@ -440,12 +440,13 @@ class TestExpireStaleSessions:
 
         # Make it old
         from sqlalchemy import update
+
         from src.models.quiz_session import QuizSession
 
         await db_session.execute(
             update(QuizSession)
             .where(QuizSession.id == session.id)
-            .values(updated_at=datetime.now(timezone.utc) - timedelta(hours=5))
+            .values(updated_at=datetime.now(UTC) - timedelta(hours=5))
         )
         await db_session.flush()
 
@@ -471,12 +472,13 @@ class TestGetStaleSessions:
 
         # Make it old
         from sqlalchemy import update
+
         from src.models.quiz_session import QuizSession
 
         await db_session.execute(
             update(QuizSession)
             .where(QuizSession.id == session.id)
-            .values(updated_at=datetime.now(timezone.utc) - timedelta(hours=3))
+            .values(updated_at=datetime.now(UTC) - timedelta(hours=3))
         )
         await db_session.flush()
 

@@ -1,8 +1,9 @@
 """
 Unit tests for Course repository.
 """
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from src.models.course import Course
 from src.repositories.course_repository import CourseRepository

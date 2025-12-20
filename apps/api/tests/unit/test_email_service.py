@@ -8,10 +8,10 @@ Tests the EmailService class including:
 - Welcome emails
 """
 
-import pytest
 import os
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-from pathlib import Path
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 
 class TestEmailServiceInit:

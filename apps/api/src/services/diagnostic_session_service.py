@@ -2,7 +2,7 @@
 DiagnosticSessionService for managing diagnostic session lifecycle.
 Handles session creation, resumption, progress tracking, and reset functionality.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import structlog
@@ -89,7 +89,7 @@ class DiagnosticSessionService:
                     user_id=str(user_id),
                     session_id=str(existing.id),
                     elapsed_minutes=(
-                        datetime.now(timezone.utc) - existing.started_at.replace(tzinfo=timezone.utc)
+                        datetime.now(UTC) - existing.started_at.replace(tzinfo=UTC)
                     ).total_seconds() / 60,
                 )
                 session, questions = await self._create_new_session(
@@ -157,6 +157,61 @@ class DiagnosticSessionService:
 
         return session, questions
 
+    async def validate_session_for_answer(
+        self,
+        session_id: UUID,
+        question_id: UUID,
+        user_id: UUID,
+    ) -> DiagnosticSession:
+        """
+        Validate session state before allowing an answer submission.
+
+        This validates basic session state without checking question position.
+        The question position validation is done later in record_answer to allow
+        for proper 404 handling when the question doesn't exist.
+
+        Args:
+            session_id: Session UUID
+            question_id: Question UUID being answered (used only for already-answered check)
+            user_id: User UUID (for authorization check)
+
+        Returns:
+            DiagnosticSession if valid
+
+        Raises:
+            ValueError: If session not found, unauthorized, or invalid state
+            AlreadyAnsweredError: If question was already answered
+        """
+        session = await self.session_repo.get_session_by_id(session_id)
+
+        if not session:
+            raise ValueError("Session not found")
+
+        if session.user_id != user_id:
+            raise ValueError("Unauthorized: session belongs to different user")
+
+        if session.status != "in_progress":
+            raise ValueError(f"Session is {session.status}, cannot record answer")
+
+        if session.current_index >= len(session.question_ids):
+            raise ValueError("Session has no more questions")
+
+        # Check if question was already answered
+        question_id_str = str(question_id)
+        already_answered_ids = session.question_ids[:session.current_index]
+        if question_id_str in already_answered_ids:
+            from src.exceptions import AlreadyAnsweredError
+            raise AlreadyAnsweredError(
+                "Question already answered in this session",
+                {"session_id": str(session_id), "question_id": str(question_id)},
+            )
+
+        # Note: Question position validation is NOT done here.
+        # It happens in record_answer after question existence is verified,
+        # so we can return 404 for nonexistent questions.
+
+        return session
+
     async def record_answer(
         self,
         session_id: UUID,
@@ -213,8 +268,18 @@ class DiagnosticSessionService:
         if session.current_index >= len(session.question_ids):
             raise ValueError("Session has no more questions")
 
+        # Check if question was already answered (appears before current index)
+        question_id_str = str(question_id)
+        already_answered_ids = session.question_ids[:session.current_index]
+        if question_id_str in already_answered_ids:
+            from src.exceptions import AlreadyAnsweredError
+            raise AlreadyAnsweredError(
+                "Question already answered in this session",
+                {"session_id": str(session_id), "question_id": str(question_id)},
+            )
+
         expected_question_id = session.question_ids[session.current_index]
-        if str(question_id) != expected_question_id:
+        if question_id_str != expected_question_id:
             raise ValueError(
                 f"Question {question_id} does not match expected position "
                 f"(expected {expected_question_id})"
@@ -302,8 +367,8 @@ class DiagnosticSessionService:
         # Ensure timezone-aware comparison
         started_at = session.started_at
         if started_at.tzinfo is None:
-            started_at = started_at.replace(tzinfo=timezone.utc)
-        return datetime.now(timezone.utc) > started_at + timeout
+            started_at = started_at.replace(tzinfo=UTC)
+        return datetime.now(UTC) > started_at + timeout
 
     async def _get_remaining_questions(
         self,

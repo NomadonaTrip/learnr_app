@@ -2,11 +2,10 @@
 Integration tests for concept prerequisites.
 Tests database constraints, API endpoints, and response times.
 """
-import pytest
 import time
 from uuid import uuid4
 
-from httpx import AsyncClient
+import pytest
 from sqlalchemy import text
 
 from src.models.concept import Concept

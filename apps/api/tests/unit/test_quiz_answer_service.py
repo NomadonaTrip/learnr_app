@@ -9,16 +9,16 @@ Tests:
 4. Time taken calculated correctly
 5. Idempotent request returns same response
 """
-import pytest
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
+
+import pytest
 
 from src.exceptions import AlreadyAnsweredError, InvalidQuestionError, InvalidSessionError
 from src.models.question import Question
 from src.models.quiz_response import QuizResponse
 from src.models.quiz_session import QuizSession
-from src.schemas.quiz import AnswerResponse, ConceptUpdate, SessionStats
 from src.services.quiz_answer_service import QuizAnswerService
 
 
@@ -43,6 +43,14 @@ def mock_session_repo():
     """Mock QuizSessionRepository."""
     repo = AsyncMock()
     return repo
+
+
+@pytest.fixture
+def mock_belief_updater():
+    """Mock BeliefUpdater."""
+    updater = AsyncMock()
+    updater.update_beliefs.return_value = []
+    return updater
 
 
 @pytest.fixture
@@ -82,12 +90,13 @@ def sample_session():
 
 
 @pytest.fixture
-def quiz_answer_service(mock_response_repo, mock_question_repo, mock_session_repo):
+def quiz_answer_service(mock_response_repo, mock_question_repo, mock_session_repo, mock_belief_updater):
     """Create QuizAnswerService with mocked dependencies."""
     return QuizAnswerService(
         response_repo=mock_response_repo,
         question_repo=mock_question_repo,
         session_repo=mock_session_repo,
+        belief_updater=mock_belief_updater,
     )
 
 

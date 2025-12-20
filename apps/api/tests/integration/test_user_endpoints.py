@@ -3,12 +3,14 @@ Integration tests for user profile endpoints.
 Tests authentication-protected user endpoints.
 """
 
+import uuid
+from datetime import timedelta
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import timedelta
+
 from src.utils.auth import create_access_token
-import uuid
 
 
 @pytest.mark.asyncio

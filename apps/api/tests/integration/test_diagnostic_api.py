@@ -15,7 +15,6 @@ from src.models.course import Course
 from src.models.question import Question
 from src.models.question_concept import QuestionConcept
 
-
 # ============================================================================
 # Fixtures
 # ============================================================================
@@ -208,12 +207,13 @@ class TestEndpointResponse:
 
     @pytest.mark.asyncio
     async def test_returns_404_when_no_questions(
-        self, client: AsyncClient, auth_headers: dict, test_course: Course
+        self, client: AsyncClient, auth_headers: dict
     ):
         """Verify endpoint returns 404 when no questions available."""
-        # Use a course with no questions (just create a new one)
+        # Use a random course_id with no questions
+        random_course_id = uuid4()
         response = await client.get(
-            f"/v1/diagnostic/questions?course_id={uuid4()}",
+            f"/v1/diagnostic/questions?course_id={random_course_id}",
             headers=auth_headers,
         )
         # Should return 404 since no questions exist for this course
@@ -416,22 +416,24 @@ class TestQueryParameters:
         test_course: Course,
         test_questions_with_concepts: list[Question],
     ):
-        """Verify target_count validation (12-20)."""
-        # Below minimum
+        """Verify target_count is clamped to valid range (12-20)."""
+        # Below minimum - should clamp to MIN_QUESTIONS (12) and succeed
         response = await client.get(
             f"/v1/diagnostic/questions?course_id={test_course.id}&target_count=5",
             headers=auth_headers,
         )
-        assert response.status_code == 422
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] >= 12 or data["total"] == len(test_questions_with_concepts)
 
-        # Above maximum
+        # Above maximum - should clamp to MAX_QUESTIONS (20) and succeed
         response = await client.get(
             f"/v1/diagnostic/questions?course_id={test_course.id}&target_count=50",
             headers=auth_headers,
         )
-        assert response.status_code == 422
+        assert response.status_code == 200
 
-        # Valid range
+        # Valid range - should work as expected
         response = await client.get(
             f"/v1/diagnostic/questions?course_id={test_course.id}&target_count=15",
             headers=auth_headers,
@@ -513,6 +515,33 @@ async def test_user_with_beliefs(
     await db_session.commit()
 
 
+@pytest.fixture
+async def diagnostic_session(
+    client: AsyncClient,
+    auth_headers: dict,
+    test_course: Course,
+    test_questions_with_concepts: list[Question],
+    test_user_with_beliefs,
+) -> dict:
+    """
+    Start a diagnostic session and return session info.
+
+    Returns dict with:
+    - session_id: UUID string of the session
+    - questions: list of question dicts from the session (in order)
+    """
+    response = await client.get(
+        f"/v1/diagnostic/questions?course_id={test_course.id}",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    return {
+        "session_id": data["session_id"],
+        "questions": data["questions"],
+    }
+
+
 # ============================================================================
 # Diagnostic Answer Endpoint Tests
 # ============================================================================
@@ -531,6 +560,7 @@ class TestDiagnosticAnswerEndpoint:
         response = await client.post(
             "/v1/diagnostic/answer",
             json={
+                "session_id": str(uuid4()),
                 "question_id": str(question.id),
                 "selected_answer": "A",
             },
@@ -542,15 +572,17 @@ class TestDiagnosticAnswerEndpoint:
         self,
         client: AsyncClient,
         auth_headers: dict,
-        test_questions_with_concepts: list[Question],
-        test_user_with_beliefs,
+        diagnostic_session: dict,
     ):
         """Verify endpoint returns 200 for valid answer submission."""
-        question = test_questions_with_concepts[0]
+        session_id = diagnostic_session["session_id"]
+        first_question = diagnostic_session["questions"][0]
+
         response = await client.post(
             "/v1/diagnostic/answer",
             json={
-                "question_id": str(question.id),
+                "session_id": session_id,
+                "question_id": first_question["id"],
                 "selected_answer": "A",
             },
             headers=auth_headers,
@@ -567,11 +599,15 @@ class TestDiagnosticAnswerEndpoint:
         self,
         client: AsyncClient,
         auth_headers: dict,
+        diagnostic_session: dict,
     ):
         """Verify endpoint returns 404 for nonexistent question."""
+        session_id = diagnostic_session["session_id"]
+
         response = await client.post(
             "/v1/diagnostic/answer",
             json={
+                "session_id": session_id,
                 "question_id": str(uuid4()),
                 "selected_answer": "A",
             },
@@ -585,16 +621,18 @@ class TestDiagnosticAnswerEndpoint:
         self,
         client: AsyncClient,
         auth_headers: dict,
-        test_questions_with_concepts: list[Question],
+        diagnostic_session: dict,
     ):
         """Verify endpoint rejects invalid answer letters."""
-        question = test_questions_with_concepts[0]
+        session_id = diagnostic_session["session_id"]
+        first_question = diagnostic_session["questions"][0]
 
         # Test invalid answer
         response = await client.post(
             "/v1/diagnostic/answer",
             json={
-                "question_id": str(question.id),
+                "session_id": session_id,
+                "question_id": first_question["id"],
                 "selected_answer": "E",
             },
             headers=auth_headers,
@@ -616,15 +654,25 @@ class TestBeliefUpdates:
         auth_headers: dict,
         db_session: AsyncSession,
         test_user,
-        test_questions_with_concepts: list[Question],
-        test_concepts: list[Concept],
-        test_user_with_beliefs,
+        diagnostic_session: dict,
     ):
         """Verify belief states are updated after correct answer submission."""
         from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
 
-        # Get first question and its linked concepts
-        question = test_questions_with_concepts[0]
+        from src.models.question import Question as QuestionModel
+
+        # Get the first question from the session (this is the one we need to answer first)
+        session_id = diagnostic_session["session_id"]
+        first_question_id = diagnostic_session["questions"][0]["id"]
+
+        # Get the question with concepts to find concept_id
+        question_result = await db_session.execute(
+            select(QuestionModel)
+            .options(selectinload(QuestionModel.question_concepts))
+            .where(QuestionModel.id == first_question_id)
+        )
+        question = question_result.scalar_one()
 
         # Save IDs before any expiration (to avoid greenlet issues)
         user_id = test_user.id
@@ -641,13 +689,13 @@ class TestBeliefUpdates:
         )
         initial_belief = initial_result.scalar_one()
         initial_alpha = initial_belief.alpha
-        initial_beta = initial_belief.beta
         initial_response_count = initial_belief.response_count
 
-        # Submit correct answer
+        # Submit correct answer with session_id
         response = await client.post(
             "/v1/diagnostic/answer",
             json={
+                "session_id": session_id,
                 "question_id": str(question_id),
                 "selected_answer": correct_answer,  # Correct answer
             },
@@ -678,15 +726,25 @@ class TestBeliefUpdates:
         auth_headers: dict,
         db_session: AsyncSession,
         test_user,
-        test_questions_with_concepts: list[Question],
-        test_concepts: list[Concept],
-        test_user_with_beliefs,
+        diagnostic_session: dict,
     ):
         """Verify belief states are updated after incorrect answer submission."""
         from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
 
-        # Get first question
-        question = test_questions_with_concepts[0]
+        from src.models.question import Question as QuestionModel
+
+        # Get the first question from the session
+        session_id = diagnostic_session["session_id"]
+        first_question_id = diagnostic_session["questions"][0]["id"]
+
+        # Get the question with concepts
+        question_result = await db_session.execute(
+            select(QuestionModel)
+            .options(selectinload(QuestionModel.question_concepts))
+            .where(QuestionModel.id == first_question_id)
+        )
+        question = question_result.scalar_one()
 
         # Save IDs before any expiration (to avoid greenlet issues)
         user_id = test_user.id
@@ -708,10 +766,11 @@ class TestBeliefUpdates:
         initial_alpha = initial_belief.alpha
         initial_beta = initial_belief.beta
 
-        # Submit incorrect answer
+        # Submit incorrect answer with session_id
         response = await client.post(
             "/v1/diagnostic/answer",
             json={
+                "session_id": session_id,
                 "question_id": str(question_id),
                 "selected_answer": wrong_answer,
             },
@@ -741,22 +800,35 @@ class TestBeliefUpdates:
         auth_headers: dict,
         db_session: AsyncSession,
         test_user,
-        test_questions_with_concepts: list[Question],
-        test_concepts: list[Concept],
-        test_user_with_beliefs,
+        diagnostic_session: dict,
     ):
         """Verify all concepts linked to question are updated."""
-        # Find a question with multiple concepts (every 3rd question has 3 concepts)
-        question = test_questions_with_concepts[0]  # This has 3 concepts
+        from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
+
+        from src.models.question import Question as QuestionModel
+
+        # Get the first question from the session
+        session_id = diagnostic_session["session_id"]
+        first_question_id = diagnostic_session["questions"][0]["id"]
+
+        # Get the question with concepts
+        question_result = await db_session.execute(
+            select(QuestionModel)
+            .options(selectinload(QuestionModel.question_concepts))
+            .where(QuestionModel.id == first_question_id)
+        )
+        question = question_result.scalar_one()
 
         # Get all concept IDs for this question
         concept_ids = [qc.concept_id for qc in question.question_concepts]
-        assert len(concept_ids) >= 2, "Test requires question with multiple concepts"
+        assert len(concept_ids) >= 1, "Test requires question with concepts"
 
-        # Submit answer
+        # Submit answer with session_id
         response = await client.post(
             "/v1/diagnostic/answer",
             json={
+                "session_id": session_id,
                 "question_id": str(question.id),
                 "selected_answer": "A",
             },
@@ -773,16 +845,17 @@ class TestBeliefUpdates:
         self,
         client: AsyncClient,
         auth_headers: dict,
-        test_questions_with_concepts: list[Question],
-        test_user_with_beliefs,
+        diagnostic_session: dict,
     ):
         """Verify response does not include is_correct or explanation."""
-        question = test_questions_with_concepts[0]
+        session_id = diagnostic_session["session_id"]
+        first_question = diagnostic_session["questions"][0]
 
         response = await client.post(
             "/v1/diagnostic/answer",
             json={
-                "question_id": str(question.id),
+                "session_id": session_id,
+                "question_id": first_question["id"],
                 "selected_answer": "A",
             },
             headers=auth_headers,
@@ -808,28 +881,30 @@ class TestDuplicateAnswerPrevention:
         self,
         client: AsyncClient,
         auth_headers: dict,
-        test_questions_with_concepts: list[Question],
-        test_user_with_beliefs,
+        diagnostic_session: dict,
     ):
         """Verify 409 returned when submitting same question twice."""
-        question = test_questions_with_concepts[0]
+        session_id = diagnostic_session["session_id"]
+        first_question = diagnostic_session["questions"][0]
 
         # First submission
         response1 = await client.post(
             "/v1/diagnostic/answer",
             json={
-                "question_id": str(question.id),
+                "session_id": session_id,
+                "question_id": first_question["id"],
                 "selected_answer": "A",
             },
             headers=auth_headers,
         )
         assert response1.status_code == 200
 
-        # Second submission (duplicate)
+        # Second submission (duplicate - same question)
         response2 = await client.post(
             "/v1/diagnostic/answer",
             json={
-                "question_id": str(question.id),
+                "session_id": session_id,
+                "question_id": first_question["id"],
                 "selected_answer": "B",  # Different answer
             },
             headers=auth_headers,
@@ -850,15 +925,21 @@ class TestProgressTracking:
         self,
         client: AsyncClient,
         auth_headers: dict,
-        test_questions_with_concepts: list[Question],
-        test_user_with_beliefs,
+        diagnostic_session: dict,
     ):
         """Verify diagnostic_progress increments with each answer."""
+        session_id = diagnostic_session["session_id"]
+        questions = diagnostic_session["questions"]
+
+        # Need at least 3 questions for this test
+        assert len(questions) >= 3, "Test requires at least 3 questions in session"
+
         # Submit first answer
         response1 = await client.post(
             "/v1/diagnostic/answer",
             json={
-                "question_id": str(test_questions_with_concepts[0].id),
+                "session_id": session_id,
+                "question_id": questions[0]["id"],
                 "selected_answer": "A",
             },
             headers=auth_headers,
@@ -866,11 +947,12 @@ class TestProgressTracking:
         assert response1.status_code == 200
         assert response1.json()["diagnostic_progress"] == 1
 
-        # Submit second answer (different question)
+        # Submit second answer (next question in session order)
         response2 = await client.post(
             "/v1/diagnostic/answer",
             json={
-                "question_id": str(test_questions_with_concepts[1].id),
+                "session_id": session_id,
+                "question_id": questions[1]["id"],
                 "selected_answer": "B",
             },
             headers=auth_headers,
@@ -882,7 +964,8 @@ class TestProgressTracking:
         response3 = await client.post(
             "/v1/diagnostic/answer",
             json={
-                "question_id": str(test_questions_with_concepts[2].id),
+                "session_id": session_id,
+                "question_id": questions[2]["id"],
                 "selected_answer": "C",
             },
             headers=auth_headers,

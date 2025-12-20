@@ -8,10 +8,11 @@ This file contains:
 """
 
 import os
+from collections.abc import AsyncGenerator
+
 import pytest
-from typing import Generator, AsyncGenerator
-from httpx import AsyncClient
 from fastapi import FastAPI
+from httpx import AsyncClient
 
 # Set test environment variables before importing app
 os.environ["ENVIRONMENT"] = "test"
@@ -26,31 +27,16 @@ os.environ["QDRANT_URL"] = "http://localhost:6333"
 os.environ["QDRANT_API_KEY"] = ""
 
 # Now we can import app modules
-from src.main import app
-from src.db.session import Base, AsyncSessionLocal
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from src.config import settings
-from src.utils.auth import create_access_token
-from uuid import uuid4
+from src.db.session import Base
+from src.main import app
 
 # Import all models to ensure they're registered with Base.metadata before create_all
 # This is critical for test_engine fixture to create all tables
-from src.models import (
-    User,
-    PasswordResetToken,
-    Question,
-    QuestionConcept,
-    QuizResponse,
-    QuizSession,
-    Course,
-    Enrollment,
-    Concept,
-    ConceptPrerequisite,
-    ReadingChunk,
-    BeliefState,
-    DiagnosticSession,
-)
-
+from src.utils.auth import create_access_token
 
 # ============================================================================
 # Test Application Fixture
@@ -171,15 +157,21 @@ def event_loop():
 
 
 @pytest.fixture(scope="session")
-async def test_engine():
+async def test_engine(reset_app_database_engine):
     """
     Create test database engine and initialize schema.
     Runs once per test session.
+
+    Depends on reset_app_database_engine to ensure the app's engine is
+    replaced before any tests run.
+
+    Disables pool_pre_ping to avoid MissingGreenlet errors during fixture cleanup
+    when connections are pinged outside of the async context.
     """
     engine = create_async_engine(
         settings.TEST_DATABASE_URL,
         echo=False,  # Set True for SQL query logging in tests
-        pool_pre_ping=True,
+        pool_pre_ping=False,
     )
 
     # Create all tables
@@ -254,6 +246,7 @@ def mock_openai_service():
         def generate_embedding(self, text: str):
             """Return deterministic embedding for testing."""
             import hashlib
+
             import numpy as np
 
             # Use hash of text as seed
@@ -378,6 +371,46 @@ def reset_qdrant_client():
     yield
     # Cleanup after all tests
     qdrant_module.qdrant_client = None
+
+
+@pytest.fixture(scope="session", autouse=True)
+async def reset_app_database_engine(event_loop):
+    """
+    Reset the app's database engine with pool_pre_ping=False for tests.
+
+    This avoids MissingGreenlet errors caused by pool_pre_ping trying to
+    ping connections outside of the async greenlet context during cleanup.
+    The app's engine is used when HTTP requests go through the client fixture.
+    """
+    import src.db.session as session_module
+    from src.config import settings
+
+    # Create a new engine with pool_pre_ping=False for tests
+    test_engine = create_async_engine(
+        settings.DATABASE_URL,  # Already set to TEST_DATABASE_URL by env var
+        echo=False,
+        pool_pre_ping=False,
+    )
+
+    # Replace the app's engine and session factory
+    original_engine = session_module.engine
+    original_session_factory = session_module.AsyncSessionLocal
+
+    session_module.engine = test_engine
+    session_module.AsyncSessionLocal = async_sessionmaker(
+        test_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autocommit=False,
+        autoflush=False,
+    )
+
+    yield
+
+    # Restore original engine and dispose test engine (cleanup)
+    await test_engine.dispose()
+    session_module.engine = original_engine
+    session_module.AsyncSessionLocal = original_session_factory
 
 
 # ============================================================================

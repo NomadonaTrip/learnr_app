@@ -164,3 +164,101 @@ class BeliefStateWithConcept(BeliefStateResponse):
 
     concept_name: str
     concept_knowledge_area_id: str
+
+
+# ============================================================================
+# Belief Update Schemas (Story 4.4)
+# ============================================================================
+
+
+class BeliefUpdateResult(BaseModel):
+    """Result of updating a single concept's belief state."""
+
+    concept_id: UUID = Field(..., description="UUID of the concept")
+    concept_name: str = Field(..., description="Name of the concept")
+    old_alpha: float = Field(..., description="Alpha before update")
+    old_beta: float = Field(..., description="Beta before update")
+    new_alpha: float = Field(..., description="Alpha after update")
+    new_beta: float = Field(..., description="Beta after update")
+    is_direct: bool = Field(
+        default=True,
+        description="True if directly updated (from question), False if propagated from prerequisites"
+    )
+
+    @computed_field
+    @property
+    def old_mean(self) -> float:
+        """Mean mastery before update."""
+        return round(self.old_alpha / (self.old_alpha + self.old_beta), 4)
+
+    @computed_field
+    @property
+    def new_mean(self) -> float:
+        """Mean mastery after update."""
+        return round(self.new_alpha / (self.new_alpha + self.new_beta), 4)
+
+    @computed_field
+    @property
+    def old_confidence(self) -> float:
+        """Confidence before update."""
+        total = self.old_alpha + self.old_beta
+        return round(total / (total + 2), 4)
+
+    @computed_field
+    @property
+    def new_confidence(self) -> float:
+        """Confidence after update."""
+        total = self.new_alpha + self.new_beta
+        return round(total / (total + 2), 4)
+
+
+class BeliefUpdaterResponse(BaseModel):
+    """Response from BeliefUpdater.update_beliefs()."""
+
+    updates: list[BeliefUpdateResult] = Field(
+        default_factory=list,
+        description="List of belief updates (both direct and propagated)"
+    )
+    info_gain_actual: float = Field(
+        default=0.0,
+        ge=0,
+        description="Actual information gain from this response (entropy reduction)"
+    )
+    concepts_updated_count: int = Field(
+        default=0,
+        ge=0,
+        description="Total number of concepts updated"
+    )
+    direct_updates_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of concepts directly tested by the question"
+    )
+    propagated_updates_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of prerequisite concepts with propagated updates"
+    )
+    processing_time_ms: float = Field(
+        default=0.0,
+        ge=0,
+        description="Time taken for belief update in milliseconds"
+    )
+
+    def to_belief_updates_jsonb(self) -> list[dict]:
+        """
+        Convert updates to JSONB format for storage in responses table.
+
+        Returns format expected by belief_updates column.
+        """
+        return [
+            {
+                "concept_id": str(u.concept_id),
+                "concept_name": u.concept_name,
+                "old_alpha": u.old_alpha,
+                "old_beta": u.old_beta,
+                "new_alpha": u.new_alpha,
+                "new_beta": u.new_beta,
+            }
+            for u in self.updates
+        ]

@@ -14,7 +14,8 @@ from src.models.quiz_response import QuizResponse
 from src.repositories.question_repository import QuestionRepository
 from src.repositories.quiz_session_repository import QuizSessionRepository
 from src.repositories.response_repository import ResponseRepository
-from src.schemas.quiz import AnswerResponse, ConceptUpdate, SessionStats
+from src.schemas.quiz import AnswerResponse, ConceptMasteryUpdate, SessionStats
+from src.services.belief_updater import BeliefUpdater
 
 logger = structlog.get_logger(__name__)
 
@@ -35,6 +36,7 @@ class QuizAnswerService:
         response_repo: ResponseRepository,
         question_repo: QuestionRepository,
         session_repo: QuizSessionRepository,
+        belief_updater: BeliefUpdater,
     ):
         """
         Initialize quiz answer service.
@@ -43,10 +45,12 @@ class QuizAnswerService:
             response_repo: Repository for response operations
             question_repo: Repository for question lookups
             session_repo: Repository for session operations
+            belief_updater: Service for updating Bayesian belief states
         """
         self.response_repo = response_repo
         self.question_repo = question_repo
         self.session_repo = session_repo
+        self.belief_updater = belief_updater
 
     async def submit_answer(
         self,
@@ -182,10 +186,40 @@ class QuizAnswerService:
             start_time,
         )
 
-        # 7. Stub belief updates (Story 4.4 integration point)
-        # TODO: Story 4.4 - Replace with actual belief update
-        # belief_updates = await belief_updater.update_beliefs(user_id, question, is_correct)
+        # 7. Update belief states using Bayesian Knowledge Tracing
         belief_updates: list[dict[str, Any]] = []
+        try:
+            belief_response = await self.belief_updater.update_beliefs(
+                user_id=user_id,
+                question=question,
+                is_correct=is_correct,
+            )
+            # Convert belief response to list of dicts for storage
+            for update in belief_response.updates:
+                belief_updates.append({
+                    "concept_id": str(update.concept_id),
+                    "concept_name": update.concept_name,
+                    "old_alpha": update.old_alpha,
+                    "old_beta": update.old_beta,
+                    "new_alpha": update.new_alpha,
+                    "new_beta": update.new_beta,
+                })
+            logger.info(
+                "quiz_belief_update_complete",
+                user_id=str(user_id),
+                question_id=str(question_id),
+                is_correct=is_correct,
+                concepts_updated=len(belief_updates),
+                info_gain=belief_response.info_gain_actual,
+            )
+        except Exception as e:
+            # Log but don't fail the answer submission if belief update fails
+            logger.error(
+                "quiz_belief_update_failed",
+                user_id=str(user_id),
+                question_id=str(question_id),
+                error=str(e),
+            )
 
         # 8. Create response record
         response = await self.response_repo.create(
@@ -274,14 +308,14 @@ class QuizAnswerService:
             AnswerResponse with all feedback fields
         """
         # Build concepts_updated from belief_updates or empty for now
-        concepts_updated: list[ConceptUpdate] = []
+        concepts_updated: list[ConceptMasteryUpdate] = []
 
         # Stub: In Story 4.4, this will be populated from belief updates
         # For now, return empty list
         if response.belief_updates:
             for update in response.belief_updates:
                 concepts_updated.append(
-                    ConceptUpdate(
+                    ConceptMasteryUpdate(
                         concept_id=UUID(update["concept_id"]),
                         name=update.get("concept_name", "Unknown"),
                         new_mastery=(

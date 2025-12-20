@@ -33,6 +33,7 @@ from src.db.session import AsyncSessionLocal  # noqa: E402
 from src.models.concept import Concept  # noqa: E402
 from src.models.course import Course  # noqa: E402
 from src.models.question import Question  # noqa: E402
+from src.models.question_concept import QuestionConcept  # noqa: E402
 from src.services.embedding_service import EmbeddingService  # noqa: E402
 from src.services.qdrant_upload_service import (  # noqa: E402
     QdrantUploadService,
@@ -103,7 +104,7 @@ async def load_questions_with_concepts(
         select(Question)
         .where(Question.course_id == course_id)
         .where(Question.is_active == True)  # noqa: E712
-        .options(selectinload(Question.question_concepts).selectinload(lambda qc: qc.concept))
+        .options(selectinload(Question.question_concepts).selectinload(QuestionConcept.concept))
     )
 
     if limit:

@@ -3,10 +3,11 @@ Unit tests for password reset functionality in AuthService and PasswordResetRepo
 Tests password reset business logic and token management.
 """
 
-import pytest
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
+
+import pytest
 
 from src.exceptions import (
     TokenAlreadyUsedError,
@@ -46,8 +47,8 @@ class TestPasswordResetRepository:
             id=uuid4(),
             user_id=uuid4(),
             token=uuid4(),
-            created_at=datetime.now(timezone.utc),
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            created_at=datetime.now(UTC),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
             used_at=None
         )
 
@@ -62,7 +63,7 @@ class TestPasswordResetRepository:
         # Verify token was created correctly
         assert token.user_id == user_id
         assert token.token is not None
-        assert token.expires_at > datetime.now(timezone.utc)
+        assert token.expires_at > datetime.now(UTC)
 
         # Verify session methods called
         mock_session.add.assert_called_once()
@@ -135,16 +136,16 @@ class TestPasswordResetRepository:
             id=uuid4(),
             user_id=user_id,
             token=uuid4(),
-            created_at=datetime.now(timezone.utc),
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            created_at=datetime.now(UTC),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
             used_at=None
         )
         token2 = PasswordResetToken(
             id=uuid4(),
             user_id=user_id,
             token=uuid4(),
-            created_at=datetime.now(timezone.utc),
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            created_at=datetime.now(UTC),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
             used_at=None
         )
 
@@ -194,7 +195,7 @@ class TestAuthServicePasswordReset:
             id=uuid4(),
             email="test@example.com",
             hashed_password="$2b$12$hashedpassword",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             is_admin=False,
             dark_mode="auto"
         )
@@ -206,8 +207,8 @@ class TestAuthServicePasswordReset:
             id=uuid4(),
             user_id=uuid4(),
             token=uuid4(),
-            created_at=datetime.now(timezone.utc),
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            created_at=datetime.now(UTC),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
             used_at=None
         )
 
@@ -296,8 +297,8 @@ class TestAuthServicePasswordReset:
             id=uuid4(),
             user_id=uuid4(),
             token=uuid4(),
-            created_at=datetime.now(timezone.utc) - timedelta(hours=2),
-            expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+            created_at=datetime.now(UTC) - timedelta(hours=2),
+            expires_at=datetime.now(UTC) - timedelta(hours=1),
             used_at=None
         )
 
@@ -317,9 +318,9 @@ class TestAuthServicePasswordReset:
             id=uuid4(),
             user_id=uuid4(),
             token=uuid4(),
-            created_at=datetime.now(timezone.utc) - timedelta(hours=1),
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
-            used_at=datetime.now(timezone.utc) - timedelta(minutes=30)
+            created_at=datetime.now(UTC) - timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
+            used_at=datetime.now(UTC) - timedelta(minutes=30)
         )
 
         # Setup mocks

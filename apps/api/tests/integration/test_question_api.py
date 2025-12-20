@@ -9,18 +9,14 @@ Tests GET /v1/courses/{course_slug}/questions endpoint with:
 - Pagination
 - Response time performance
 """
-import pytest
 import time
-from uuid import uuid4
 
+import pytest
+
+from src.models.concept import Concept
 from src.models.course import Course
 from src.models.question import Question
 from src.models.question_concept import QuestionConcept
-from src.models.concept import Concept
-from src.models.user import User
-from src.repositories.course_repository import CourseRepository
-from src.repositories.question_repository import QuestionRepository
-from src.repositories.concept_repository import ConceptRepository
 
 
 @pytest.fixture
@@ -475,3 +471,253 @@ class TestQuestionRetrievalAPI:
         assert data["detail"]["error"]["code"] == "INVALID_DIFFICULTY_RANGE"
         assert "difficulty_min" in data["detail"]["error"]["message"]
         assert "difficulty_max" in data["detail"]["error"]["message"]
+
+
+@pytest.fixture
+async def course_with_secondary_tags(db_session):
+    """Create course with perspectives and competencies configured (Story 2.15)."""
+    course = Course(
+        slug="cbap-secondary-tags",
+        name="CBAP with Secondary Tags",
+        description="Test course for secondary tag filtering",
+        corpus_name="BABOK v3",
+        knowledge_areas=[
+            {"id": "strategy", "name": "Strategy Analysis", "short_name": "Strategy", "display_order": 1, "color": "#EF4444"},
+        ],
+        perspectives=[
+            {"id": "agile", "name": "Agile", "keywords": ["agile", "scrum"]},
+            {"id": "it", "name": "Information Technology", "keywords": ["it", "software"]},
+        ],
+        competencies=[
+            {"id": "analytical", "name": "Analytical Thinking", "keywords": ["analytical", "problem-solving"]},
+            {"id": "communication", "name": "Communication Skills", "keywords": ["communication", "verbal"]},
+        ],
+        is_active=True,
+        is_public=True,
+    )
+    db_session.add(course)
+    await db_session.commit()
+    await db_session.refresh(course)
+    return course
+
+
+@pytest.fixture
+async def questions_with_secondary_tags(db_session, course_with_secondary_tags):
+    """Create questions with perspectives and competencies (Story 2.15)."""
+    questions = []
+
+    # Question 1: Agile perspective, Analytical competency
+    q1 = Question(
+        course_id=course_with_secondary_tags.id,
+        question_text="What is an agile approach to business analysis?",
+        options={"A": "Option A", "B": "Option B", "C": "Option C", "D": "Option D"},
+        correct_answer="A",
+        explanation="Explanation for Q1",
+        knowledge_area_id="strategy",
+        difficulty=0.5,
+        discrimination=1.0,
+        guess_rate=0.25,
+        slip_rate=0.10,
+        source="test",
+        is_active=True,
+        perspectives=["agile"],
+        competencies=["analytical"],
+    )
+    db_session.add(q1)
+    questions.append(q1)
+
+    # Question 2: IT perspective, Communication competency
+    q2 = Question(
+        course_id=course_with_secondary_tags.id,
+        question_text="How do IT systems support business analysis?",
+        options={"A": "Option A", "B": "Option B", "C": "Option C", "D": "Option D"},
+        correct_answer="B",
+        explanation="Explanation for Q2",
+        knowledge_area_id="strategy",
+        difficulty=0.5,
+        discrimination=1.0,
+        guess_rate=0.25,
+        slip_rate=0.10,
+        source="test",
+        is_active=True,
+        perspectives=["it"],
+        competencies=["communication"],
+    )
+    db_session.add(q2)
+    questions.append(q2)
+
+    # Question 3: Both Agile and IT perspectives, both competencies
+    q3 = Question(
+        course_id=course_with_secondary_tags.id,
+        question_text="Cross-cutting question spanning multiple perspectives",
+        options={"A": "Option A", "B": "Option B", "C": "Option C", "D": "Option D"},
+        correct_answer="C",
+        explanation="Explanation for Q3",
+        knowledge_area_id="strategy",
+        difficulty=0.5,
+        discrimination=1.0,
+        guess_rate=0.25,
+        slip_rate=0.10,
+        source="test",
+        is_active=True,
+        perspectives=["agile", "it"],
+        competencies=["analytical", "communication"],
+    )
+    db_session.add(q3)
+    questions.append(q3)
+
+    # Question 4: No perspectives or competencies
+    q4 = Question(
+        course_id=course_with_secondary_tags.id,
+        question_text="General question without secondary tags",
+        options={"A": "Option A", "B": "Option B", "C": "Option C", "D": "Option D"},
+        correct_answer="D",
+        explanation="Explanation for Q4",
+        knowledge_area_id="strategy",
+        difficulty=0.5,
+        discrimination=1.0,
+        guess_rate=0.25,
+        slip_rate=0.10,
+        source="test",
+        is_active=True,
+        perspectives=[],
+        competencies=[],
+    )
+    db_session.add(q4)
+    questions.append(q4)
+
+    await db_session.commit()
+    for q in questions:
+        await db_session.refresh(q)
+
+    return questions
+
+
+@pytest.mark.asyncio
+class TestSecondaryTagFiltering:
+    """Tests for Story 2.15: Perspectives and Competencies filtering."""
+
+    async def test_filter_by_single_perspective(
+        self, client, authenticated_user, course_with_secondary_tags, questions_with_secondary_tags
+    ):
+        """Test filtering questions by a single perspective."""
+        headers = {"Authorization": f"Bearer {authenticated_user}"}
+        response = await client.get(
+            f"/v1/courses/{course_with_secondary_tags.slug}/questions?perspectives=agile",
+            headers=headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Q1 and Q3 have 'agile' perspective
+        assert data["total"] == 2
+        for item in data["items"]:
+            assert "agile" in item["perspectives"]
+
+    async def test_filter_by_single_competency(
+        self, client, authenticated_user, course_with_secondary_tags, questions_with_secondary_tags
+    ):
+        """Test filtering questions by a single competency."""
+        headers = {"Authorization": f"Bearer {authenticated_user}"}
+        response = await client.get(
+            f"/v1/courses/{course_with_secondary_tags.slug}/questions?competencies=analytical",
+            headers=headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Q1 and Q3 have 'analytical' competency
+        assert data["total"] == 2
+        for item in data["items"]:
+            assert "analytical" in item["competencies"]
+
+    async def test_filter_by_multiple_perspectives(
+        self, client, authenticated_user, course_with_secondary_tags, questions_with_secondary_tags
+    ):
+        """Test filtering by multiple perspectives (must have ALL)."""
+        headers = {"Authorization": f"Bearer {authenticated_user}"}
+        response = await client.get(
+            f"/v1/courses/{course_with_secondary_tags.slug}/questions?perspectives=agile&perspectives=it",
+            headers=headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Only Q3 has both 'agile' AND 'it' perspectives
+        assert data["total"] == 1
+        assert "agile" in data["items"][0]["perspectives"]
+        assert "it" in data["items"][0]["perspectives"]
+
+    async def test_filter_by_perspective_and_competency(
+        self, client, authenticated_user, course_with_secondary_tags, questions_with_secondary_tags
+    ):
+        """Test filtering by both perspective and competency."""
+        headers = {"Authorization": f"Bearer {authenticated_user}"}
+        response = await client.get(
+            f"/v1/courses/{course_with_secondary_tags.slug}/questions?perspectives=it&competencies=communication",
+            headers=headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Q2 and Q3 match (IT perspective + communication competency)
+        assert data["total"] == 2
+
+    async def test_perspectives_in_response(
+        self, client, authenticated_user, course_with_secondary_tags, questions_with_secondary_tags
+    ):
+        """Test that perspectives are included in response."""
+        headers = {"Authorization": f"Bearer {authenticated_user}"}
+        response = await client.get(
+            f"/v1/courses/{course_with_secondary_tags.slug}/questions",
+            headers=headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        for item in data["items"]:
+            assert "perspectives" in item
+            assert isinstance(item["perspectives"], list)
+
+    async def test_competencies_in_response(
+        self, client, authenticated_user, course_with_secondary_tags, questions_with_secondary_tags
+    ):
+        """Test that competencies are included in response."""
+        headers = {"Authorization": f"Bearer {authenticated_user}"}
+        response = await client.get(
+            f"/v1/courses/{course_with_secondary_tags.slug}/questions",
+            headers=headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        for item in data["items"]:
+            assert "competencies" in item
+            assert isinstance(item["competencies"], list)
+
+    async def test_empty_secondary_tags_arrays(
+        self, client, authenticated_user, course_with_secondary_tags, questions_with_secondary_tags
+    ):
+        """Test that questions without secondary tags have empty arrays."""
+        headers = {"Authorization": f"Bearer {authenticated_user}"}
+        response = await client.get(
+            f"/v1/courses/{course_with_secondary_tags.slug}/questions",
+            headers=headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Find Q4 which has no secondary tags
+        q4_item = next(
+            item for item in data["items"]
+            if item["question_text"] == "General question without secondary tags"
+        )
+        assert q4_item["perspectives"] == []
+        assert q4_item["competencies"] == []

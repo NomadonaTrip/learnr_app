@@ -340,6 +340,8 @@ class QuestionRepository:
         difficulty_min: float | None = None,
         difficulty_max: float | None = None,
         exclude_ids: list[UUID] | None = None,
+        perspectives: list[str] | None = None,
+        competencies: list[str] | None = None,
     ):
         """
         Apply common filters to a question query.
@@ -355,6 +357,8 @@ class QuestionRepository:
             difficulty_min: Minimum difficulty (0.0-1.0)
             difficulty_max: Maximum difficulty (0.0-1.0)
             exclude_ids: Optional list of question IDs to exclude
+            perspectives: Optional list of perspective IDs to filter by (Story 2.15)
+            competencies: Optional list of competency IDs to filter by (Story 2.15)
 
         Returns:
             Query with filters applied
@@ -386,6 +390,14 @@ class QuestionRepository:
         if exclude_ids:
             query = query.where(~Question.id.in_(exclude_ids))
 
+        # Story 2.15: Apply perspectives filter (array containment - must contain ALL)
+        if perspectives:
+            query = query.where(Question.perspectives.contains(perspectives))
+
+        # Story 2.15: Apply competencies filter (array containment - must contain ALL)
+        if competencies:
+            query = query.where(Question.competencies.contains(competencies))
+
         return query
 
     async def get_questions_filtered(
@@ -396,6 +408,8 @@ class QuestionRepository:
         difficulty_min: float = 0.0,
         difficulty_max: float = 1.0,
         exclude_ids: list[UUID] | None = None,
+        perspectives: list[str] | None = None,
+        competencies: list[str] | None = None,
         limit: int = 10,
         offset: int = 0
     ) -> tuple[list[tuple[Question, list[UUID]]], int]:
@@ -408,6 +422,8 @@ class QuestionRepository:
         - Knowledge area filtering
         - Difficulty range filtering
         - Exclusion list
+        - Perspective filtering (Story 2.15)
+        - Competency filtering (Story 2.15)
         - Pagination
 
         Args:
@@ -417,6 +433,8 @@ class QuestionRepository:
             difficulty_min: Minimum difficulty (0.0-1.0)
             difficulty_max: Maximum difficulty (0.0-1.0)
             exclude_ids: Optional list of question IDs to exclude
+            perspectives: Optional list of perspective IDs to filter by (Story 2.15)
+            competencies: Optional list of competency IDs to filter by (Story 2.15)
             limit: Maximum results to return (1-100)
             offset: Results to skip (pagination)
 
@@ -443,7 +461,9 @@ class QuestionRepository:
             knowledge_area_id=knowledge_area_id,
             difficulty_min=difficulty_min,
             difficulty_max=difficulty_max,
-            exclude_ids=exclude_ids
+            exclude_ids=exclude_ids,
+            perspectives=perspectives,
+            competencies=competencies,
         )
 
         # Count total before pagination (using same filter logic)
@@ -455,7 +475,9 @@ class QuestionRepository:
             knowledge_area_id=knowledge_area_id,
             difficulty_min=difficulty_min,
             difficulty_max=difficulty_max,
-            exclude_ids=exclude_ids
+            exclude_ids=exclude_ids,
+            perspectives=perspectives,
+            competencies=competencies,
         )
         count_query = select(func.count()).select_from(count_query.subquery())
         total = await self.db.scalar(count_query) or 0

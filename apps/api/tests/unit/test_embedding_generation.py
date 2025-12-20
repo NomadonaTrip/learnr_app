@@ -20,6 +20,7 @@ from generate_question_embeddings import (  # noqa: E402
     build_embedding_text,
     calculate_cost,
 )
+
 from src.services.embedding_service import (  # noqa: E402
     EMBEDDING_DIMENSIONS,
     EmbeddingService,

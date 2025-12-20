@@ -5,15 +5,17 @@ Tests CRUD operations for both questions and reading_chunks collections.
 Requires Qdrant to be running (docker-compose up qdrant).
 """
 
-import pytest
-from uuid import uuid4, UUID
-from typing import List
+from uuid import UUID, uuid4
 
+import pytest
 from qdrant_client.models import Distance, VectorParams
 
-from src.repositories.qdrant_repository import QdrantRepository, QUESTIONS_COLLECTION, CHUNKS_COLLECTION
 from src.db.qdrant_client import get_qdrant
-
+from src.repositories.qdrant_repository import (
+    CHUNKS_COLLECTION,
+    QUESTIONS_COLLECTION,
+    QdrantRepository,
+)
 
 # =============================================================================
 # Test Course IDs (consistent across tests)
@@ -68,7 +70,7 @@ def qdrant_repo():
 
 
 @pytest.fixture
-def sample_question_vector() -> List[float]:
+def sample_question_vector() -> list[float]:
     """
     Generate sample 3072-dimensional vector for testing.
     In production, this would come from OpenAI text-embedding-3-large.
@@ -77,7 +79,7 @@ def sample_question_vector() -> List[float]:
 
 
 @pytest.fixture
-def sample_chunk_vector() -> List[float]:
+def sample_chunk_vector() -> list[float]:
     """Generate sample 3072-dimensional vector for reading chunks"""
     return [0.2] * 3072
 
@@ -101,7 +103,7 @@ def another_course_id() -> UUID:
 @pytest.mark.integration
 async def test_create_question_vector_with_course_id(
     qdrant_repo: QdrantRepository,
-    sample_question_vector: List[float],
+    sample_question_vector: list[float],
     test_course_id: UUID
 ):
     """Test creating a question vector with course_id in Qdrant"""
@@ -137,7 +139,7 @@ async def test_create_question_vector_with_course_id(
 @pytest.mark.integration
 async def test_get_question_vector(
     qdrant_repo: QdrantRepository,
-    sample_question_vector: List[float],
+    sample_question_vector: list[float],
     test_course_id: UUID
 ):
     """Test retrieving a question vector by ID"""
@@ -181,7 +183,7 @@ async def test_get_nonexistent_question_vector(qdrant_repo: QdrantRepository):
 @pytest.mark.integration
 async def test_search_questions_by_course_id(
     qdrant_repo: QdrantRepository,
-    sample_question_vector: List[float],
+    sample_question_vector: list[float],
     test_course_id: UUID,
     another_course_id: UUID
 ):
@@ -239,7 +241,7 @@ async def test_search_questions_by_course_id(
 @pytest.mark.integration
 async def test_search_questions_cross_course_isolation(
     qdrant_repo: QdrantRepository,
-    sample_question_vector: List[float],
+    sample_question_vector: list[float],
     test_course_id: UUID,
     another_course_id: UUID
 ):
@@ -308,7 +310,7 @@ async def test_search_questions_cross_course_isolation(
 @pytest.mark.integration
 async def test_search_questions_with_knowledge_area_filter(
     qdrant_repo: QdrantRepository,
-    sample_question_vector: List[float],
+    sample_question_vector: list[float],
     test_course_id: UUID
 ):
     """Test searching questions with knowledge_area_id filter"""
@@ -362,7 +364,7 @@ async def test_search_questions_with_knowledge_area_filter(
 @pytest.mark.integration
 async def test_search_questions_with_difficulty_range(
     qdrant_repo: QdrantRepository,
-    sample_question_vector: List[float],
+    sample_question_vector: list[float],
     test_course_id: UUID
 ):
     """Test searching questions with difficulty range filter"""
@@ -402,7 +404,7 @@ async def test_search_questions_with_difficulty_range(
 @pytest.mark.integration
 async def test_search_questions_without_filters(
     qdrant_repo: QdrantRepository,
-    sample_question_vector: List[float],
+    sample_question_vector: list[float],
     test_course_id: UUID
 ):
     """Test searching questions without any filters (returns all courses)"""
@@ -438,7 +440,7 @@ async def test_search_questions_without_filters(
 @pytest.mark.integration
 async def test_delete_question_vector(
     qdrant_repo: QdrantRepository,
-    sample_question_vector: List[float],
+    sample_question_vector: list[float],
     test_course_id: UUID
 ):
     """Test deleting a question vector"""
@@ -472,7 +474,7 @@ async def test_delete_question_vector(
 @pytest.mark.integration
 async def test_create_chunk_vector_with_course_id(
     qdrant_repo: QdrantRepository,
-    sample_chunk_vector: List[float],
+    sample_chunk_vector: list[float],
     test_course_id: UUID
 ):
     """Test creating a reading chunk vector with course_id"""
@@ -502,7 +504,7 @@ async def test_create_chunk_vector_with_course_id(
 @pytest.mark.integration
 async def test_search_chunks_by_course_id(
     qdrant_repo: QdrantRepository,
-    sample_chunk_vector: List[float],
+    sample_chunk_vector: list[float],
     test_course_id: UUID,
     another_course_id: UUID
 ):
@@ -555,7 +557,7 @@ async def test_search_chunks_by_course_id(
 @pytest.mark.integration
 async def test_search_chunks_with_knowledge_area_filter(
     qdrant_repo: QdrantRepository,
-    sample_chunk_vector: List[float],
+    sample_chunk_vector: list[float],
     test_course_id: UUID
 ):
     """Test searching chunks with knowledge_area_id filter"""
@@ -592,7 +594,7 @@ async def test_search_chunks_with_knowledge_area_filter(
 @pytest.mark.integration
 async def test_search_chunks_without_filters(
     qdrant_repo: QdrantRepository,
-    sample_chunk_vector: List[float],
+    sample_chunk_vector: list[float],
     test_course_id: UUID
 ):
     """Test searching chunks without filters"""
@@ -630,7 +632,7 @@ async def test_search_chunks_without_filters(
 @pytest.mark.integration
 async def test_vector_dimensions(
     qdrant_repo: QdrantRepository,
-    sample_question_vector: List[float],
+    sample_question_vector: list[float],
     test_course_id: UUID
 ):
     """Test that vectors must have exactly 3072 dimensions"""

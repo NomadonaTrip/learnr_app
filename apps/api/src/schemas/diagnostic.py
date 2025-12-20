@@ -2,7 +2,7 @@
 Diagnostic Pydantic schemas for request/response validation.
 Used for diagnostic assessment question selection API.
 """
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field

@@ -29,7 +29,7 @@ class AnswerSubmission(BaseModel):
         return v
 
 
-class ConceptUpdate(BaseModel):
+class ConceptMasteryUpdate(BaseModel):
     """Schema for concept mastery updates after an answer."""
 
     concept_id: UUID = Field(..., description="Concept UUID")
@@ -74,7 +74,7 @@ class AnswerResponse(BaseModel):
         description="The correct answer option (A, B, C, or D)"
     )
     explanation: str = Field(..., description="Explanation of the correct answer")
-    concepts_updated: list[ConceptUpdate] = Field(
+    concepts_updated: list[ConceptMasteryUpdate] = Field(
         default_factory=list,
         description="List of concepts with updated mastery levels"
     )
@@ -96,7 +96,7 @@ class CachedAnswerResponse(BaseModel):
         description="The correct answer option (A, B, C, or D)"
     )
     explanation: str = Field(..., description="Explanation of the correct answer")
-    concepts_updated: list[ConceptUpdate] = Field(
+    concepts_updated: list[ConceptMasteryUpdate] = Field(
         default_factory=list,
         description="List of concepts with updated mastery levels"
     )

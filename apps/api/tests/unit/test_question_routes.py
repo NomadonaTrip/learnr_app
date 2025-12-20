@@ -7,14 +7,15 @@ with mocked dependencies (repositories, database).
 Per AC 8: Tests filter by concept, by knowledge area, by difficulty range.
 """
 
-import pytest
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
-from fastapi import HTTPException
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock
 
-from src.models.question import Question
+import pytest
+from fastapi import HTTPException
+
 from src.models.course import Course
+from src.models.question import Question
 from src.models.user import User
 from src.routes.questions import get_questions
 from src.schemas.question import PaginatedQuestionResponse
@@ -95,6 +96,8 @@ class TestQuestionRoutesUnit:
             difficulty_min=0.0,
             difficulty_max=1.0,
             exclude_ids=None,
+            perspectives=None,
+            competencies=None,
             limit=10,
             offset=0,
             question_repo=mock_question_repo,
@@ -117,6 +120,8 @@ class TestQuestionRoutesUnit:
             difficulty_min=0.0,
             difficulty_max=1.0,
             exclude_ids=None,
+            perspectives=None,
+            competencies=None,
             limit=10,
             offset=0
         )
@@ -176,6 +181,8 @@ class TestQuestionRoutesUnit:
             difficulty_min=0.0,
             difficulty_max=1.0,
             exclude_ids=None,
+            perspectives=None,
+            competencies=None,
             limit=10,
             offset=0,
             question_repo=mock_question_repo,
@@ -247,6 +254,8 @@ class TestQuestionRoutesUnit:
             difficulty_min=0.3,
             difficulty_max=0.7,
             exclude_ids=None,
+            perspectives=None,
+            competencies=None,
             limit=10,
             offset=0,
             question_repo=mock_question_repo,
@@ -284,6 +293,8 @@ class TestQuestionRoutesUnit:
                 difficulty_min=0.0,
                 difficulty_max=1.0,
                 exclude_ids=None,
+                perspectives=None,
+                competencies=None,
                 limit=10,
                 offset=0,
                 question_repo=mock_question_repo,
@@ -350,6 +361,8 @@ class TestQuestionRoutesUnit:
             difficulty_min=0.0,
             difficulty_max=1.0,
             exclude_ids=None,
+            perspectives=None,
+            competencies=None,
             limit=10,
             offset=0,
             question_repo=mock_question_repo,
@@ -428,6 +441,8 @@ class TestQuestionRoutesUnit:
             difficulty_min=0.0,
             difficulty_max=1.0,
             exclude_ids=None,
+            perspectives=None,
+            competencies=None,
             limit=2,
             offset=0,
             question_repo=mock_question_repo,
@@ -461,6 +476,8 @@ class TestQuestionRoutesUnit:
                 difficulty_min=0.8,  # Greater than max
                 difficulty_max=0.3,
                 exclude_ids=None,
+                perspectives=None,
+                competencies=None,
                 limit=10,
                 offset=0,
                 question_repo=mock_question_repo,

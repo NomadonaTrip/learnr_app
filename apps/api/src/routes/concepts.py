@@ -497,7 +497,7 @@ async def get_course_concept_questions(
 
 
 @router.get(
-    "/{concept_id}/prerequisites",
+    "/concepts/{concept_id}/prerequisites",
     response_model=list[PrerequisiteWithConcept],
     summary="Get concept prerequisites",
     description="Returns direct prerequisites for a concept. Requires authentication.",
@@ -577,7 +577,7 @@ async def get_concept_prerequisites(
 
 
 @router.get(
-    "/{concept_id}/prerequisites/chain",
+    "/concepts/{concept_id}/prerequisites/chain",
     response_model=PrerequisiteChainResponse,
     summary="Get full prerequisite chain",
     description="Returns the complete prerequisite chain for a concept with depth info.",
@@ -642,7 +642,7 @@ async def get_prerequisite_chain(
 
 
 @router.get(
-    "/{concept_id}/dependents",
+    "/concepts/{concept_id}/dependents",
     response_model=list[ConceptResponse],
     summary="Get concepts that depend on this one",
     description="Returns concepts that have this concept as a prerequisite.",
@@ -694,7 +694,7 @@ async def get_concept_dependents(
 
 
 @router.get(
-    "/roots/{course_id}",
+    "/concepts/roots/{course_id}",
     response_model=list[RootConceptResponse],
     summary="Get foundational concepts",
     description="Returns concepts with no prerequisites (root concepts).",

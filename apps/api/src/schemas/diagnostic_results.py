@@ -2,7 +2,7 @@
 Diagnostic Results Pydantic schemas for response validation.
 Used for diagnostic results API after completing diagnostic assessment.
 """
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -85,8 +85,8 @@ class DiagnosticResultsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     # Session info
-    session_id: Optional[UUID] = Field(None, description="Diagnostic session UUID (if exists)")
-    session_status: Optional[DiagnosticSessionStatus] = Field(
+    session_id: UUID | None = Field(None, description="Diagnostic session UUID (if exists)")
+    session_status: DiagnosticSessionStatus | None = Field(
         None, description="Session status (completed, in_progress, etc.)"
     )
 

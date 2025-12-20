@@ -2,9 +2,10 @@
 Integration tests for Users API endpoints.
 Tests GET /v1/users/me and PUT /v1/users/me endpoints.
 """
-import pytest
-from uuid import uuid4
 from datetime import date
+from uuid import uuid4
+
+import pytest
 
 from src.models.user import User
 from src.utils.auth import create_access_token, hash_password

@@ -2,10 +2,10 @@
 Integration tests for health check endpoint.
 Tests health endpoint functionality including database connectivity checks.
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from httpx import AsyncClient
-from sqlalchemy import text
 
 
 @pytest.mark.asyncio
@@ -86,7 +86,7 @@ async def test_health_endpoint_returns_503_when_database_unavailable(
 ):
     """Test health endpoint returns 503 when database connection fails."""
     from sqlalchemy.exc import OperationalError
-    from src.db.session import get_db
+
 
     # Create a mock database session that raises an exception
     class MockDBSession:

@@ -41,6 +41,12 @@ class Course(Base):
     # Each element: {"id": str, "name": str, "short_name": str, "display_order": int, "color": str}
     knowledge_areas = Column(JSONB, nullable=False)
 
+    # Secondary tag definitions (course-configurable keywords for classification)
+    # Perspectives (e.g., BABOK Chapter 10): [{"id": str, "name": str, "keywords": [str]}]
+    perspectives = Column(JSONB, nullable=True)
+    # Underlying Competencies (e.g., BABOK Chapter 9): [{"id": str, "name": str, "keywords": [str]}]
+    competencies = Column(JSONB, nullable=True)
+
     # BKT thresholds
     default_diagnostic_count = Column(Integer, nullable=False, default=12)
     mastery_threshold = Column(Float, nullable=False, default=0.8)

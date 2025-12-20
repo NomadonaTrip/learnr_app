@@ -8,14 +8,14 @@ Tests GET /v1/courses/{course_slug}/reading endpoint with:
 - Response time performance
 - Authentication requirement
 """
-import pytest
 import time
 from uuid import uuid4
 
+import pytest
+
+from src.models.concept import Concept
 from src.models.course import Course
 from src.models.reading_chunk import ReadingChunk
-from src.models.concept import Concept
-from src.models.user import User
 
 
 @pytest.fixture

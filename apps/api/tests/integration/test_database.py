@@ -2,9 +2,11 @@
 Integration tests for database functionality.
 Tests that database connection, session management, and basic CRUD operations work.
 """
-import pytest
-from src.models.user import User
 import uuid
+
+import pytest
+
+from src.models.user import User
 
 
 @pytest.mark.integration

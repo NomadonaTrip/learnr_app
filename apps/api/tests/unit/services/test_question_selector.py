@@ -6,15 +6,12 @@ Tests the Bayesian question selection algorithm including:
 - Question filtering
 - Selection strategies
 """
-import math
-from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 
 from src.services.question_selector import QuestionSelector
-
 
 # ============================================================================
 # Fixtures

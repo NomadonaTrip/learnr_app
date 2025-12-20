@@ -8,13 +8,11 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.main import app
 from src.models.belief_state import BeliefState
 from src.models.concept import Concept
 from src.models.course import Course
 from src.models.enrollment import Enrollment
 from src.models.user import User
-
 
 # ============================================================================
 # Fixtures

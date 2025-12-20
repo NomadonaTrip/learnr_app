@@ -35,6 +35,9 @@ celery==5.3.6
 openai==1.10.0
 tiktoken==0.5.2  # Token counting for chunking
 
+# Scientific Computing
+scipy>=1.11.0  # Beta distribution entropy calculations for BKT
+
 # PDF Parsing (for concept extraction)
 pymupdf==1.23.8
 

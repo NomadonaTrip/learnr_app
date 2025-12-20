@@ -260,12 +260,12 @@ class ReadingChunkRepository:
         # Calculate relevance score using array_length of intersection
         # This counts how many of the requested concepts each chunk contains
         # PostgreSQL: array_length(concept_ids && ARRAY[...], 1) gives match count
-        # We'll use a raw expression for this
-        from sqlalchemy import text
+        # We'll use literal_column for a raw expression that can be labeled
+        from sqlalchemy import literal_column
 
-        match_count_expr = text(
+        match_count_expr = literal_column(
             f"COALESCE(array_length(ARRAY(SELECT unnest(concept_ids) "
-            f"INTERSECT SELECT unnest(ARRAY{concept_ids_str}::text[])), 1), 0)"
+            f"INTERSECT SELECT unnest(ARRAY{concept_ids_str}::uuid[])), 1), 0)"
         ).label("match_count")
 
         # Add relevance scoring and ordering

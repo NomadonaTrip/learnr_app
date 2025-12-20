@@ -2,7 +2,6 @@
 Integration tests for diagnostic session flow.
 Tests the complete lifecycle: start -> answer -> complete -> results.
 """
-from unittest.mock import patch, AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -10,12 +9,10 @@ from httpx import AsyncClient
 
 from src.models.concept import Concept
 from src.models.course import Course
-from src.models.enrollment import Enrollment
 from src.models.question import Question
 from src.models.question_concept import QuestionConcept
 from src.models.user import User
 from src.utils.auth import create_access_token, hash_password
-
 
 # ============================================================================
 # Fixtures

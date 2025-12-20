@@ -2,17 +2,17 @@
 Unit tests for diagnostic API routes.
 Tests the POST /diagnostic/answer endpoint with proper dependency injection.
 """
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI, status
 from httpx import ASGITransport, AsyncClient
 
-from src.routes.diagnostic import router
-from src.dependencies import get_current_user
 from src.db.session import get_db
-
+from src.dependencies import get_current_user
+from src.routes.diagnostic import router
+from src.schemas.belief_state import BeliefUpdaterResponse
 
 # ============================================================================
 # Test Fixtures
@@ -23,10 +23,12 @@ def create_test_app_with_mocks(
     mock_question_repo=None,
     mock_belief_updater=None,
     mock_session=None,
+    mock_session_service=None,
 ):
     """Create test app with dependency overrides."""
     from src.routes.diagnostic import (
         get_belief_updater,
+        get_diagnostic_session_service,
         get_question_repository,
     )
 
@@ -53,7 +55,27 @@ def create_test_app_with_mocks(
             yield mock_session
         app.dependency_overrides[get_db] = override_db
 
+    if mock_session_service:
+        async def override_session_service():
+            return mock_session_service
+        app.dependency_overrides[get_diagnostic_session_service] = override_session_service
+
     return app
+
+
+def create_mock_session_service(session_id, current_index=0, total=15):
+    """Create a mock diagnostic session service with a valid session."""
+    mock_service = AsyncMock()
+
+    # Mock session object
+    mock_session = MagicMock()
+    mock_session.id = session_id
+    mock_session.current_index = current_index
+    mock_session.questions_total = total
+    mock_session.status = "in_progress"
+
+    mock_service.record_answer.return_value = mock_session
+    return mock_service
 
 
 # ============================================================================
@@ -75,7 +97,11 @@ class TestSchemaValidation:
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
                 "/v1/diagnostic/answer",
-                json={"question_id": "invalid-uuid", "selected_answer": "A"},
+                json={
+                    "session_id": str(uuid4()),
+                    "question_id": "invalid-uuid",
+                    "selected_answer": "A",
+                },
             )
 
             assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -94,7 +120,11 @@ class TestSchemaValidation:
             for invalid_answer in ["E", "a", "1", "", "AB", "correct"]:
                 response = await client.post(
                     "/v1/diagnostic/answer",
-                    json={"question_id": str(uuid4()), "selected_answer": invalid_answer},
+                    json={
+                        "session_id": str(uuid4()),
+                        "question_id": str(uuid4()),
+                        "selected_answer": invalid_answer,
+                    },
                 )
                 assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, (
                     f"Expected 422 for answer '{invalid_answer}'"
@@ -106,6 +136,7 @@ class TestSchemaValidation:
         user = MagicMock()
         user.id = uuid4()
 
+        session_id = uuid4()
         question_id = uuid4()
         concept_id = uuid4()
 
@@ -123,44 +154,46 @@ class TestSchemaValidation:
         mock_repo = AsyncMock()
         mock_repo.get_question_by_id.return_value = mock_question
 
-        # Mock belief updater
+        # Mock belief updater - return BeliefUpdaterResponse
         mock_updater = AsyncMock()
-        mock_updater.update_beliefs.return_value = [concept_id]
+        mock_updater.update_beliefs.return_value = BeliefUpdaterResponse(
+            updates=[],
+            info_gain_actual=0.0,
+            concepts_updated_count=1,
+            direct_updates_count=1,
+            propagated_updates_count=0,
+            processing_time_ms=1.0,
+        )
 
         # Mock db session
-        mock_session = AsyncMock()
+        mock_db_session = AsyncMock()
 
-        # Mock Redis
-        with patch("src.routes.diagnostic.get_redis") as mock_redis:
-            redis_instance = AsyncMock()
-            redis_instance.get.return_value = None
-            redis_instance.setex.return_value = None
-            mock_redis.return_value = redis_instance
+        # Mock session service
+        mock_session_service = create_mock_session_service(session_id, current_index=1)
 
-            app = create_test_app_with_mocks(
-                mock_user=user,
-                mock_question_repo=mock_repo,
-                mock_belief_updater=mock_updater,
-                mock_session=mock_session,
-            )
+        app = create_test_app_with_mocks(
+            mock_user=user,
+            mock_question_repo=mock_repo,
+            mock_belief_updater=mock_updater,
+            mock_session=mock_db_session,
+            mock_session_service=mock_session_service,
+        )
 
-            transport = ASGITransport(app=app)
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
-                for valid_answer in ["A", "B", "C", "D"]:
-                    # Reset redis to not return duplicate
-                    redis_instance.get.return_value = None
-
-                    response = await client.post(
-                        "/v1/diagnostic/answer",
-                        json={
-                            "question_id": str(question_id),
-                            "selected_answer": valid_answer,
-                        },
-                    )
-                    # Should not be 422
-                    assert response.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY, (
-                        f"Expected valid response for answer '{valid_answer}'"
-                    )
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            for valid_answer in ["A", "B", "C", "D"]:
+                response = await client.post(
+                    "/v1/diagnostic/answer",
+                    json={
+                        "session_id": str(session_id),
+                        "question_id": str(question_id),
+                        "selected_answer": valid_answer,
+                    },
+                )
+                # Should not be 422
+                assert response.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY, (
+                    f"Expected valid response for answer '{valid_answer}'"
+                )
 
 
 # ============================================================================
@@ -176,6 +209,7 @@ class TestResponseShape:
         user = MagicMock()
         user.id = uuid4()
 
+        session_id = uuid4()
         question_id = uuid4()
         concept_id = uuid4()
 
@@ -193,47 +227,51 @@ class TestResponseShape:
         mock_repo.get_question_by_id.return_value = mock_question
 
         mock_updater = AsyncMock()
-        mock_updater.update_beliefs.return_value = [concept_id]
+        mock_updater.update_beliefs.return_value = BeliefUpdaterResponse(
+            updates=[],
+            info_gain_actual=0.0,
+            concepts_updated_count=1,
+            direct_updates_count=1,
+            propagated_updates_count=0,
+            processing_time_ms=1.0,
+        )
 
-        mock_session = AsyncMock()
+        mock_db_session = AsyncMock()
+        mock_session_service = create_mock_session_service(session_id, current_index=1, total=15)
 
-        with patch("src.routes.diagnostic.get_redis") as mock_redis:
-            redis_instance = AsyncMock()
-            redis_instance.get.return_value = None
-            redis_instance.setex.return_value = None
-            mock_redis.return_value = redis_instance
+        app = create_test_app_with_mocks(
+            mock_user=user,
+            mock_question_repo=mock_repo,
+            mock_belief_updater=mock_updater,
+            mock_session=mock_db_session,
+            mock_session_service=mock_session_service,
+        )
 
-            app = create_test_app_with_mocks(
-                mock_user=user,
-                mock_question_repo=mock_repo,
-                mock_belief_updater=mock_updater,
-                mock_session=mock_session,
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/v1/diagnostic/answer",
+                json={
+                    "session_id": str(session_id),
+                    "question_id": str(question_id),
+                    "selected_answer": "A",
+                },
             )
 
-            transport = ASGITransport(app=app)
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.post(
-                    "/v1/diagnostic/answer",
-                    json={
-                        "question_id": str(question_id),
-                        "selected_answer": "A",
-                    },
-                )
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
 
-                assert response.status_code == status.HTTP_200_OK
-                data = response.json()
+            # Verify required fields
+            assert "is_recorded" in data
+            assert "concepts_updated" in data
+            assert "diagnostic_progress" in data
+            assert "diagnostic_total" in data
 
-                # Verify required fields
-                assert "is_recorded" in data
-                assert "concepts_updated" in data
-                assert "diagnostic_progress" in data
-                assert "diagnostic_total" in data
-
-                # Verify types
-                assert isinstance(data["is_recorded"], bool)
-                assert isinstance(data["concepts_updated"], list)
-                assert isinstance(data["diagnostic_progress"], int)
-                assert isinstance(data["diagnostic_total"], int)
+            # Verify types
+            assert isinstance(data["is_recorded"], bool)
+            assert isinstance(data["concepts_updated"], list)
+            assert isinstance(data["diagnostic_progress"], int)
+            assert isinstance(data["diagnostic_total"], int)
 
     @pytest.mark.asyncio
     async def test_response_excludes_is_correct(self):
@@ -241,6 +279,7 @@ class TestResponseShape:
         user = MagicMock()
         user.id = uuid4()
 
+        session_id = uuid4()
         question_id = uuid4()
 
         mock_question = MagicMock()
@@ -254,40 +293,44 @@ class TestResponseShape:
         mock_repo.get_question_by_id.return_value = mock_question
 
         mock_updater = AsyncMock()
-        mock_updater.update_beliefs.return_value = []
+        mock_updater.update_beliefs.return_value = BeliefUpdaterResponse(
+            updates=[],
+            info_gain_actual=0.0,
+            concepts_updated_count=0,
+            direct_updates_count=0,
+            propagated_updates_count=0,
+            processing_time_ms=1.0,
+        )
 
-        mock_session = AsyncMock()
+        mock_db_session = AsyncMock()
+        mock_session_service = create_mock_session_service(session_id, current_index=1)
 
-        with patch("src.routes.diagnostic.get_redis") as mock_redis:
-            redis_instance = AsyncMock()
-            redis_instance.get.return_value = None
-            redis_instance.setex.return_value = None
-            mock_redis.return_value = redis_instance
+        app = create_test_app_with_mocks(
+            mock_user=user,
+            mock_question_repo=mock_repo,
+            mock_belief_updater=mock_updater,
+            mock_session=mock_db_session,
+            mock_session_service=mock_session_service,
+        )
 
-            app = create_test_app_with_mocks(
-                mock_user=user,
-                mock_question_repo=mock_repo,
-                mock_belief_updater=mock_updater,
-                mock_session=mock_session,
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/v1/diagnostic/answer",
+                json={
+                    "session_id": str(session_id),
+                    "question_id": str(question_id),
+                    "selected_answer": "B",
+                },
             )
 
-            transport = ASGITransport(app=app)
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.post(
-                    "/v1/diagnostic/answer",
-                    json={
-                        "question_id": str(question_id),
-                        "selected_answer": "B",
-                    },
-                )
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
 
-                assert response.status_code == status.HTTP_200_OK
-                data = response.json()
-
-                # Should NOT include feedback fields
-                assert "is_correct" not in data
-                assert "explanation" not in data
-                assert "correct_answer" not in data
+            # Should NOT include feedback fields
+            assert "is_correct" not in data
+            assert "explanation" not in data
+            assert "correct_answer" not in data
 
 
 # ============================================================================
@@ -303,17 +346,21 @@ class TestErrorHandling:
         user = MagicMock()
         user.id = uuid4()
 
+        session_id = uuid4()
+
         mock_repo = AsyncMock()
         mock_repo.get_question_by_id.return_value = None  # Question not found
 
         mock_updater = AsyncMock()
-        mock_session = AsyncMock()
+        mock_db_session = AsyncMock()
+        mock_session_service = create_mock_session_service(session_id)
 
         app = create_test_app_with_mocks(
             mock_user=user,
             mock_question_repo=mock_repo,
             mock_belief_updater=mock_updater,
-            mock_session=mock_session,
+            mock_session=mock_db_session,
+            mock_session_service=mock_session_service,
         )
 
         transport = ASGITransport(app=app)
@@ -321,6 +368,7 @@ class TestErrorHandling:
             response = await client.post(
                 "/v1/diagnostic/answer",
                 json={
+                    "session_id": str(session_id),
                     "question_id": str(uuid4()),
                     "selected_answer": "A",
                 },
@@ -333,11 +381,12 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_returns_409_for_duplicate_answer(self):
         """Verify 409 returned when answer already submitted for question."""
-        import json as json_lib
+        from src.exceptions import AlreadyAnsweredError
 
         user = MagicMock()
         user.id = uuid4()
 
+        session_id = uuid4()
         question_id = uuid4()
 
         mock_question = MagicMock()
@@ -349,35 +398,34 @@ class TestErrorHandling:
         mock_repo.get_question_by_id.return_value = mock_question
 
         mock_updater = AsyncMock()
-        mock_session = AsyncMock()
+        mock_db_session = AsyncMock()
 
-        with patch("src.routes.diagnostic.get_redis") as mock_redis:
-            redis_instance = AsyncMock()
-            # Simulate existing session with this question already answered
-            existing_session = {
-                "answers": {str(question_id): "B"},
-                "total": 15,
-            }
-            redis_instance.get.return_value = json_lib.dumps(existing_session)
-            mock_redis.return_value = redis_instance
+        # Mock session service to raise AlreadyAnsweredError
+        mock_session_service = AsyncMock()
+        mock_session_service.record_answer.side_effect = AlreadyAnsweredError(
+            "Question already answered",
+            {"session_id": str(session_id), "question_id": str(question_id)},
+        )
 
-            app = create_test_app_with_mocks(
-                mock_user=user,
-                mock_question_repo=mock_repo,
-                mock_belief_updater=mock_updater,
-                mock_session=mock_session,
+        app = create_test_app_with_mocks(
+            mock_user=user,
+            mock_question_repo=mock_repo,
+            mock_belief_updater=mock_updater,
+            mock_session=mock_db_session,
+            mock_session_service=mock_session_service,
+        )
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/v1/diagnostic/answer",
+                json={
+                    "session_id": str(session_id),
+                    "question_id": str(question_id),
+                    "selected_answer": "A",
+                },
             )
 
-            transport = ASGITransport(app=app)
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.post(
-                    "/v1/diagnostic/answer",
-                    json={
-                        "question_id": str(question_id),
-                        "selected_answer": "A",
-                    },
-                )
-
-                assert response.status_code == status.HTTP_409_CONFLICT
-                data = response.json()
-                assert data["detail"]["error"]["code"] == "DUPLICATE_REQUEST"
+            assert response.status_code == status.HTTP_409_CONFLICT
+            data = response.json()
+            assert data["detail"]["error"]["code"] == "DUPLICATE_REQUEST"

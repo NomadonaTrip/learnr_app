@@ -2,10 +2,9 @@
 Unit tests for concept routes (Story 2.10).
 Tests the routes layer with mocked dependencies.
 """
-from datetime import datetime, timezone
-from typing import List
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
@@ -17,21 +16,11 @@ from src.models.course import Course
 from src.models.question import Question
 from src.models.user import User
 from src.routes.concepts import (
-    router,
     get_concept_repository,
     get_course_repository,
     get_question_repository,
+    router,
 )
-from src.schemas.concept import (
-    ConceptListParams,
-    ConceptPrerequisitesResponse,
-    ConceptQuestionsResponse,
-    ConceptResponse,
-    ConceptStatsResponse,
-    PaginatedConceptResponse,
-    QuestionSummary,
-)
-
 
 # Test data
 TEST_COURSE_ID = uuid4()
@@ -100,8 +89,8 @@ def mock_concept():
         knowledge_area_id="ba-planning",
         difficulty_estimate=0.5,
         prerequisite_depth=1,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC)
     )
 
 
@@ -114,8 +103,8 @@ def mock_course():
         name="CBAP",
         description="Test course",
         knowledge_areas=[],
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC)
     )
 
 
@@ -132,8 +121,8 @@ def mock_question():
         knowledge_area_id="ba-planning",
         difficulty=0.5,
         source="vendor",
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc)
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC)
     )
 
 
@@ -266,8 +255,8 @@ class TestGetPrerequisites:
             knowledge_area_id="ba-planning",
             difficulty_estimate=0.3,
             prerequisite_depth=0,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc)
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC)
         )
 
         # Configure mock repositories
