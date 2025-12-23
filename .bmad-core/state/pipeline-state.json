@@ -1,0 +1,58 @@
+{
+  "$schema": "pipeline-state-schema-v1",
+  "version": "1.0.0",
+  "lastUpdated": "2025-12-23T12:05:00Z",
+  "currentStory": "10.1",
+  "pipeline": {
+    "status": "running",
+    "phase": "qa_review",
+    "checkpoint": null,
+    "startedAt": "2025-12-23T12:00:00Z",
+    "pausedAt": null,
+    "error": null
+  },
+  "stories": {
+    "10.1": {
+      "id": "10.1",
+      "title": "IRT Scale Database Migration",
+      "epicId": "10",
+      "state": "qa_review",
+      "storyFile": "docs/stories/10.1-irt-scale-database-migration.story.md",
+      "timestamps": {
+        "entered": "2025-12-23T12:00:00Z",
+        "drafted": "2025-12-23T12:00:00Z",
+        "validated": "2025-12-23T12:00:00Z",
+        "approved": "2025-12-23T12:00:00Z",
+        "implemented": "2025-12-23T12:00:00Z",
+        "qaReviewed": null,
+        "completed": null
+      },
+      "agents": {
+        "sm": { "status": "complete", "output": "Story previously drafted" },
+        "po": { "status": "complete", "output": "Story previously validated (Score: 9/10)" },
+        "dev": { "status": "complete", "output": "Implementation complete - 624 tests passing" },
+        "qa": { "status": "running", "output": null }
+      },
+      "qaGate": null,
+      "qaGateFile": null,
+      "iterations": 1,
+      "error": null
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2025-12-23T12:00:00Z",
+      "storyId": "10.1",
+      "event": "pipeline_started",
+      "phase": "drafting",
+      "details": "Pipeline started for story 10.1 - IRT Scale Database Migration"
+    },
+    {
+      "timestamp": "2025-12-23T12:05:00Z",
+      "storyId": "10.1",
+      "event": "phase_changed",
+      "phase": "qa_review",
+      "details": "Story already implemented - skipping to QA review"
+    }
+  ]
+}

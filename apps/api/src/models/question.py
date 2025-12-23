@@ -143,6 +143,8 @@ class Question(Base):
             "is_active",
             postgresql_where=text("is_active = true"),
         ),
+        # Index for IRT tier-based queries (Story 10.1 QA recommendation)
+        Index("idx_questions_difficulty_label", "course_id", "difficulty_label"),
     )
 
     @property
