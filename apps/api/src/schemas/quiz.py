@@ -63,6 +63,11 @@ class SessionStats(BaseModel):
         le=1.0,
         description="Progress through concept coverage (0.0-1.0)"
     )
+    session_version: int = Field(
+        ...,
+        ge=1,
+        description="Current session version for optimistic locking"
+    )
 
 
 class AnswerResponse(BaseModel):

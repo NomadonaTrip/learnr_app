@@ -1,6 +1,7 @@
 """Business logic services for the LearnR API."""
 from .belief_initialization_service import BeliefInitializationService
 from .belief_updater import BeliefUpdater
+from .coverage_analyzer import CoverageAnalyzer
 from .diagnostic_results_service import DiagnosticResultsService
 from .diagnostic_session_service import DiagnosticSessionService
 from .embedding_service import EmbeddingService
@@ -14,6 +15,7 @@ __all__ = [
     "QuestionVectorItem",
     "BeliefInitializationService",
     "BeliefUpdater",
+    "CoverageAnalyzer",
     "DiagnosticResultsService",
     "DiagnosticSessionService",
     "QuestionSelector",

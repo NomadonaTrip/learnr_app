@@ -112,12 +112,29 @@ DEFAULT_KA_MAPPINGS = {
     "solution eval": "solution-eval",
 }
 
-# Difficulty string to float mapping
+# Difficulty string to IRT b-parameter mapping (-3.0 to +3.0)
 DIFFICULTY_MAP = {
-    "easy": 0.3,
-    "medium": 0.5,
-    "hard": 0.7,
+    "easy": -1.5,
+    "medium": 0.0,
+    "hard": 1.5,
 }
+
+# IRT difficulty tier boundaries
+DIFFICULTY_TIERS = {
+    "easy": (-3.0, -1.0),
+    "medium": (-1.0, 1.0),
+    "hard": (1.0, 3.0),
+}
+
+
+def classify_difficulty_label(difficulty: float) -> str:
+    """Classify IRT b-parameter into human-readable label."""
+    if difficulty < -1.0:
+        return "Easy"
+    elif difficulty <= 1.0:
+        return "Medium"
+    else:
+        return "Hard"
 
 # GPT-4 prompt for concept selection
 CONCEPT_SELECTION_PROMPT = """You are mapping certification exam questions to course concepts.
@@ -169,7 +186,12 @@ class QuestionData:
     explanation: str
     knowledge_area_name: str
     knowledge_area_id: Optional[str] = None
-    difficulty: float = 0.5
+    difficulty: float = 0.0  # IRT b-parameter (-3.0 to +3.0)
+    difficulty_label: Optional[str] = None  # Human-readable: Easy/Medium/Hard
+    # IRT parameters
+    discrimination: float = 1.0  # IRT a-parameter (0.0 to 5.0)
+    guess_rate: float = 0.25  # P(correct | not mastered)
+    slip_rate: float = 0.10  # P(incorrect | mastered)
     source: str = "vendor"
     corpus_reference: Optional[str] = None
     row_number: int = 0
@@ -794,15 +816,65 @@ class VendorQuestionImporter:
             concept_tags = raw_tags
             logger.debug(f"Row {row_num}: Parsed {len(raw_tags)} concept tags (no classifier)")
 
-        # Difficulty
-        difficulty_str = row.get("difficulty", "Medium").strip().lower()
-        difficulty = DIFFICULTY_MAP.get(difficulty_str, 0.5)
-        try:
-            # Also support float values
-            difficulty = float(difficulty_str)
-            difficulty = max(0.0, min(1.0, difficulty))
-        except ValueError:
-            pass
+        # Difficulty - support multiple column formats
+        # Priority: difficulty_b (numeric IRT) > difficulty/difficulty_label (string)
+        difficulty = 0.0  # Default: medium difficulty
+        difficulty_label = None
+
+        # Check for explicit IRT b-parameter (new format)
+        if row.get("difficulty_b"):
+            try:
+                difficulty = float(row.get("difficulty_b"))
+                difficulty = max(-3.0, min(3.0, difficulty))
+                difficulty_label = classify_difficulty_label(difficulty)
+            except ValueError:
+                pass
+        else:
+            # Fall back to difficulty/difficulty_label column (legacy or label format)
+            difficulty_str = row.get("difficulty", row.get("difficulty_label", "Medium")).strip().lower()
+            if difficulty_str in DIFFICULTY_MAP:
+                difficulty = DIFFICULTY_MAP[difficulty_str]
+                difficulty_label = difficulty_str.capitalize()
+            else:
+                try:
+                    # Support numeric values (assume IRT scale if in valid range)
+                    difficulty = float(difficulty_str)
+                    if -3.0 <= difficulty <= 3.0:
+                        difficulty_label = classify_difficulty_label(difficulty)
+                    else:
+                        # Legacy 0-1 scale detected, convert to IRT
+                        difficulty = (difficulty - 0.5) * 6
+                        difficulty = max(-3.0, min(3.0, difficulty))
+                        difficulty_label = classify_difficulty_label(difficulty)
+                except ValueError:
+                    difficulty = 0.0
+                    difficulty_label = "Medium"
+
+        # IRT parameters (with defaults)
+        discrimination = 1.0
+        guess_rate = 0.25
+        slip_rate = 0.10
+
+        if row.get("discrimination"):
+            try:
+                discrimination = float(row.get("discrimination"))
+                discrimination = max(0.0, min(5.0, discrimination))
+            except ValueError:
+                pass
+
+        if row.get("guess_rate"):
+            try:
+                guess_rate = float(row.get("guess_rate"))
+                guess_rate = max(0.0, min(1.0, guess_rate))
+            except ValueError:
+                pass
+
+        if row.get("slip_rate"):
+            try:
+                slip_rate = float(row.get("slip_rate"))
+                slip_rate = max(0.0, min(1.0, slip_rate))
+            except ValueError:
+                pass
 
         return QuestionData(
             question_text=question_text,
@@ -812,6 +884,10 @@ class VendorQuestionImporter:
             knowledge_area_name=ka_name,
             knowledge_area_id=ka_id,
             difficulty=difficulty,
+            difficulty_label=difficulty_label,
+            discrimination=discrimination,
+            guess_rate=guess_rate,
+            slip_rate=slip_rate,
             source=row.get("source", "vendor"),
             corpus_reference=row.get("corpus_reference", row.get("babok_reference")),
             row_number=row_num,
@@ -883,9 +959,49 @@ class VendorQuestionImporter:
             self.result.warnings.append(f"Item {idx}: Unknown KA '{ka_name}'")
             return None
 
-        difficulty = item.get("difficulty", 0.5)
-        if isinstance(difficulty, str):
-            difficulty = DIFFICULTY_MAP.get(difficulty.lower(), 0.5)
+        # Difficulty - support IRT b-parameter and legacy formats
+        difficulty = 0.0  # Default: medium difficulty
+        difficulty_label = None
+
+        # Check for explicit IRT b-parameter
+        if "difficulty_b" in item:
+            try:
+                difficulty = float(item.get("difficulty_b"))
+                difficulty = max(-3.0, min(3.0, difficulty))
+                difficulty_label = classify_difficulty_label(difficulty)
+            except (ValueError, TypeError):
+                pass
+        else:
+            raw_difficulty = item.get("difficulty", 0.0)
+            if isinstance(raw_difficulty, str):
+                raw_difficulty = raw_difficulty.lower()
+                if raw_difficulty in DIFFICULTY_MAP:
+                    difficulty = DIFFICULTY_MAP[raw_difficulty]
+                    difficulty_label = raw_difficulty.capitalize()
+                else:
+                    try:
+                        difficulty = float(raw_difficulty)
+                        difficulty = max(-3.0, min(3.0, difficulty))
+                        difficulty_label = classify_difficulty_label(difficulty)
+                    except ValueError:
+                        difficulty = 0.0
+                        difficulty_label = "Medium"
+            else:
+                try:
+                    difficulty = float(raw_difficulty)
+                    # Detect legacy 0-1 scale and convert
+                    if 0.0 <= difficulty <= 1.0 and difficulty not in (-1.5, 0.0, 1.5):
+                        difficulty = (difficulty - 0.5) * 6
+                    difficulty = max(-3.0, min(3.0, difficulty))
+                    difficulty_label = classify_difficulty_label(difficulty)
+                except (ValueError, TypeError):
+                    difficulty = 0.0
+                    difficulty_label = "Medium"
+
+        # IRT parameters
+        discrimination = float(item.get("discrimination", 1.0))
+        guess_rate = float(item.get("guess_rate", 0.25))
+        slip_rate = float(item.get("slip_rate", 0.10))
 
         return QuestionData(
             question_text=question_text,
@@ -895,6 +1011,10 @@ class VendorQuestionImporter:
             knowledge_area_name=ka_name,
             knowledge_area_id=ka_id,
             difficulty=difficulty,
+            difficulty_label=difficulty_label,
+            discrimination=discrimination,
+            guess_rate=guess_rate,
+            slip_rate=slip_rate,
             source=item.get("source", "vendor"),
             corpus_reference=item.get("corpus_reference", item.get("babok_reference")),
             row_number=idx,
@@ -1492,7 +1612,12 @@ class VendorQuestionImporter:
                         "correct_answer": question.correct_answer,
                         "explanation": question.explanation,
                         "knowledge_area_id": question.knowledge_area_id,
+                        # IRT parameters
                         "difficulty": question.difficulty,
+                        "difficulty_label": question.difficulty_label,
+                        "discrimination": question.discrimination,
+                        "guess_rate": question.guess_rate,
+                        "slip_rate": question.slip_rate,
                         "source": question.source,
                         "corpus_reference": question.corpus_reference,
                         # Story 2.15: Secondary tags

@@ -23,7 +23,8 @@ class QuestionBase(BaseModel):
     correct_answer: str = Field(..., pattern="^[ABCD]$", description="Correct answer (A/B/C/D)")
     explanation: str = Field(..., min_length=10, description="Answer explanation")
     knowledge_area_id: str = Field(..., max_length=50, description="Knowledge area ID")
-    difficulty: float = Field(0.5, ge=0.0, le=1.0, description="IRT difficulty (0.0-1.0)")
+    difficulty: float = Field(0.0, ge=-3.0, le=3.0, description="IRT b-parameter (-3.0 to +3.0)")
+    difficulty_label: str | None = Field(None, max_length=10, description="Human-readable: Easy/Medium/Hard")
     source: str = Field("vendor", max_length=50, description="Question source")
     corpus_reference: str | None = Field(None, max_length=100, description="Source reference")
     # Story 2.15: Secondary tags for filtering/analysis
@@ -46,7 +47,8 @@ class QuestionUpdate(BaseModel):
     correct_answer: str | None = Field(None, pattern="^[ABCD]$")
     explanation: str | None = Field(None, min_length=10)
     knowledge_area_id: str | None = Field(None, max_length=50)
-    difficulty: float | None = Field(None, ge=0.0, le=1.0)
+    difficulty: float | None = Field(None, ge=-3.0, le=3.0)
+    difficulty_label: str | None = Field(None, max_length=10)
     discrimination: float | None = Field(None, ge=0.0, le=5.0)
     guess_rate: float | None = Field(None, ge=0.0, le=1.0)
     slip_rate: float | None = Field(None, ge=0.0, le=1.0)
@@ -60,6 +62,7 @@ class QuestionResponse(QuestionBase):
 
     id: UUID
     course_id: UUID
+    difficulty_label: str | None
     discrimination: float
     guess_rate: float
     slip_rate: float
@@ -118,24 +121,47 @@ class QuestionImport(BaseModel):
         }
 
     def get_difficulty_float(self) -> float:
-        """Convert difficulty to float (0.0-1.0)."""
+        """Convert difficulty to IRT b-parameter (-3.0 to +3.0)."""
         if self.difficulty is None:
-            return 0.5
+            return 0.0  # Medium difficulty
 
-        # Try parsing as float first
+        # Try parsing as float first (assume IRT scale if numeric)
         try:
             val = float(self.difficulty)
-            return max(0.0, min(1.0, val))
+            return max(-3.0, min(3.0, val))
         except ValueError:
             pass
 
-        # Map string difficulty to float
+        # Map string difficulty to IRT b-parameter
         difficulty_map = {
-            "easy": 0.3,
-            "medium": 0.5,
-            "hard": 0.7,
+            "easy": -1.5,
+            "medium": 0.0,
+            "hard": 1.5,
         }
-        return difficulty_map.get(self.difficulty.lower(), 0.5)
+        return difficulty_map.get(self.difficulty.lower(), 0.0)
+
+    def get_difficulty_label(self) -> str:
+        """Get human-readable difficulty label."""
+        if self.difficulty is None:
+            return "Medium"
+
+        # If already a string label, normalize it
+        if isinstance(self.difficulty, str):
+            label = self.difficulty.lower()
+            if label in ("easy", "medium", "hard"):
+                return label.capitalize()
+
+        # Classify from numeric value
+        try:
+            val = float(self.difficulty)
+            if val < -1.0:
+                return "Easy"
+            elif val <= 1.0:
+                return "Medium"
+            else:
+                return "Hard"
+        except ValueError:
+            return "Medium"
 
 
 class QuestionImportResult(BaseModel):
@@ -203,8 +229,9 @@ class QuestionListParams(BaseModel):
     """Query parameters for filtering questions."""
     concept_ids: list[UUID] | None = Field(None, description="Filter by concept IDs")
     knowledge_area_id: str | None = Field(None, max_length=50, description="Filter by knowledge area")
-    difficulty_min: float = Field(0.0, ge=0.0, le=1.0, description="Minimum difficulty")
-    difficulty_max: float = Field(1.0, ge=0.0, le=1.0, description="Maximum difficulty")
+    difficulty_min: float = Field(-3.0, ge=-3.0, le=3.0, description="Minimum IRT difficulty")
+    difficulty_max: float = Field(3.0, ge=-3.0, le=3.0, description="Maximum IRT difficulty")
+    difficulty_tier: str | None = Field(None, pattern="^(easy|medium|hard)$", description="Filter by tier: easy/medium/hard")
     exclude_ids: list[UUID] | None = Field(None, description="Question IDs to exclude")
     # Story 2.15: Secondary tag filters
     perspectives: list[str] | None = Field(None, description="Filter by perspective IDs (e.g., 'agile', 'bi')")
@@ -222,7 +249,8 @@ class QuestionListResponse(BaseModel):
     question_text: str
     options: dict[str, str]  # {"A": "...", "B": "...", "C": "...", "D": "..."}
     knowledge_area_id: str
-    difficulty: float
+    difficulty: float  # IRT b-parameter (-3.0 to +3.0)
+    difficulty_label: str | None = Field(None, description="Human-readable: Easy/Medium/Hard")
     discrimination: float
     concept_ids: list[UUID] = Field(default_factory=list, description="Mapped concept IDs")
     # Story 2.15: Secondary tags

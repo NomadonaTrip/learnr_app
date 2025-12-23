@@ -109,7 +109,7 @@ export function useQuizSession(config?: SessionConfig) {
         isResumed: data.is_resumed,
         totalQuestions: data.total_questions,
         correctCount: data.correct_count,
-        version: 1, // Initial version
+        version: data.version,
         startedAt: data.started_at,
       })
     },
@@ -124,6 +124,8 @@ export function useQuizSession(config?: SessionConfig) {
     mutationFn: (id: string) => quizService.pauseSession(id),
     onSuccess: (data) => {
       setPaused(data.is_paused)
+      // Update version from pause response
+      useQuizStore.setState({ version: data.version })
     },
     onError: (error) => {
       setError(getErrorMessage(error))
@@ -135,6 +137,8 @@ export function useQuizSession(config?: SessionConfig) {
     mutationFn: (id: string) => quizService.resumeSession(id),
     onSuccess: (data) => {
       setPaused(data.is_paused)
+      // Update version from resume response
+      useQuizStore.setState({ version: data.version })
     },
     onError: (error) => {
       setError(getErrorMessage(error))
@@ -219,10 +223,11 @@ export function useQuizSession(config?: SessionConfig) {
     },
     onSuccess: (data) => {
       setFeedback(data)
-      // Update session stats from response
+      // Update session stats and version from response
       useQuizStore.setState({
         totalQuestions: data.session_stats.questions_answered,
         correctCount: Math.round(data.session_stats.accuracy * data.session_stats.questions_answered),
+        version: data.session_stats.session_version,
       })
     },
     onError: (error) => {

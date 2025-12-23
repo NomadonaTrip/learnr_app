@@ -18,6 +18,7 @@ export const mockSessionStartResponse: SessionStartResponse = {
   is_resumed: false,
   status: 'active',
   started_at: '2025-12-17T10:00:00Z',
+  version: 1,
   total_questions: 0,
   correct_count: 0,
   first_question: null,
@@ -33,6 +34,7 @@ export const mockSessionResumedResponse: SessionStartResponse = {
   is_resumed: true,
   status: 'active',
   started_at: '2025-12-17T09:00:00Z',
+  version: 6,  // Resumed session has higher version due to previous updates
   total_questions: 5,
   correct_count: 3,
   first_question: null,
@@ -62,6 +64,7 @@ export const mockSessionPauseResponse: SessionPauseResponse = {
   session_id: 'session-uuid-123',
   status: 'paused',
   is_paused: true,
+  version: 3,
 }
 
 /**
@@ -71,6 +74,7 @@ export const mockSessionResumeResponse: SessionResumeResponse = {
   session_id: 'session-uuid-123',
   status: 'active',
   is_paused: false,
+  version: 4,
 }
 
 /**
@@ -139,6 +143,7 @@ export const mockCorrectAnswerResponse: AnswerResponse = {
     accuracy: 0.75,
     total_info_gain: 12.4,
     coverage_progress: 0.52,
+    session_version: 9,
   },
 }
 
@@ -161,6 +166,7 @@ export const mockIncorrectAnswerResponse: AnswerResponse = {
     accuracy: 0.67,
     total_info_gain: 14.2,
     coverage_progress: 0.58,
+    session_version: 10,
   },
 }
 

@@ -1,5 +1,3 @@
-version: '3.8'
-
 # =============================================================================
 # LearnR Local Development Environment
 # =============================================================================
@@ -108,6 +106,55 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
+  # Celery Worker (Background Tasks)
+  # ---------------------------------------------------------------------------
+  # Uncomment to run Celery worker for background jobs (reading queue, etc.)
+  # Note: Requires the API application to be built first
+  # celery-worker:
+  #   build:
+  #     context: ../..
+  #     dockerfile: infrastructure/docker/Dockerfile.api
+  #   container_name: learnr-celery-worker-dev
+  #   command: celery -A src.tasks worker --loglevel=info
+  #   environment:
+  #     DATABASE_URL: postgresql://learnr:learnr123@postgres:5432/learnr_dev
+  #     REDIS_URL: redis://:learnr123@redis:6379/0
+  #     QDRANT_URL: http://qdrant:6333
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - learnr-network
+  #   restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Celery Beat (Scheduled Tasks) - NEW for Epic 11
+  # ---------------------------------------------------------------------------
+  # Uncomment to run Celery Beat for scheduled tasks:
+  # - Monthly freeze reset (1st of month)
+  # - Notification scheduler (every 15 minutes)
+  # - Streak reminders (8pm / 10pm per user timezone)
+  # celery-beat:
+  #   build:
+  #     context: ../..
+  #     dockerfile: infrastructure/docker/Dockerfile.api
+  #   container_name: learnr-celery-beat-dev
+  #   command: celery -A src.tasks beat --loglevel=info --scheduler celery.beat:PersistentScheduler
+  #   environment:
+  #     DATABASE_URL: postgresql://learnr:learnr123@postgres:5432/learnr_dev
+  #     REDIS_URL: redis://:learnr123@redis:6379/0
+  #   volumes:
+  #     - celerybeat_schedule:/app/celerybeat-schedule
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - learnr-network
+  #   restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
   # Adminer (Optional - Database Web UI)
   # ---------------------------------------------------------------------------
   # Uncomment to enable database web interface at http://localhost:8080
@@ -147,6 +194,8 @@ volumes:
     name: learnr-redis-data-dev
   qdrant_data:
     name: learnr-qdrant-data-dev
+  celerybeat_schedule:
+    name: learnr-celerybeat-schedule-dev
 
 # =============================================================================
 # Networks

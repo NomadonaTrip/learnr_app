@@ -45,6 +45,7 @@ from src.routes import (
     beliefs,
     concepts,
     courses,
+    coverage,
     diagnostic,
     health,
     questions,
@@ -237,6 +238,7 @@ app.include_router(concepts.router, prefix="/v1")
 app.include_router(questions.router, prefix="/v1")
 app.include_router(reading.router, prefix="/v1")
 app.include_router(beliefs.router, prefix="/v1")
+app.include_router(coverage.router, prefix="/v1")
 app.include_router(diagnostic.router, prefix="/v1")
 app.include_router(quiz.router, prefix="/v1")
 

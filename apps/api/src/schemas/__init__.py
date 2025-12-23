@@ -92,6 +92,15 @@ from .reading_chunk import (
     ReadingListResponse,
     ReadingQueryParams,
 )
+from .coverage import (
+    ConceptStatus,
+    CoverageDetailReport,
+    CoverageReport,
+    CoverageSummary,
+    GapConcept,
+    GapConceptList,
+    KnowledgeAreaCoverage,
+)
 from .user import UserCreate, UserResponse, UserUpdate
 
 __all__ = [
@@ -171,4 +180,12 @@ __all__ = [
     "CachedAnswerResponse",
     "ConceptMasteryUpdate",
     "SessionStats",
+    # Coverage (Story 4.5)
+    "ConceptStatus",
+    "KnowledgeAreaCoverage",
+    "CoverageSummary",
+    "CoverageReport",
+    "CoverageDetailReport",
+    "GapConcept",
+    "GapConceptList",
 ]

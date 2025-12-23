@@ -67,6 +67,37 @@ Delivers: Course and enrollment data model, course-scoped content (concepts, que
 
 ---
 
+**Epic 10: IRT Difficulty Distribution & Ability-Based Question Selection**
+**Goal:** Implement Item Response Theory (IRT) based difficulty distribution that selects question difficulty levels probabilistically based on user ability classification, ensuring learners receive appropriately challenging questions.
+
+Delivers: IRT scale migration (-3.0 to +3.0), user ability classification per concept (novice/intermediate/expert), probabilistic difficulty tier selection, combined BKT-IRT question selection, updated question import pipeline with IRT parameters.
+
+**Key Capabilities:**
+- BKT Layer: "What concept to teach" (information gain)
+- IRT Layer: "How hard to teach it" (ability-based distribution)
+- Difficulty Distribution: Novice (70/25/5), Intermediate (40/40/20), Expert (10/40/50)
+
+**Architecture Reference:** `docs/architecture/adr-002-irt-difficulty-scale.md`
+**Algorithm Reference:** `docs/prd/algorithm-specifications.md` (Algorithms 7, 8, 9)
+
+---
+
+**Epic 11: Gamification & Motivation System**
+**Goal:** Implement a comprehensive gamification system featuring daily study streaks, achievement badges, milestone rewards, and motivational notifications to drive consistent user engagement and long-term retention.
+
+Delivers: Daily streak tracking with qualification rules, streak visualization on dashboard, achievement badge system (16+ badges across 4 categories), streak freeze/protection feature, streak risk notifications, customizable study goals, admin gamification analytics.
+
+**Key Capabilities:**
+- Daily Streaks: Track consecutive study days (5 questions OR 10 min OR 3 readings)
+- Achievement Badges: Streak (3/7/14/30/60 days), Volume (50/250/500/1000 questions), Mastery, Special
+- Streak Protection: 2 freezes/month, retroactive 24h grace period
+- Motivational Notifications: Evening reminder, late warning, milestone celebrations
+- Study Goals: Daily/weekly targets with progress tracking
+
+**Database Tables:** `study_streaks`, `daily_activity`, `achievements`, `user_achievements`, `streak_notifications`
+
+---
+
 ### Epic Sequencing Rationale
 
 **Why This Structure:**
@@ -89,6 +120,10 @@ Delivers: Course and enrollment data model, course-scoped content (concepts, que
 
 9. **Epic 9** adds multi-course capability post-launch - validates BKT engine is course-agnostic before Phase 2 (user-generated content)
 
+10. **Epic 10** adds IRT difficulty distribution after BKT proven - enhances question selection with ability-aware difficulty targeting
+
+11. **Epic 11** adds gamification after core learning proven - drives engagement and retention through streaks and achievements
+
 **Incremental Value Delivery:**
 - After Epic 1: Team can develop and deploy code
 - After Epic 2: Content is loaded and queryable
@@ -99,6 +134,8 @@ Delivers: Course and enrollment data model, course-scoped content (concepts, que
 - After Epic 7: Retention system ensures long-term learning
 - After Epic 8: Platform ready for production case study validation
 - After Epic 9: **Platform supports multiple certifications - ready for PSM1/CFA expansion**
+- After Epic 10: **Optimal difficulty targeting - reduced frustration/boredom, improved engagement**
+- After Epic 11: **Gamification drives 2-3x engagement - streaks, badges, goals create habit loops**
 
 ---
 

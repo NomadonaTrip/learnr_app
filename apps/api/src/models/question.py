@@ -60,7 +60,8 @@ class Question(Base):
 
     # Metadata - multi-course aware
     knowledge_area_id = Column(String(50), nullable=False)  # References course.knowledge_areas[].id
-    difficulty = Column(Float, nullable=False, default=0.5)  # IRT difficulty parameter (0.0-1.0)
+    difficulty = Column(Float, nullable=False, default=0.0)  # IRT b-parameter (-3.0 to +3.0)
+    difficulty_label = Column(String(10), nullable=True)  # Human-readable: Easy/Medium/Hard
     source = Column(String(50), nullable=False, default="vendor")
     corpus_reference = Column(String(100), nullable=True)  # Generic reference (BABOK, PMBOK, etc.)
 
@@ -119,7 +120,7 @@ class Question(Base):
             name="ck_questions_correct_answer",
         ),
         CheckConstraint(
-            "difficulty >= 0.0 AND difficulty <= 1.0",
+            "difficulty >= -3.0 AND difficulty <= 3.0",
             name="ck_questions_difficulty_range",
         ),
         CheckConstraint(

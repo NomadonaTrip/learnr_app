@@ -33,6 +33,7 @@ export interface SessionStartResponse {
   is_resumed: boolean
   status: string
   started_at: string
+  version: number
   total_questions: number
   correct_count: number
   first_question: null // Placeholder for Story 4.2
@@ -62,6 +63,7 @@ export interface SessionPauseResponse {
   session_id: string
   status: string
   is_paused: boolean
+  version: number
 }
 
 /**
@@ -71,6 +73,7 @@ export interface SessionResumeResponse {
   session_id: string
   status: string
   is_paused: boolean
+  version: number
 }
 
 /**
@@ -141,6 +144,7 @@ export interface SessionStats {
   accuracy: number
   total_info_gain: number
   coverage_progress: number
+  session_version: number
 }
 
 /**

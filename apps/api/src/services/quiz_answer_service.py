@@ -333,6 +333,7 @@ class QuizAnswerService:
             accuracy=accuracy,
             total_info_gain=0.0,  # Stub: Story 4.4 will populate
             coverage_progress=0.0,  # Stub: Could be calculated from concept coverage
+            session_version=session.version,
         )
 
         return AnswerResponse(

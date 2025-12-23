@@ -43,7 +43,7 @@ class SelectedQuestion(BaseModel):
         None, description="Human-readable knowledge area name"
     )
     difficulty: float = Field(
-        ..., ge=0.0, le=1.0, description="Question difficulty (0.0-1.0)"
+        ..., ge=-3.0, le=3.0, description="IRT difficulty b-parameter (-3.0 to +3.0)"
     )
     estimated_info_gain: float = Field(
         ..., description="Selection metric (info gain or entropy depending on strategy)"

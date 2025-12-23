@@ -1,15 +1,20 @@
 """
-QuestionSelector service for Bayesian question selection.
-Implements information-gain-based question selection for adaptive quizzes.
+QuestionSelector service for Bayesian question selection with IRT difficulty distribution.
+
+Implements combined BKT-IRT question selection (Algorithm 9):
+- BKT Layer: Selects target concept based on information gain
+- IRT Layer: Selects question difficulty based on user ability level
 """
 import math
+import random
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 from uuid import UUID
 
 import structlog
-from sqlalchemy import select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.belief_state import BeliefState
@@ -17,6 +22,81 @@ from src.models.question import Question
 from src.models.quiz_response import QuizResponse
 
 logger = structlog.get_logger(__name__)
+
+# =============================================================================
+# IRT Difficulty Distribution Configuration (Algorithm 8)
+# =============================================================================
+
+AbilityLevel = Literal['novice', 'intermediate', 'expert']
+
+# Difficulty distribution by ability level
+# Keys: ability level, Values: probability weights for each tier
+DIFFICULTY_DISTRIBUTION = {
+    'novice': {
+        'easy': 0.70,      # 70% easy questions
+        'medium': 0.25,    # 25% medium questions
+        'hard': 0.05       # 5% hard questions (exposure, not mastery)
+    },
+    'intermediate': {
+        'easy': 0.40,      # 40% easy (reinforcement)
+        'medium': 0.40,    # 40% medium (core learning zone)
+        'hard': 0.20       # 20% hard (stretch challenges)
+    },
+    'expert': {
+        'easy': 0.10,      # 10% easy (quick wins, confidence)
+        'medium': 0.40,    # 40% medium (maintain fluency)
+        'hard': 0.50       # 50% hard (primary challenge)
+    }
+}
+
+# Difficulty tier boundaries using IRT b-parameter scale (-3.0 to +3.0)
+DIFFICULTY_TIERS = {
+    'easy': (-3.0, -1.0),    # Questions with difficulty < -1.0
+    'medium': (-1.0, 1.0),   # Questions with difficulty -1.0 to 1.0
+    'hard': (1.0, 3.0)       # Questions with difficulty >= 1.0
+}
+
+# Ability classification thresholds (Algorithm 7)
+ABILITY_THRESHOLDS = {
+    # BKT mastery probability thresholds
+    "mastery_novice_max": 0.4,       # Below this → likely novice
+    "mastery_expert_min": 0.7,       # Above this → possibly expert
+
+    # Minimum correct answers at difficulty level to demonstrate competence
+    "medium_competence_min": 3,      # Need 3+ correct at medium to be intermediate
+    "hard_competence_min": 3,        # Need 3+ correct at hard to be expert
+
+    # Accuracy thresholds
+    "medium_accuracy_min": 0.6,      # 60%+ accuracy at medium for intermediate
+    "hard_accuracy_min": 0.5,        # 50%+ accuracy at hard for expert
+}
+
+
+@dataclass
+class DifficultyPerformance:
+    """User's performance breakdown by difficulty tier for a concept."""
+    easy_correct: int = 0
+    easy_total: int = 0
+    medium_correct: int = 0
+    medium_total: int = 0
+    hard_correct: int = 0
+    hard_total: int = 0
+
+    @property
+    def easy_accuracy(self) -> float:
+        return self.easy_correct / self.easy_total if self.easy_total > 0 else 0.0
+
+    @property
+    def medium_accuracy(self) -> float:
+        return self.medium_correct / self.medium_total if self.medium_total > 0 else 0.0
+
+    @property
+    def hard_accuracy(self) -> float:
+        return self.hard_correct / self.hard_total if self.hard_total > 0 else 0.0
+
+    @property
+    def total_responses(self) -> int:
+        return self.easy_total + self.medium_total + self.hard_total
 
 
 @dataclass
@@ -611,3 +691,389 @@ class QuestionSelector:
             return base_gain * (1 + bonus)
 
         return base_gain
+
+    # =========================================================================
+    # IRT Difficulty Distribution Methods (Algorithm 7 & 8)
+    # =========================================================================
+
+    async def get_difficulty_performance(
+        self,
+        user_id: UUID,
+        concept_id: UUID,
+    ) -> DifficultyPerformance:
+        """
+        Get user's performance breakdown by difficulty tier for a concept.
+
+        Queries quiz_responses joined with questions to aggregate performance
+        by IRT difficulty tier.
+
+        Args:
+            user_id: User UUID
+            concept_id: Concept UUID
+
+        Returns:
+            DifficultyPerformance with counts by tier
+        """
+        from src.models.question_concept import QuestionConcept
+
+        # Query responses for questions mapped to this concept
+        result = await self.db.execute(
+            select(
+                Question.difficulty,
+                QuizResponse.is_correct
+            )
+            .join(QuestionConcept, Question.id == QuestionConcept.question_id)
+            .join(QuizResponse, Question.id == QuizResponse.question_id)
+            .where(
+                and_(
+                    QuizResponse.user_id == user_id,
+                    QuestionConcept.concept_id == concept_id
+                )
+            )
+        )
+
+        performance = DifficultyPerformance()
+
+        for row in result.all():
+            difficulty, is_correct = row
+
+            # Classify by IRT tier boundaries
+            if difficulty < DIFFICULTY_TIERS['easy'][1]:  # < -1.0
+                performance.easy_total += 1
+                if is_correct:
+                    performance.easy_correct += 1
+            elif difficulty < DIFFICULTY_TIERS['medium'][1]:  # < 1.0
+                performance.medium_total += 1
+                if is_correct:
+                    performance.medium_correct += 1
+            else:  # >= 1.0
+                performance.hard_total += 1
+                if is_correct:
+                    performance.hard_correct += 1
+
+        return performance
+
+    def classify_user_ability(
+        self,
+        mastery_probability: float,
+        performance: DifficultyPerformance
+    ) -> AbilityLevel:
+        """
+        Classify user's ability level for a concept (Algorithm 7).
+
+        Classification Rules (in order of precedence):
+
+        EXPERT if:
+          - Mastery probability >= 0.7 AND
+          - At least 3 correct answers at Hard difficulty AND
+          - Hard accuracy >= 50%
+
+        INTERMEDIATE if:
+          - Mastery probability >= 0.4 AND
+          - At least 3 correct answers at Medium difficulty AND
+          - Medium accuracy >= 60%
+
+        NOVICE otherwise (default for new users or struggling learners)
+
+        Args:
+            mastery_probability: BKT mastery probability (0.0-1.0)
+            performance: User's performance breakdown by tier
+
+        Returns:
+            AbilityLevel: 'novice', 'intermediate', or 'expert'
+        """
+        thresholds = ABILITY_THRESHOLDS
+
+        # Check for Expert level
+        if (mastery_probability >= thresholds["mastery_expert_min"] and
+            performance.hard_correct >= thresholds["hard_competence_min"] and
+            performance.hard_accuracy >= thresholds["hard_accuracy_min"]):
+            return 'expert'
+
+        # Check for Intermediate level
+        if (mastery_probability >= thresholds["mastery_novice_max"] and
+            performance.medium_correct >= thresholds["medium_competence_min"] and
+            performance.medium_accuracy >= thresholds["medium_accuracy_min"]):
+            return 'intermediate'
+
+        # Default to Novice
+        return 'novice'
+
+    def select_difficulty_tier(self, ability_level: AbilityLevel) -> str:
+        """
+        Probabilistically select a difficulty tier based on ability level.
+
+        Uses weighted random selection based on DIFFICULTY_DISTRIBUTION.
+
+        Args:
+            ability_level: User's classified ability level
+
+        Returns:
+            Difficulty tier: 'easy', 'medium', or 'hard'
+        """
+        distribution = DIFFICULTY_DISTRIBUTION[ability_level]
+
+        # Weighted random choice
+        rand = random.random()
+        cumulative = 0.0
+
+        for tier, probability in distribution.items():
+            cumulative += probability
+            if rand < cumulative:
+                return tier
+
+        return 'medium'  # Fallback (should never reach)
+
+    def get_questions_in_tier(
+        self,
+        questions: list[Question],
+        tier: str
+    ) -> list[Question]:
+        """
+        Filter questions to those within a difficulty tier.
+
+        Args:
+            questions: Questions to filter
+            tier: Difficulty tier ('easy', 'medium', 'hard')
+
+        Returns:
+            Questions within the specified tier
+        """
+        min_diff, max_diff = DIFFICULTY_TIERS[tier]
+
+        return [
+            q for q in questions
+            if min_diff <= q.difficulty < max_diff
+        ]
+
+    def _fallback_tier_selection(
+        self,
+        questions: list[Question],
+        original_tier: str,
+        ability_level: AbilityLevel
+    ) -> list[Question]:
+        """
+        Fallback tier selection when original tier has no questions.
+
+        Strategy based on ability level:
+        - Novice: Prefer medium over hard
+        - Intermediate: Prefer adjacent tier with more questions
+        - Expert: Prefer medium over easy
+
+        Args:
+            questions: All available questions
+            original_tier: Originally selected tier
+            ability_level: User's ability level
+
+        Returns:
+            Questions from fallback tier, or empty list
+        """
+        tier_order = {
+            'novice': ['medium', 'hard'],       # If no easy, try medium, then hard
+            'intermediate': ['easy', 'hard'],   # If no medium, try easy, then hard
+            'expert': ['medium', 'easy']        # If no hard, try medium, then easy
+        }
+
+        for fallback_tier in tier_order[ability_level]:
+            fallback_questions = self.get_questions_in_tier(questions, fallback_tier)
+            if fallback_questions:
+                logger.debug(
+                    "irt_tier_fallback",
+                    original_tier=original_tier,
+                    fallback_tier=fallback_tier,
+                    questions_found=len(fallback_questions)
+                )
+                return fallback_questions
+
+        return []
+
+    async def select_question_by_irt(
+        self,
+        user_id: UUID,
+        concept_id: UUID,
+        available_questions: list[Question],
+        belief: BeliefState | None = None,
+    ) -> tuple[Question, AbilityLevel, str]:
+        """
+        Select a question using IRT-based difficulty distribution (Algorithm 8).
+
+        Steps:
+        1. Get user's response history for concept
+        2. Classify ability level (novice/intermediate/expert)
+        3. Sample difficulty tier from distribution
+        4. Filter questions to tier
+        5. Random selection from filtered pool
+        6. Fallback to adjacent tier if empty
+
+        Args:
+            user_id: User UUID
+            concept_id: Target concept UUID
+            available_questions: Pre-filtered questions for the concept
+            belief: Optional pre-loaded belief state
+
+        Returns:
+            Tuple of (selected_question, ability_level, selected_tier)
+
+        Raises:
+            ValueError: If no questions available
+        """
+        if not available_questions:
+            raise ValueError(f"No questions available for concept {concept_id}")
+
+        # Step 1: Get performance history
+        performance = await self.get_difficulty_performance(user_id, concept_id)
+
+        # Step 2: Classify ability level
+        if performance.total_responses == 0:
+            # No history - default to novice
+            ability_level: AbilityLevel = 'novice'
+        else:
+            mastery_prob = belief.mean if belief else 0.5
+            ability_level = self.classify_user_ability(mastery_prob, performance)
+
+        # Step 3: Sample difficulty tier
+        target_tier = self.select_difficulty_tier(ability_level)
+
+        # Step 4: Filter questions to tier
+        tier_questions = self.get_questions_in_tier(available_questions, target_tier)
+
+        # Step 5: Fallback if tier is empty
+        was_fallback = False
+        if not tier_questions:
+            tier_questions = self._fallback_tier_selection(
+                available_questions, target_tier, ability_level
+            )
+            was_fallback = True
+
+        # Step 6: Random selection from tier
+        if tier_questions:
+            selected = random.choice(tier_questions)
+        else:
+            # Ultimate fallback: any question
+            selected = random.choice(available_questions)
+            was_fallback = True
+
+        logger.info(
+            "irt_question_selected",
+            user_id=str(user_id),
+            concept_id=str(concept_id),
+            ability_level=ability_level,
+            target_tier=target_tier,
+            question_id=str(selected.id),
+            question_difficulty=selected.difficulty,
+            was_fallback=was_fallback,
+            distribution=DIFFICULTY_DISTRIBUTION[ability_level],
+            performance={
+                "easy": f"{performance.easy_correct}/{performance.easy_total}",
+                "medium": f"{performance.medium_correct}/{performance.medium_total}",
+                "hard": f"{performance.hard_correct}/{performance.hard_total}",
+            }
+        )
+
+        return selected, ability_level, target_tier
+
+    # =========================================================================
+    # Combined BKT-IRT Selection (Algorithm 9)
+    # =========================================================================
+
+    async def select_next_question_adaptive(
+        self,
+        user_id: UUID,
+        session_id: UUID,
+        beliefs: dict[UUID, BeliefState],
+        available_questions: list[Question],
+        knowledge_area_filter: str | None = None,
+        use_irt: bool = True,
+    ) -> tuple[Question, float, AbilityLevel | None, str | None]:
+        """
+        Combined BKT-IRT adaptive question selection (Algorithm 9).
+
+        This method orchestrates the complete adaptive selection process:
+
+        BKT Layer (What to teach):
+        1. Calculate information gain for each concept
+        2. Apply prerequisite weighting
+        3. Select concept with highest info gain
+
+        IRT Layer (How hard to teach):
+        4. Classify user ability for selected concept
+        5. Sample difficulty tier from distribution
+        6. Select question at appropriate difficulty
+
+        Args:
+            user_id: User UUID
+            session_id: Quiz session UUID
+            beliefs: Dictionary mapping concept_id to BeliefState
+            available_questions: List of all available questions
+            knowledge_area_filter: Optional knowledge area filter
+            use_irt: Whether to apply IRT difficulty distribution
+
+        Returns:
+            Tuple of (question, info_gain, ability_level, difficulty_tier)
+
+        Raises:
+            ValueError: If no eligible questions available
+        """
+        start_time = time.perf_counter()
+
+        # Apply filters (existing logic)
+        candidates = await self._filter_questions(
+            user_id=user_id,
+            session_id=session_id,
+            questions=available_questions,
+            knowledge_area_filter=knowledge_area_filter,
+        )
+
+        if not candidates:
+            if knowledge_area_filter:
+                raise ValueError(
+                    f"No questions available for knowledge area: {knowledge_area_filter}"
+                )
+            raise ValueError("No eligible questions available for selection")
+
+        # BKT Layer: Select by information gain to find best concept
+        question, info_gain = self._select_by_info_gain(candidates, beliefs)
+
+        # Get the primary concept for this question
+        primary_concept_id = None
+        if question.question_concepts:
+            primary_concept_id = question.question_concepts[0].concept_id
+
+        ability_level = None
+        difficulty_tier = None
+
+        if use_irt and primary_concept_id:
+            # Get questions for this concept
+            concept_questions = [
+                q for q in candidates
+                if any(qc.concept_id == primary_concept_id for qc in q.question_concepts)
+            ]
+
+            if concept_questions:
+                # IRT Layer: Select question at appropriate difficulty
+                belief = beliefs.get(primary_concept_id)
+                question, ability_level, difficulty_tier = await self.select_question_by_irt(
+                    user_id=user_id,
+                    concept_id=primary_concept_id,
+                    available_questions=concept_questions,
+                    belief=belief,
+                )
+
+        duration_ms = (time.perf_counter() - start_time) * 1000
+        concept_ids = [qc.concept_id for qc in question.question_concepts]
+
+        logger.info(
+            "adaptive_question_selected",
+            session_id=str(session_id),
+            question_id=str(question.id),
+            info_gain=round(info_gain, 4),
+            ability_level=ability_level,
+            difficulty_tier=difficulty_tier,
+            question_difficulty=question.difficulty,
+            concepts_tested=[str(c) for c in concept_ids],
+            candidates_count=len(candidates),
+            use_irt=use_irt,
+            selection_duration_ms=round(duration_ms, 2),
+        )
+
+        return question, info_gain, ability_level, difficulty_tier
