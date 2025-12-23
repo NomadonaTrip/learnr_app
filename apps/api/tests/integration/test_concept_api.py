@@ -3,9 +3,7 @@ Integration tests for concept API endpoints (Story 2.10).
 Tests full stack with real database and dependencies.
 """
 import time
-from datetime import datetime, timezone
-from typing import List
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from fastapi import status
@@ -41,7 +39,7 @@ async def test_course(db_session: AsyncSession) -> Course:
 async def test_concepts(
     db_session: AsyncSession,
     test_course: Course
-) -> List[Concept]:
+) -> list[Concept]:
     """Create test concepts."""
     concepts = [
         Concept(
@@ -98,8 +96,8 @@ async def test_concepts(
 async def test_questions(
     db_session: AsyncSession,
     test_course: Course,
-    test_concepts: List[Concept]
-) -> List[Question]:
+    test_concepts: list[Concept]
+) -> list[Question]:
     """Create test questions."""
     questions = [
         Question(
@@ -166,7 +164,7 @@ class TestConceptListAPI:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept]
+        test_concepts: list[Concept]
     ):
         """Test successful concept list retrieval."""
         response = await async_client.get(
@@ -190,7 +188,7 @@ class TestConceptListAPI:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept]
+        test_concepts: list[Concept]
     ):
         """Test filtering concepts by knowledge area."""
         response = await async_client.get(
@@ -211,7 +209,7 @@ class TestConceptListAPI:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept]
+        test_concepts: list[Concept]
     ):
         """Test searching concepts by name."""
         response = await async_client.get(
@@ -231,7 +229,7 @@ class TestConceptListAPI:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept]
+        test_concepts: list[Concept]
     ):
         """Test pagination works correctly."""
         # Get first page
@@ -269,7 +267,7 @@ class TestGetSingleConcept:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept]
+        test_concepts: list[Concept]
     ):
         """Test successful single concept retrieval."""
         concept = test_concepts[0]
@@ -312,7 +310,7 @@ class TestGetPrerequisites:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept]
+        test_concepts: list[Concept]
     ):
         """Test retrieving prerequisite chain."""
         concept = test_concepts[0]  # Stakeholder Analysis
@@ -334,7 +332,7 @@ class TestGetPrerequisites:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept]
+        test_concepts: list[Concept]
     ):
         """Test concept with no prerequisites."""
         concept = test_concepts[1]  # Business Need (no prerequisites)
@@ -361,8 +359,8 @@ class TestGetQuestions:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept],
-        test_questions: List[Question]
+        test_concepts: list[Concept],
+        test_questions: list[Question]
     ):
         """Test retrieving questions for a concept."""
         concept = test_concepts[0]  # Stakeholder Analysis
@@ -390,8 +388,8 @@ class TestGetStats:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept],
-        test_questions: List[Question]
+        test_concepts: list[Concept],
+        test_questions: list[Question]
     ):
         """Test retrieving concept statistics."""
         response = await async_client.get(
@@ -428,7 +426,7 @@ class TestPerformance:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept]
+        test_concepts: list[Concept]
     ):
         """Test that list endpoint meets <100ms target (AC 7)."""
         start_time = time.time()
@@ -449,7 +447,7 @@ class TestPerformance:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept]
+        test_concepts: list[Concept]
     ):
         """Test that stats endpoint meets <100ms target (AC 7)."""
         start_time = time.time()
@@ -474,7 +472,7 @@ class TestCaching:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept]
+        test_concepts: list[Concept]
     ):
         """Test that concept list responses are cached."""
         # First request (cache miss)
@@ -499,7 +497,7 @@ class TestCaching:
         async_client: AsyncClient,
         auth_headers: dict,
         test_course: Course,
-        test_concepts: List[Concept]
+        test_concepts: list[Concept]
     ):
         """Test that stats responses are cached."""
         # First request (cache miss)

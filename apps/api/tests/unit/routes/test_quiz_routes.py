@@ -2,7 +2,7 @@
 Unit tests for quiz API routes.
 Tests quiz session endpoints with dependency injection mocks.
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
@@ -13,7 +13,6 @@ from httpx import ASGITransport, AsyncClient
 from src.db.session import get_db
 from src.dependencies import get_active_enrollment, get_current_user, get_quiz_session_service
 from src.routes.quiz import router
-
 
 # ============================================================================
 # Test Fixtures
@@ -91,13 +90,13 @@ def create_mock_quiz_session(
     session.session_type = session_type
     session.question_strategy = question_strategy
     session.knowledge_area_filter = knowledge_area_filter
-    session.started_at = datetime.now(timezone.utc)
+    session.started_at = datetime.now(UTC)
     session.ended_at = ended_at
     session.total_questions = total_questions
     session.correct_count = correct_count
     session.is_paused = is_paused
     session.version = version
-    session.updated_at = datetime.now(timezone.utc)
+    session.updated_at = datetime.now(UTC)
 
     # Derive status
     if ended_at:
@@ -444,7 +443,7 @@ class TestEndSession:
         ended_session = create_mock_quiz_session(
             session_id=session_id,
             user_id=user.id,
-            ended_at=datetime.now(timezone.utc),
+            ended_at=datetime.now(UTC),
             total_questions=20,
             correct_count=15,
             version=2,

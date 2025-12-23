@@ -2,8 +2,9 @@
 Unit tests for Concept repository.
 Tests CRUD operations with course_id FK support.
 """
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from src.models.concept import Concept
 from src.models.course import Course

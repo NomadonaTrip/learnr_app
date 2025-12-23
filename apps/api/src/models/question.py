@@ -17,7 +17,7 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func, text
 
@@ -60,9 +60,16 @@ class Question(Base):
 
     # Metadata - multi-course aware
     knowledge_area_id = Column(String(50), nullable=False)  # References course.knowledge_areas[].id
-    difficulty = Column(Float, nullable=False, default=0.5)  # IRT difficulty parameter (0.0-1.0)
+    difficulty = Column(Float, nullable=False, default=0.0)  # IRT b-parameter (-3.0 to +3.0)
+    difficulty_label = Column(String(10), nullable=True)  # Human-readable: Easy/Medium/Hard
     source = Column(String(50), nullable=False, default="vendor")
     corpus_reference = Column(String(100), nullable=True)  # Generic reference (BABOK, PMBOK, etc.)
+
+    # Secondary tags for filtering/analysis (not primary assessment dimensions)
+    # BABOK Perspectives (Chapter 10): Agile, BI, IT, BPM
+    perspectives = Column(ARRAY(String), nullable=True, default=[])
+    # BABOK Underlying Competencies (Chapter 9): Analytical, Communication, etc.
+    competencies = Column(ARRAY(String), nullable=True, default=[])
 
     # IRT parameters for adaptive learning
     discrimination = Column(Float, nullable=False, default=1.0)  # IRT discrimination parameter
@@ -113,7 +120,7 @@ class Question(Base):
             name="ck_questions_correct_answer",
         ),
         CheckConstraint(
-            "difficulty >= 0.0 AND difficulty <= 1.0",
+            "difficulty >= -3.0 AND difficulty <= 3.0",
             name="ck_questions_difficulty_range",
         ),
         CheckConstraint(

@@ -12,7 +12,6 @@ from src.models.enrollment import Enrollment
 from src.models.user import User
 from src.utils.auth import create_access_token, hash_password
 
-
 # ============================================================================
 # Fixtures
 # ============================================================================

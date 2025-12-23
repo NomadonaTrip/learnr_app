@@ -2,11 +2,10 @@
 Integration tests for QuestionRepository.
 Tests database operations for question import with multi-course support.
 """
-import pytest
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.course import Course
 from src.models.question import Question

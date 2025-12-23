@@ -4,8 +4,9 @@ Integration tests for Concepts.
 Tests concept creation in database with course_id FK,
 bulk insert performance, index effectiveness, and foreign key constraints.
 """
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from src.models.concept import Concept
 from src.models.course import Course
@@ -165,7 +166,7 @@ async def test_cascade_delete_removes_concepts(db_session):
 
     # Verify concepts were deleted via raw query
     # (repository query would fail since course doesn't exist)
-    from sqlalchemy import select, func
+    from sqlalchemy import func, select
     result = await db_session.execute(
         select(func.count(Concept.id)).where(Concept.course_id == course_id)
     )
@@ -332,8 +333,9 @@ async def test_get_concept_count_by_ka_all_kas(db_session, cbap_course):
 @pytest.mark.asyncio
 async def test_concept_course_relationship_bidirectional(db_session, cbap_course):
     """Test that concept-course relationship works both directions."""
-    from sqlalchemy.orm import selectinload
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
     from src.models.course import Course
 
     repo = ConceptRepository(db_session)

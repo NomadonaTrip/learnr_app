@@ -140,9 +140,9 @@ async def get_reading_content(
     # Fallback to semantic search if no results
     if not chunks:
         logger.info(
-            "reading_fallback_to_semantic_search",
-            course_id=str(course.id),
-            concept_ids=[str(cid) for cid in concept_ids],
+            "reading_fallback_to_semantic_search: course=%s concepts=%s",
+            str(course.id),
+            [str(cid) for cid in concept_ids],
         )
 
         # Batch fetch concept names for semantic search (single query)
@@ -214,23 +214,23 @@ async def get_reading_content(
     # Log performance warning if slow
     if response_time_ms > 200:
         logger.warning(
-            "slow_reading_query",
-            course_slug=course_slug,
-            response_time_ms=response_time_ms,
-            concept_count=len(concept_ids),
-            results_count=len(items),
-            fallback_used=fallback_used,
+            "slow_reading_query: course=%s time=%.2fms concepts=%d results=%d fallback=%s",
+            course_slug,
+            response_time_ms,
+            len(concept_ids),
+            len(items),
+            fallback_used,
         )
 
     # Add timing to response headers
     request.state.response_time_ms = response_time_ms
 
     logger.info(
-        "reading_query_complete",
-        course_slug=course_slug,
-        response_time_ms=response_time_ms,
-        results_count=len(items),
-        fallback_used=fallback_used,
+        "reading_query_complete: course=%s time=%.2fms results=%d fallback=%s",
+        course_slug,
+        response_time_ms,
+        len(items),
+        fallback_used,
     )
 
     return ReadingListResponse(

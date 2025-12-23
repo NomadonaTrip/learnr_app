@@ -88,6 +88,73 @@ All questions must belong to one of these 6 CBAP Knowledge Areas:
 5. **Requirements Analysis and Design Definition**
 6. **Solution Evaluation**
 
+### Non-Conventional KA Mapping (Story 2.16)
+
+The import script also supports **non-conventional KA values** from BABOK Chapters 9 and 10:
+
+#### Perspective KAs (Chapter 10)
+
+Questions with perspective KAs are automatically mapped to primary KAs for BKT scoring:
+
+| Perspective KA | Primary KA | Perspective ID |
+|----------------|------------|----------------|
+| Agile Perspective | `strategy` | `agile` |
+| Business Intelligence Perspective | `solution-eval` | `bi` |
+| Business Process Management Perspective | `radd` | `bpm` |
+| Information Technology Perspective | `radd` | `it` |
+| Business Architecture Perspective | `strategy` | `ba` |
+
+**Matching behavior:**
+- Case-insensitive matching (e.g., "AGILE PERSPECTIVE" works)
+- Partial matching supported (e.g., "Agile" or "Agile Perspective" both work)
+- Leading/trailing whitespace is stripped
+
+#### Underlying Competencies (Chapter 9)
+
+Questions with `ka = "Underlying Competencies"` have their primary KA **inferred from concept_tags**:
+
+| Tag Keywords | Inferred Primary KA |
+|--------------|---------------------|
+| elicitation, interview, workshop, collaboration, communication, facilitation | `elicitation` |
+| strategy, conceptual, systems-thinking, business-acumen, industry, organization | `strategy` |
+| decision, prioritiz*, approval, traceability, change, governance | `rlcm` |
+| model, design, data, analysis, specification, diagram, prototype | `radd` |
+| evaluation, metric, performance, assessment, measure, kpi | `solution-eval` |
+| (no match) | `ba-planning` (fallback) |
+
+**Competency IDs are extracted** from the concept_tags via TagClassifier (e.g., "Communication-Skills" → `communication` competency ID).
+
+#### Import Behavior
+
+When processing non-conventional KAs:
+
+1. **Perspective questions:**
+   - Primary KA is set to the configured mapping (e.g., Agile → strategy)
+   - Perspective ID is added to the `perspectives` array
+   - Logged at INFO level: `"Mapped non-conventional KA 'Agile Perspective' -> 'strategy'"`
+
+2. **Competency questions:**
+   - Primary KA is inferred from concept_tags keywords
+   - Competency IDs are extracted from concept_tags
+   - Warning logged if no concept_tags provided
+
+3. **Secondary tags:**
+   - All concept_tags are processed by TagClassifier
+   - Additional perspectives/competencies from tags are appended
+   - Arrays are deduplicated before storing
+
+#### Example
+
+CSV row:
+```
+"What agile practice...",A,B,C,D,A,"Explanation","Agile Perspective","Medium","Scrum-Methodology,Sprint-Planning"
+```
+
+Result:
+- `knowledge_area_id`: `strategy` (mapped from Agile Perspective)
+- `perspectives`: `["agile"]` (from KA + may include more from tags)
+- `competencies`: `[]` (no competency keywords in tags)
+
 ### Validation Rules
 
 The script validates each question before import:
@@ -403,3 +470,250 @@ docker-compose -f infrastructure/docker/docker-compose.dev.yml up qdrant -d
 **Solution:**
 1. Check database has 500 questions
 2. Re-run script (idempotent - will only upload missing vectors)
+
+---
+
+## Sync Belief States
+
+The `sync_belief_states.py` script ensures all enrolled users have belief states for all concepts in a course. This is needed when new concepts are added after users have already registered (Story 2.14).
+
+### When to Use
+
+Run this script after:
+- Importing questions with `--create-missing-concepts` flag (Story 2.13)
+- Manually adding new concepts to the database
+- Any scenario where concepts exist without corresponding belief states for enrolled users
+
+**Note:** The `import_vendor_questions.py` script will display a reminder to run this script when new concepts are created.
+
+### Usage
+
+```bash
+# Standard sync for a course
+python scripts/sync_belief_states.py --course-slug cbap
+
+# Dry run (preview changes without writing to database)
+python scripts/sync_belief_states.py --course-slug cbap --dry-run
+
+# Verbose logging (shows per-user details)
+python scripts/sync_belief_states.py --course-slug cbap --verbose
+```
+
+### Command-Line Options
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--course-slug` | Yes | Course slug (e.g., 'cbap') |
+| `--dry-run` | No | Show what would happen without making changes |
+| `--verbose` | No | Enable debug logging with per-user details |
+
+### How It Works
+
+1. **Lookup Course** - Finds the course by slug
+2. **Get Concepts** - Retrieves all concept IDs for the course
+3. **Get Users** - Finds all users with active enrollments in the course
+4. **Sync Beliefs** - For each user, creates missing belief states using `bulk_create_from_concepts`
+5. **Summary** - Reports total beliefs created and duration
+
+### Belief Initialization
+
+New belief states are created with:
+- **Alpha:** 1.0 (uninformative prior)
+- **Beta:** 1.0 (uninformative prior)
+- **Initial Mastery:** 50% (Beta(1,1) mean)
+
+This Beta(1,1) distribution represents "no prior knowledge" - the system knows nothing about the user's mastery until they answer questions.
+
+### Idempotency
+
+The script is **idempotent** - running it multiple times is safe:
+- Uses `ON CONFLICT DO NOTHING` for database inserts
+- Existing beliefs are never modified
+- Second run will report 0 beliefs created
+
+### Performance
+
+Target: **1000 users × 50 concepts in <30 seconds**
+
+The script uses batch inserts for efficiency rather than individual INSERT statements.
+
+### Expected Output
+
+```
+2024-01-15 10:00:00 - INFO - Looking up course: cbap
+2024-01-15 10:00:00 - INFO - Found course: CBAP Certification Prep (ID: uuid...)
+2024-01-15 10:00:00 - INFO - Found 150 concepts for course
+2024-01-15 10:00:00 - INFO - Found 500 enrolled users to sync
+2024-01-15 10:00:01 - INFO - Progress: 100/500 users processed, 2500 beliefs created, 1523ms elapsed
+2024-01-15 10:00:02 - INFO - Progress: 200/500 users processed, 5000 beliefs created, 3045ms elapsed
+...
+2024-01-15 10:00:05 - INFO - ============================================================
+2024-01-15 10:00:05 - INFO - BELIEF STATE SYNC SUMMARY
+2024-01-15 10:00:05 - INFO - ============================================================
+2024-01-15 10:00:05 - INFO - Mode: LIVE
+2024-01-15 10:00:05 - INFO - Course ID: uuid...
+2024-01-15 10:00:05 - INFO - Total concepts: 150
+2024-01-15 10:00:05 - INFO - Total enrolled users: 500
+2024-01-15 10:00:05 - INFO - Users synced: 500
+2024-01-15 10:00:05 - INFO - Beliefs created: 12500
+2024-01-15 10:00:05 - INFO - Errors: 0
+2024-01-15 10:00:05 - INFO - Duration: 5234ms (5.23s)
+2024-01-15 10:00:05 - INFO - ============================================================
+```
+
+### Dry Run Output
+
+In dry-run mode, the script counts what would be created without writing:
+
+```
+2024-01-15 10:00:00 - INFO - DRY RUN - No database changes will be made
+...
+2024-01-15 10:00:05 - INFO - Mode: DRY RUN
+2024-01-15 10:00:05 - INFO - Beliefs created: 12500 (would be created)
+```
+
+### Troubleshooting
+
+#### Error: "Course not found: cbap"
+**Cause:** Invalid course slug or course doesn't exist
+**Solution:** Check available courses in the database:
+```sql
+SELECT slug, name FROM courses WHERE is_active = true;
+```
+
+#### Error: "No enrolled users found"
+**Cause:** No users have active enrollments for this course
+**Solution:** This is normal for a new course - beliefs will be created when users enroll
+
+#### Error: "No concepts found for course"
+**Cause:** Course has no concepts defined
+**Solution:** Import concepts first using the concept import workflow
+
+### Lazy Initialization Alternative
+
+In addition to batch sync, the system also supports **lazy initialization** (Story 2.14):
+
+When a user answers a question involving concepts they don't have beliefs for:
+1. `BeliefUpdater.update_beliefs()` detects missing belief states
+2. Creates them on-the-fly with Beta(1,1) prior
+3. Immediately updates them based on the answer
+
+This means:
+- **Batch sync** proactively creates beliefs for all users
+- **Lazy init** creates beliefs on-demand during quiz flow
+- Both approaches are complementary and safe to use together
+
+---
+
+## Backfill Secondary Tags
+
+The `backfill_secondary_tags.py` script populates `perspectives` and `competencies` arrays for existing questions based on their linked concept names (Story 2.15).
+
+### When to Use
+
+Run this script after:
+- Adding perspectives/competencies configuration to a course
+- Importing questions that were created before secondary tagging was implemented
+- Updating keyword mappings in the course configuration
+
+### Usage
+
+```bash
+# Preview changes (dry run)
+python scripts/backfill_secondary_tags.py --course-slug cbap --dry-run --verbose
+
+# Apply changes
+python scripts/backfill_secondary_tags.py --course-slug cbap
+
+# With verbose logging
+python scripts/backfill_secondary_tags.py --course-slug cbap --verbose
+```
+
+### Command-Line Options
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--course-slug` | Yes | Course slug (e.g., 'cbap') |
+| `--dry-run` | No | Preview changes without modifying database |
+| `--verbose` | No | Enable detailed logging with per-question output |
+
+### How It Works
+
+1. **Load Course** - Retrieves course with perspectives/competencies JSONB config
+2. **Initialize TagClassifier** - Builds keyword sets from course configuration
+3. **Load Questions** - Fetches all questions with their linked concepts
+4. **Classify Concepts** - Runs concept names through TagClassifier to derive secondary tags
+5. **Update Questions** - Populates perspectives/competencies arrays
+6. **Summary** - Reports total questions updated and tags assigned
+
+### Secondary Tag Classification
+
+The TagClassifier uses keyword matching to categorize concept names:
+
+| Category | Example Keywords | Result |
+|----------|-----------------|--------|
+| Perspective | agile, scrum, bi, analytics, it, software, bpm | Tag ID added to `perspectives` |
+| Competency | analytical, communication, leadership | Tag ID added to `competencies` |
+| Concept | All other tags | Kept as concept mappings |
+
+### Course Configuration
+
+Secondary tags are defined in the course's JSONB columns:
+
+```json
+// perspectives column
+[
+  {"id": "agile", "name": "Agile", "keywords": ["agile", "scrum", "kanban"]},
+  {"id": "bi", "name": "Business Intelligence", "keywords": ["bi", "analytics"]}
+]
+
+// competencies column
+[
+  {"id": "analytical", "name": "Analytical Thinking", "keywords": ["analytical", "problem-solving"]},
+  {"id": "communication", "name": "Communication Skills", "keywords": ["communication", "verbal"]}
+]
+```
+
+### Expected Output
+
+```
+2024-01-15 10:00:00 - INFO - Starting secondary tag backfill for course: cbap
+2024-01-15 10:00:00 - INFO - Loaded course: CBAP Certification Prep
+2024-01-15 10:00:00 - INFO - TagClassifier initialized with 25 competency keywords, 18 perspective keywords
+2024-01-15 10:00:00 - INFO - Loaded 500 questions to process
+2024-01-15 10:00:01 - INFO - Applying 350 updates...
+2024-01-15 10:00:02 - INFO - Updates committed to database
+2024-01-15 10:00:02 - INFO - ============================================================
+2024-01-15 10:00:02 - INFO - BACKFILL SUMMARY
+2024-01-15 10:00:02 - INFO - ============================================================
+2024-01-15 10:00:02 - INFO - Course: cbap
+2024-01-15 10:00:02 - INFO - Questions processed: 500
+2024-01-15 10:00:02 - INFO - Questions updated: 350
+2024-01-15 10:00:02 - INFO - Perspectives assigned: 420
+2024-01-15 10:00:02 - INFO - Competencies assigned: 380
+2024-01-15 10:00:02 - INFO - ============================================================
+```
+
+### Idempotency
+
+The script is **idempotent** - running it multiple times is safe:
+- Compares current values with computed values
+- Only updates questions where values differ
+- Second run on unchanged data will report 0 updates
+
+### Troubleshooting
+
+#### Error: "Course not found: cbap"
+**Cause:** Invalid course slug
+**Solution:** Check available courses in the database
+
+#### Warning: "Course has no perspectives or competencies configured"
+**Cause:** The course's perspectives/competencies columns are NULL
+**Solution:** Ensure the course has secondary tags configured via migration or admin
+
+#### Low update count
+**Cause:** Questions may not have linked concepts, or concepts don't match keywords
+**Solution:**
+1. Check that questions have concept mappings
+2. Verify keyword coverage in course configuration
+3. Use `--verbose` to see per-question classification results

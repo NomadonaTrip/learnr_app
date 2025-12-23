@@ -3,11 +3,13 @@ Unit tests for authentication utilities.
 Tests password hashing and JWT token generation.
 """
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
-from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
-from src.utils.auth import hash_password, verify_password, create_access_token, decode_token
+from jose import JWTError, jwt
+
 from src.config import settings
+from src.utils.auth import create_access_token, decode_token, hash_password, verify_password
 
 
 class TestPasswordHashing:
@@ -175,8 +177,8 @@ class TestJWTTokenDecoding:
         user_id = "123e4567-e89b-12d3-a456-426614174000"
         payload = {
             "sub": user_id,
-            "exp": datetime.now(timezone.utc) + timedelta(days=1),
-            "iat": datetime.now(timezone.utc)
+            "exp": datetime.now(UTC) + timedelta(days=1),
+            "iat": datetime.now(UTC)
         }
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
@@ -192,8 +194,8 @@ class TestJWTTokenDecoding:
         user_id = "123e4567-e89b-12d3-a456-426614174000"
         payload = {
             "sub": user_id,
-            "exp": datetime.now(timezone.utc) - timedelta(days=1),  # Expired yesterday
-            "iat": datetime.now(timezone.utc) - timedelta(days=2)
+            "exp": datetime.now(UTC) - timedelta(days=1),  # Expired yesterday
+            "iat": datetime.now(UTC) - timedelta(days=2)
         }
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
@@ -206,8 +208,8 @@ class TestJWTTokenDecoding:
         user_id = "123e4567-e89b-12d3-a456-426614174000"
         payload = {
             "sub": user_id,
-            "exp": datetime.now(timezone.utc) + timedelta(days=1),
-            "iat": datetime.now(timezone.utc)
+            "exp": datetime.now(UTC) + timedelta(days=1),
+            "iat": datetime.now(UTC)
         }
         # Sign with wrong secret
         token = jwt.encode(payload, "wrong_secret_key", algorithm=settings.JWT_ALGORITHM)
@@ -225,8 +227,8 @@ class TestJWTTokenDecoding:
     def test_decode_token_missing_sub_claim(self):
         """Test decoding token without required 'sub' claim returns None."""
         payload = {
-            "exp": datetime.now(timezone.utc) + timedelta(days=1),
-            "iat": datetime.now(timezone.utc)
+            "exp": datetime.now(UTC) + timedelta(days=1),
+            "iat": datetime.now(UTC)
             # Missing 'sub' claim
         }
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)

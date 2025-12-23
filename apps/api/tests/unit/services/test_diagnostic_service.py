@@ -10,7 +10,6 @@ import pytest
 
 from src.services.diagnostic_service import DiagnosticService, QuestionWithConcepts
 
-
 # ============================================================================
 # Fixtures
 # ============================================================================

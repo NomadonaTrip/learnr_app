@@ -129,6 +129,7 @@ async def start_quiz_session(
         started_at=session.started_at,
         is_resumed=is_resumed,
         status=QuizSessionStatus(session.status),
+        version=session.version,
         first_question=None,  # Placeholder for Story 4.2
     )
 
@@ -272,6 +273,7 @@ async def pause_quiz_session(
         session_id=session.id,
         status=QuizSessionStatus(session.status),
         is_paused=session.is_paused,
+        version=session.version,
         message="Session paused successfully",
     )
 
@@ -341,6 +343,7 @@ async def resume_quiz_session(
         is_paused=session.is_paused,
         total_questions=session.total_questions,
         correct_count=session.correct_count,
+        version=session.version,
         message="Session resumed successfully",
     )
 

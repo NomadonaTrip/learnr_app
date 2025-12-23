@@ -9,7 +9,7 @@ import { AxiosError } from 'axios'
  * API error response structure.
  */
 interface ApiErrorResponse {
-  detail?: string | { message?: string }
+  detail?: string | { message?: string; error?: { message?: string; code?: string } }
 }
 
 /**
@@ -21,8 +21,15 @@ function getErrorMessage(error: unknown): string {
     if (typeof data?.detail === 'string') {
       return data.detail
     }
-    if (typeof data?.detail === 'object' && data.detail?.message) {
-      return data.detail.message
+    if (typeof data?.detail === 'object') {
+      // Handle nested error structure: { detail: { error: { message, code } } }
+      if (data.detail.error?.message) {
+        return data.detail.error.message
+      }
+      // Handle flat structure: { detail: { message } }
+      if (data.detail.message) {
+        return data.detail.message
+      }
     }
     if (error.response?.status === 400) {
       return 'No active enrollment found. Please complete the diagnostic first.'
@@ -48,6 +55,7 @@ export function useQuizSession(config?: SessionConfig) {
   const navigate = useNavigate()
   const isInitializedRef = useRef(false)
   const questionStartTimeRef = useRef<number | null>(null)
+  const isEndingSessionRef = useRef(false)
 
   const {
     sessionId,
@@ -101,7 +109,7 @@ export function useQuizSession(config?: SessionConfig) {
         isResumed: data.is_resumed,
         totalQuestions: data.total_questions,
         correctCount: data.correct_count,
-        version: 1, // Initial version
+        version: data.version,
         startedAt: data.started_at,
       })
     },
@@ -116,6 +124,8 @@ export function useQuizSession(config?: SessionConfig) {
     mutationFn: (id: string) => quizService.pauseSession(id),
     onSuccess: (data) => {
       setPaused(data.is_paused)
+      // Update version from pause response
+      useQuizStore.setState({ version: data.version })
     },
     onError: (error) => {
       setError(getErrorMessage(error))
@@ -127,6 +137,8 @@ export function useQuizSession(config?: SessionConfig) {
     mutationFn: (id: string) => quizService.resumeSession(id),
     onSuccess: (data) => {
       setPaused(data.is_paused)
+      // Update version from resume response
+      useQuizStore.setState({ version: data.version })
     },
     onError: (error) => {
       setError(getErrorMessage(error))
@@ -160,11 +172,43 @@ export function useQuizSession(config?: SessionConfig) {
       // Reset question start time when new question loads
       questionStartTimeRef.current = Date.now()
     },
-    onError: (error) => {
+    onError: async (error) => {
       setLoadingQuestion(false)
-      // Don't set error for "no questions" - this might mean quiz is complete
       const message = getErrorMessage(error)
-      if (!message.includes('No questions available')) {
+
+      // Check if this is a "no questions available" error
+      if (message.includes('No questions available') || message.includes('No eligible questions')) {
+        // Prevent race condition - mark that we're ending the session
+        if (isEndingSessionRef.current) {
+          return // Already handling session end
+        }
+        isEndingSessionRef.current = true
+
+        // Try to end the session on the backend
+        if (sessionId) {
+          try {
+            // Fetch current session to get the correct version for optimistic locking
+            const currentSession = await quizService.getSession(sessionId)
+            await quizService.endSession(sessionId, currentSession.version)
+          } catch {
+            // Ignore errors - session may already be ended
+          }
+        }
+
+        if (totalQuestions > 0) {
+          // Session had questions answered - quiz is complete
+          setEnded(new Date().toISOString(), {
+            totalQuestions,
+            correctCount,
+          })
+          navigate('/diagnostic/results')
+        } else {
+          // Fresh session but no questions available - user has answered all questions recently
+          setEnded(new Date().toISOString(), { totalQuestions: 0, correctCount: 0 })
+          // Navigate to results - they'll see their existing progress
+          navigate('/diagnostic/results')
+        }
+      } else {
         setError(message)
       }
     },
@@ -179,10 +223,11 @@ export function useQuizSession(config?: SessionConfig) {
     },
     onSuccess: (data) => {
       setFeedback(data)
-      // Update session stats from response
+      // Update session stats and version from response
       useQuizStore.setState({
         totalQuestions: data.session_stats.questions_answered,
         correctCount: Math.round(data.session_stats.accuracy * data.session_stats.questions_answered),
+        version: data.session_stats.session_version,
       })
     },
     onError: (error) => {
@@ -202,7 +247,7 @@ export function useQuizSession(config?: SessionConfig) {
 
   // Fetch first question when session becomes active
   useEffect(() => {
-    if (sessionId && status === 'active' && !currentQuestion && !isLoadingQuestion) {
+    if (sessionId && status === 'active' && !currentQuestion && !isLoadingQuestion && !isEndingSessionRef.current) {
       fetchQuestionMutation.mutate({ session_id: sessionId })
     }
   }, [sessionId, status, currentQuestion, isLoadingQuestion, fetchQuestionMutation])

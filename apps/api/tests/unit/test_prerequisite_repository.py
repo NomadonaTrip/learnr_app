@@ -2,11 +2,11 @@
 Unit tests for Concept prerequisite repository methods.
 Tests CRUD operations and prerequisite chain queries.
 """
-import pytest
 from uuid import uuid4
 
+import pytest
+
 from src.models.concept import Concept
-from src.models.concept_prerequisite import ConceptPrerequisite
 from src.models.course import Course
 from src.repositories.concept_repository import ConceptRepository
 from src.schemas.concept_prerequisite import PrerequisiteCreate, RelationshipType

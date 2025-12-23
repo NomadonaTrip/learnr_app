@@ -39,7 +39,8 @@ def get_course_repository(db: AsyncSession = Depends(get_db)) -> CourseRepositor
     response_model=PaginatedQuestionResponse,
     summary="Get questions by concept",
     description=(
-        "Retrieve questions filtered by concept, knowledge area, and difficulty. "
+        "Retrieve questions filtered by concept, knowledge area, difficulty, "
+        "perspectives, and competencies. "
         "Questions are scoped to the specified course. "
         "Excludes correct_answer and explanation (revealed after answer). "
         "Requires authentication."
@@ -76,6 +77,14 @@ async def get_questions(
     exclude_ids: list[UUID] | None = Query(
         None,
         description="Question IDs to exclude (recently asked)"
+    ),
+    perspectives: list[str] | None = Query(
+        None,
+        description="Filter by perspective IDs (e.g., 'agile', 'bi') - Story 2.15"
+    ),
+    competencies: list[str] | None = Query(
+        None,
+        description="Filter by competency IDs (e.g., 'analytical') - Story 2.15"
     ),
     limit: int = Query(
         10,
@@ -139,6 +148,8 @@ async def get_questions(
         difficulty_min=difficulty_min,
         difficulty_max=difficulty_max,
         exclude_ids=exclude_ids,
+        perspectives=perspectives,
+        competencies=competencies,
         limit=limit,
         offset=offset,
     )
@@ -154,6 +165,9 @@ async def get_questions(
             difficulty=question.difficulty,
             discrimination=question.discrimination,
             concept_ids=concept_ids_list,
+            # Story 2.15: Include secondary tags in response
+            perspectives=question.perspectives or [],
+            competencies=question.competencies or [],
         )
         for question, concept_ids_list in questions_with_concepts
     ]

@@ -11,7 +11,6 @@ from httpx import ASGITransport, AsyncClient
 
 from src.main import app
 
-
 # ============================================================================
 # Fixtures
 # ============================================================================
@@ -318,6 +317,7 @@ class TestDiagnosticResultsSchema:
     def test_feedback_request_rating_bounds(self):
         """Verify DiagnosticFeedbackRequest validates rating bounds."""
         from pydantic import ValidationError
+
         from src.schemas.diagnostic_results import DiagnosticFeedbackRequest
 
         # Valid rating
@@ -335,6 +335,7 @@ class TestDiagnosticResultsSchema:
     def test_feedback_request_comment_max_length(self):
         """Verify DiagnosticFeedbackRequest validates comment length."""
         from pydantic import ValidationError
+
         from src.schemas.diagnostic_results import DiagnosticFeedbackRequest
 
         # Valid comment
@@ -347,8 +348,6 @@ class TestDiagnosticResultsSchema:
 
     def test_confidence_level_literal(self):
         """Verify ConfidenceLevel only accepts valid values."""
-        from pydantic import ValidationError
-        from src.schemas.diagnostic_results import DiagnosticResultsResponse
 
         # This test verifies the schema accepts valid confidence levels
         # Full validation would require a complete DiagnosticResultsResponse

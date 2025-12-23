@@ -18,11 +18,9 @@ from httpx import AsyncClient
 from src.models.course import Course
 from src.models.enrollment import Enrollment
 from src.models.question import Question
-from src.models.quiz_response import QuizResponse
 from src.models.quiz_session import QuizSession
 from src.models.user import User
 from src.utils.auth import create_access_token, hash_password
-
 
 # ============================================================================
 # Fixtures

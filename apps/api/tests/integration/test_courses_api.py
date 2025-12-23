@@ -2,8 +2,8 @@
 Integration tests for Courses API endpoints.
 Tests GET /v1/courses and GET /v1/courses/{slug} endpoints.
 """
+
 import pytest
-from uuid import uuid4
 
 from src.models.course import Course
 

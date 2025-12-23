@@ -3,8 +3,7 @@ Integration tests for Belief API endpoints.
 Tests the /v1/beliefs/* endpoints.
 """
 import asyncio
-from unittest.mock import patch, AsyncMock
-from uuid import uuid4
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -430,3 +429,297 @@ async def test_get_belief_summary_returns_user_id(
     assert "user_id" in data
     assert data["user_id"] == str(test_user_api.id)
     assert data["total"] == 1
+
+
+# ============================================================================
+# BeliefUpdater Integration Tests (Story 4.4)
+# ============================================================================
+
+@pytest.mark.asyncio
+async def test_belief_updater_updates_beliefs_correctly(
+    db_session, test_user_api, test_course_api, test_concepts_api
+):
+    """
+    Integration test: BeliefUpdater.update_beliefs() with real database.
+
+    Story 4.4 AC 10: Verify all concepts are updated correctly after a response.
+    """
+    from src.models.question import Question
+    from src.models.question_concept import QuestionConcept
+    from src.repositories.belief_repository import BeliefRepository
+    from src.repositories.concept_repository import ConceptRepository
+    from src.services.belief_updater import BeliefUpdater
+
+    # Create a question linked to 2 concepts
+    question = Question(
+        course_id=test_course_api.id,
+        question_text="Test question for belief update",
+        options={"A": "Option A", "B": "Option B", "C": "Option C", "D": "Option D"},
+        correct_answer="A",
+        explanation="This is a test explanation",
+        knowledge_area_id="ba-planning",
+        difficulty=0.5,
+        slip_rate=0.10,
+        guess_rate=0.25,
+    )
+    db_session.add(question)
+    await db_session.flush()
+
+    # Link question to first 2 concepts
+    qc1 = QuestionConcept(question_id=question.id, concept_id=test_concepts_api[0].id, relevance=1.0)
+    qc2 = QuestionConcept(question_id=question.id, concept_id=test_concepts_api[1].id, relevance=1.0)
+    db_session.add_all([qc1, qc2])
+    await db_session.flush()
+
+    # Create belief states for user with Beta(1,1) uninformative prior
+    belief1 = BeliefState(
+        user_id=test_user_api.id,
+        concept_id=test_concepts_api[0].id,
+        alpha=1.0,
+        beta=1.0,
+        response_count=0,
+    )
+    belief2 = BeliefState(
+        user_id=test_user_api.id,
+        concept_id=test_concepts_api[1].id,
+        alpha=1.0,
+        beta=1.0,
+        response_count=0,
+    )
+    db_session.add_all([belief1, belief2])
+    await db_session.commit()
+
+    # Create BeliefUpdater with repositories
+    belief_repo = BeliefRepository(db_session)
+    concept_repo = ConceptRepository(db_session)
+    updater = BeliefUpdater(
+        belief_repository=belief_repo,
+        concept_repository=concept_repo,
+    )
+
+    # Refresh question to load relationships
+    await db_session.refresh(question, ["question_concepts"])
+
+    # Execute update with correct answer
+    response = await updater.update_beliefs(
+        user_id=test_user_api.id,
+        question=question,
+        is_correct=True,
+    )
+
+    # Verify response structure
+    assert response.concepts_updated_count == 2
+    assert response.direct_updates_count == 2
+    assert response.info_gain_actual > 0
+    assert response.processing_time_ms > 0
+    assert len(response.updates) == 2
+
+    # Verify each update
+    for update in response.updates:
+        assert update.old_alpha == 1.0
+        assert update.old_beta == 1.0
+        assert update.new_alpha > 1.0  # Increased for correct
+        assert update.is_direct is True
+        assert update.new_mean > update.old_mean
+
+    # Verify database state was updated
+    await db_session.refresh(belief1)
+    await db_session.refresh(belief2)
+
+    assert belief1.alpha > 1.0
+    assert belief1.response_count == 1
+    assert belief2.alpha > 1.0
+    assert belief2.response_count == 1
+
+
+@pytest.mark.asyncio
+async def test_belief_updater_prerequisite_propagation(
+    db_session, test_user_api, test_course_api, test_concepts_api
+):
+    """
+    Integration test: Prerequisite propagation with real database.
+
+    Story 4.4 AC 3: Correct answers propagate to prerequisite concepts.
+    """
+    from src.models.concept_prerequisite import ConceptPrerequisite
+    from src.models.question import Question
+    from src.models.question_concept import QuestionConcept
+    from src.repositories.belief_repository import BeliefRepository
+    from src.repositories.concept_repository import ConceptRepository
+    from src.services.belief_updater import BeliefUpdater
+
+    # Set up prerequisite relationship:
+    # concept[0] depends on concept[1] (concept[1] is prerequisite)
+    prereq = ConceptPrerequisite(
+        concept_id=test_concepts_api[0].id,
+        prerequisite_concept_id=test_concepts_api[1].id,
+        strength=1.0,
+        relationship_type="required",
+    )
+    db_session.add(prereq)
+
+    # Create a question linked only to concept[0]
+    question = Question(
+        course_id=test_course_api.id,
+        question_text="Test question for prereq propagation",
+        options={"A": "A", "B": "B", "C": "C", "D": "D"},
+        correct_answer="B",
+        explanation="Explanation",
+        knowledge_area_id="ba-planning",
+        difficulty=0.5,
+        slip_rate=0.10,
+        guess_rate=0.25,
+    )
+    db_session.add(question)
+    await db_session.flush()
+
+    qc = QuestionConcept(question_id=question.id, concept_id=test_concepts_api[0].id, relevance=1.0)
+    db_session.add(qc)
+    await db_session.flush()
+
+    # Create belief states
+    belief_direct = BeliefState(
+        user_id=test_user_api.id,
+        concept_id=test_concepts_api[0].id,
+        alpha=1.0,
+        beta=1.0,
+        response_count=0,
+    )
+    belief_prereq = BeliefState(
+        user_id=test_user_api.id,
+        concept_id=test_concepts_api[1].id,
+        alpha=2.0,
+        beta=2.0,
+        response_count=5,
+    )
+    db_session.add_all([belief_direct, belief_prereq])
+    await db_session.commit()
+
+    # Create updater with prerequisite propagation enabled
+    belief_repo = BeliefRepository(db_session)
+    concept_repo = ConceptRepository(db_session)
+    updater = BeliefUpdater(
+        belief_repository=belief_repo,
+        concept_repository=concept_repo,
+        prerequisite_propagation=0.3,
+    )
+
+    await db_session.refresh(question, ["question_concepts"])
+
+    # Execute update with correct answer (should propagate to prereq)
+    response = await updater.update_beliefs(
+        user_id=test_user_api.id,
+        question=question,
+        is_correct=True,
+    )
+
+    # Should have 2 updates: 1 direct + 1 propagated
+    assert response.concepts_updated_count == 2
+    assert response.direct_updates_count == 1
+    assert response.propagated_updates_count == 1
+
+    # Find direct and propagated updates
+    direct_update = next((u for u in response.updates if u.is_direct), None)
+    propagated_update = next((u for u in response.updates if not u.is_direct), None)
+
+    assert direct_update is not None
+    assert propagated_update is not None
+
+    # Propagated update should add 0.3 to alpha, leave beta unchanged
+    assert propagated_update.old_alpha == 2.0
+    assert propagated_update.new_alpha == 2.3
+    assert propagated_update.new_beta == 2.0
+
+    # Verify database state
+    await db_session.refresh(belief_direct)
+    await db_session.refresh(belief_prereq)
+
+    assert belief_direct.response_count == 1  # Incremented for direct
+    assert belief_prereq.response_count == 5  # NOT incremented for propagated
+    assert belief_prereq.alpha == 2.3
+
+
+@pytest.mark.asyncio
+async def test_belief_updater_no_propagation_on_incorrect(
+    db_session, test_user_api, test_course_api, test_concepts_api
+):
+    """
+    Integration test: No prerequisite propagation on incorrect answers.
+
+    Story 4.4 AC 3: Propagation only happens on correct answers.
+    """
+    from src.models.concept_prerequisite import ConceptPrerequisite
+    from src.models.question import Question
+    from src.models.question_concept import QuestionConcept
+    from src.repositories.belief_repository import BeliefRepository
+    from src.repositories.concept_repository import ConceptRepository
+    from src.services.belief_updater import BeliefUpdater
+
+    # Set up prerequisite relationship
+    prereq = ConceptPrerequisite(
+        concept_id=test_concepts_api[0].id,
+        prerequisite_concept_id=test_concepts_api[1].id,
+        strength=1.0,
+        relationship_type="required",
+    )
+    db_session.add(prereq)
+
+    # Create question
+    question = Question(
+        course_id=test_course_api.id,
+        question_text="Test no propagation on incorrect",
+        options={"A": "A", "B": "B", "C": "C", "D": "D"},
+        correct_answer="C",
+        explanation="Explanation",
+        knowledge_area_id="ba-planning",
+        difficulty=0.5,
+    )
+    db_session.add(question)
+    await db_session.flush()
+
+    qc = QuestionConcept(question_id=question.id, concept_id=test_concepts_api[0].id, relevance=1.0)
+    db_session.add(qc)
+    await db_session.flush()
+
+    # Create belief states
+    belief_direct = BeliefState(
+        user_id=test_user_api.id,
+        concept_id=test_concepts_api[0].id,
+        alpha=2.0,
+        beta=2.0,
+    )
+    belief_prereq = BeliefState(
+        user_id=test_user_api.id,
+        concept_id=test_concepts_api[1].id,
+        alpha=3.0,
+        beta=3.0,
+    )
+    db_session.add_all([belief_direct, belief_prereq])
+    await db_session.commit()
+
+    belief_repo = BeliefRepository(db_session)
+    concept_repo = ConceptRepository(db_session)
+    updater = BeliefUpdater(
+        belief_repository=belief_repo,
+        concept_repository=concept_repo,
+        prerequisite_propagation=0.3,
+    )
+
+    await db_session.refresh(question, ["question_concepts"])
+
+    # Execute update with INCORRECT answer
+    response = await updater.update_beliefs(
+        user_id=test_user_api.id,
+        question=question,
+        is_correct=False,  # INCORRECT
+    )
+
+    # Should only have 1 update (direct only, no propagation)
+    assert response.concepts_updated_count == 1
+    assert response.direct_updates_count == 1
+    assert response.propagated_updates_count == 0
+
+    # Verify prerequisite was NOT updated
+    await db_session.refresh(belief_prereq)
+    assert belief_prereq.alpha == 3.0  # Unchanged
+    assert belief_prereq.beta == 3.0  # Unchanged

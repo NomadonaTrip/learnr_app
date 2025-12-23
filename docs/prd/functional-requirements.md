@@ -60,6 +60,56 @@
 **FR5A.7:** System adjusts difficulty up after consecutive correct answers (3+)
 **FR5A.8:** System adjusts difficulty down after consecutive incorrect answers (3+)
 
+### FR5B: IRT Difficulty Distribution (NEW - Epic 10)
+
+**FR5B.1:** System uses two-layer adaptive selection: BKT for concept selection, IRT for difficulty selection
+**FR5B.2:** System classifies user ability per concept as: novice, intermediate, or expert
+**FR5B.3:** Ability classification based on: BKT mastery probability AND difficulty-tier performance history
+**FR5B.4:** System applies probabilistic difficulty distribution based on ability level:
+  - Novice: 70% easy, 25% medium, 5% hard
+  - Intermediate: 40% easy, 40% medium, 20% hard
+  - Expert: 10% easy, 40% medium, 50% hard
+**FR5B.5:** System uses standard IRT b-parameter scale for difficulty (-3.0 to +3.0)
+**FR5B.6:** Difficulty tiers defined as: Easy (-3.0 to -1.0), Medium (-1.0 to +1.0), Hard (+1.0 to +3.0)
+**FR5B.7:** System falls back to adjacent tier when selected tier has no available questions
+**FR5B.8:** System logs ability level, target tier, and actual tier for each question selection
+**FR5B.9:** IRT layer adds <10ms latency to question selection (total <200ms)
+**FR5B.10:** System supports feature flag to disable IRT layer for A/B testing
+
+### FR5C: Coverage Completion & Exam Readiness Requirements (NEW - Story 4.12)
+
+**Overall Exam Readiness:**
+**FR5C.1:** System defines "Exam Ready" status when: coverage >= 80% AND avg confidence >= 70% AND all KAs meet minimum thresholds
+**FR5C.2:** System calculates exam readiness score as weighted combination: (coverage × 0.4) + (confidence × 0.3) + (ka_balance × 0.3)
+**FR5C.3:** System displays exam readiness status on dashboard: "Not Ready", "Almost Ready" (70-79%), "Ready" (80%+), "Well Prepared" (90%+)
+
+**Knowledge Area Balance Requirements:**
+**FR5C.4:** System requires minimum 60% coverage in EACH knowledge area for "Exam Ready" status
+**FR5C.5:** System identifies "coverage gaps" when any KA falls below 60% threshold
+**FR5C.6:** System prioritizes questions from underrepresented KAs when KA imbalance detected (>20% variance)
+**FR5C.7:** Dashboard displays KA-specific readiness indicators with color coding (red < 60%, yellow 60-79%, green >= 80%)
+
+**Coverage Thresholds (Configurable):**
+**FR5C.8:** System uses configurable thresholds with sensible defaults:
+  - `exam_ready_coverage_threshold`: 0.80 (80% concepts classified)
+  - `exam_ready_confidence_threshold`: 0.70 (70% average confidence)
+  - `ka_minimum_coverage_threshold`: 0.60 (60% per KA minimum)
+  - `ka_imbalance_variance_threshold`: 0.20 (20% max variance between KAs)
+**FR5C.9:** Thresholds can be adjusted per course (e.g., CFA may require higher thresholds than CBAP)
+
+**User Notifications & Guidance:**
+**FR5C.10:** System displays progress toward exam readiness: "X% to Exam Ready" with visual progress bar
+**FR5C.11:** System provides actionable recommendations when not exam ready:
+  - "Focus on {KA} - currently at 45% coverage" (specific KA gap)
+  - "Answer more questions to increase confidence" (low confidence)
+  - "You have 156 gap concepts to review" (high gap count)
+**FR5C.12:** System prevents setting exam date < 7 days away if readiness < 60% (soft warning, not hard block)
+
+**API Requirements:**
+**FR5C.13:** GET `/api/v1/readiness` returns exam readiness assessment with breakdown
+**FR5C.14:** Readiness check completes in <150ms (uses cached coverage data)
+**FR5C.15:** Readiness status included in dashboard API response for efficient loading
+
 ### FR6: Quiz Session Management
 
 **FR6.1:** Users can start a quiz session from dashboard
@@ -69,7 +119,7 @@
 **FR6.5:** Users can pause/exit quiz session anytime (progress saved)
 **FR6.6:** Users can resume paused sessions from where they left off
 **FR6.7:** System tracks session metadata (start time, duration, questions answered)
-**FR6.8:** Users can end session early or continue indefinitely (user-controlled length)
+**FR6.8:** Quiz sessions are fixed-length (10-15 questions, randomly determined at session start); sessions auto-complete when target reached; users can end early if desired
 
 ### FR7: Question Presentation & Answer Submission
 
@@ -149,7 +199,7 @@
 **FR11.4:** Dashboard shows days until exam (countdown from onboarding exam date)
 **FR11.5:** Dashboard displays weekly progress chart (competency changes over time)
 **FR11.6:** Dashboard provides recommended focus areas (weakest KAs to study)
-**FR11.7:** Dashboard shows total questions answered and reading content consumed
+**FR11.7:** Dashboard shows quizzes completed (lifetime and this week), total questions answered, total study time, and reading content consumed
 **FR11.8:** Dashboard includes primary action: "Continue Learning" or "Start Review"
 **FR11.9:** Navigation includes Reading Library link with unread badge count (e.g., [7])
 **FR11.10:** Badge shows high-priority indicator (red) if high-priority items exist
@@ -228,6 +278,51 @@
 **FR18.10:** User detail pages include PostHog deep link: "View in PostHog" → Opens PostHog profile for that user_id
 **FR18.11:** PostHog integration configured with user_id as primary identifier (for linking)
 **FR18.12:** Admin access restricted to designated admin users (cannot self-promote to admin)
+
+### FR19: Gamification & Motivation System (NEW - Epic 11)
+
+**Daily Streak Tracking:**
+**FR19.1:** System tracks consecutive study days per user with daily activity logging
+**FR19.2:** A study day qualifies when user meets ANY of: 5+ questions answered OR 10+ minutes study time OR 3+ readings completed
+**FR19.3:** System uses user's timezone for day boundary calculations
+**FR19.4:** Streak resets to 0 when user misses a qualifying day (no grace period without freeze)
+**FR19.5:** System calculates longest streak ever achieved for historical tracking
+
+**Streak Visualization:**
+**FR19.6:** Dashboard displays current streak with flame icon and day count
+**FR19.7:** Dashboard shows streak calendar (last 7 days) with visual indicators for active/missed days
+**FR19.8:** System displays "streak at risk" warning if user hasn't qualified today (after 6 PM local)
+**FR19.9:** System celebrates streak milestones (3, 7, 14, 30, 60 days) with modal/toast
+
+**Achievement Badges:**
+**FR19.10:** System awards achievement badges automatically when criteria are met
+**FR19.11:** Badge categories include: Streak (3/7/14/30/60 days), Volume (50/250/500/1000 questions), Mastery, Special
+**FR19.12:** System displays earned badges in user profile with unlock timestamps
+**FR19.13:** System shows badge progress indicators for in-progress achievements
+**FR19.14:** New badge unlocks trigger celebration modal with badge details
+
+**Streak Protection:**
+**FR19.15:** Users receive 2 streak freezes per month (use-it-or-lose-it)
+**FR19.16:** Streak freeze can be applied retroactively within 24 hours of missed day
+**FR19.17:** Active freeze prevents streak reset for one missed day
+**FR19.18:** System tracks freeze usage and remaining freezes per user
+
+**Study Goals:**
+**FR19.19:** Users can set daily study goals: questions per day, minutes per day, or reading items per day
+**FR19.20:** Dashboard displays goal progress (e.g., "3/5 questions today")
+**FR19.21:** Users can set weekly goals in addition to daily goals
+**FR19.22:** System shows goal completion rate over time (weekly trend)
+
+**Motivational Notifications:**
+**FR19.23:** System sends streak risk notification at user-configured time (default 8 PM)
+**FR19.24:** System sends late warning notification at 10 PM if streak still at risk
+**FR19.25:** Notifications can be disabled per user preference
+**FR19.26:** System sends milestone celebration notifications (email optional, in-app always)
+
+**Gamification Analytics (Admin):**
+**FR19.27:** Admin dashboard shows aggregate streak metrics (avg streak, completion rates)
+**FR19.28:** Admin can view individual user gamification stats for support
+**FR19.29:** System logs all gamification events for analytics (streak_events, badge_awards)
 
 ---
 

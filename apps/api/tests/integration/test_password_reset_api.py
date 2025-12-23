@@ -3,11 +3,13 @@ Integration tests for password reset API endpoints.
 Tests complete password reset flow including email sending, token validation, and password updates.
 """
 
-import pytest
-from datetime import datetime, timedelta, timezone
-from httpx import AsyncClient
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
+
+import pytest
+from httpx import AsyncClient
 from sqlalchemy import select
+
 from src.models.password_reset_token import PasswordResetToken
 
 
@@ -184,8 +186,8 @@ class TestPasswordResetIntegration:
             id=uuid.uuid4(),
             user_id=UUID(user_id),
             token=uuid.uuid4(),
-            created_at=datetime.now(timezone.utc) - timedelta(hours=3),
-            expires_at=datetime.now(timezone.utc) - timedelta(hours=2),
+            created_at=datetime.now(UTC) - timedelta(hours=3),
+            expires_at=datetime.now(UTC) - timedelta(hours=2),
             used_at=None
         )
         db_session.add(expired_token)

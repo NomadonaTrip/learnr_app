@@ -14,8 +14,8 @@ Story 4.3: Answer Submission and Immediate Feedback
 - Added belief_updates JSONB for concept update snapshots
 - Added CHECK constraint for selected_answer
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.

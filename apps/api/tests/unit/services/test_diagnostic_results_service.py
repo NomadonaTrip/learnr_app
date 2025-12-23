@@ -9,7 +9,6 @@ import pytest
 
 from src.services.diagnostic_results_service import DiagnosticResultsService
 
-
 # ============================================================================
 # Fixtures
 # ============================================================================

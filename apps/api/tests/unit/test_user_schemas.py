@@ -2,12 +2,13 @@
 Unit tests for User Pydantic schemas.
 Tests validation logic for UserCreate, UserUpdate, and UserResponse schemas.
 """
-import pytest
 from datetime import date, datetime
 from uuid import uuid4
+
+import pytest
 from pydantic import ValidationError
 
-from src.schemas.user import UserCreate, UserUpdate, UserResponse
+from src.schemas.user import UserCreate, UserResponse, UserUpdate
 
 
 class TestUserCreateSchema:

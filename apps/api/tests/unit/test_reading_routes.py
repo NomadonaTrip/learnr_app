@@ -8,15 +8,16 @@ Per AC: Tests filter by concept, by knowledge area, relevance ranking,
 semantic search fallback, and authentication requirement.
 """
 
-import pytest
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
-from fastapi import HTTPException
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.models.reading_chunk import ReadingChunk
+import pytest
+from fastapi import HTTPException
+
 from src.models.concept import Concept
 from src.models.course import Course
+from src.models.reading_chunk import ReadingChunk
 from src.models.user import User
 from src.routes.reading import get_reading_content
 from src.schemas.reading_chunk import ReadingListResponse
@@ -59,7 +60,7 @@ class TestReadingRoutesUnit:
             content="Content about stakeholder analysis...",
             corpus_section="3.2.1",
             knowledge_area_id="strategy",
-            concept_ids=[str(concept_id1), str(concept_id2)],
+            concept_ids=[concept_id1, concept_id2],
             estimated_read_time_minutes=5,
             chunk_index=0,
             created_at=datetime.utcnow(),
@@ -101,6 +102,7 @@ class TestReadingRoutesUnit:
         mock_course_repo.get_active_by_slug = AsyncMock(return_value=test_course)
 
         mock_concept_repo = MagicMock()
+        mock_concept_repo.get_by_ids = AsyncMock(return_value=[test_concept1, test_concept2])
 
         async def mock_get_by_id(concept_id):
             if concept_id == concept_id1:
@@ -159,7 +161,7 @@ class TestReadingRoutesUnit:
             content="Content about strategy...",
             corpus_section="2.1.1",
             knowledge_area_id="strategy",
-            concept_ids=[str(concept_id)],
+            concept_ids=[concept_id],
             estimated_read_time_minutes=5,
             chunk_index=0,
             created_at=datetime.utcnow(),
@@ -190,6 +192,7 @@ class TestReadingRoutesUnit:
 
         mock_concept_repo = MagicMock()
         mock_concept_repo.get_by_id = AsyncMock(return_value=test_concept)
+        mock_concept_repo.get_by_ids = AsyncMock(return_value=[test_concept])
 
         mock_request = MockRequest()
 
@@ -239,7 +242,7 @@ class TestReadingRoutesUnit:
             content="Content...",
             corpus_section="3.1",
             knowledge_area_id="strategy",
-            concept_ids=[str(concept_id1), str(concept_id2)],
+            concept_ids=[concept_id1, concept_id2],
             estimated_read_time_minutes=5,
             chunk_index=0,
             created_at=datetime.utcnow(),
@@ -254,7 +257,7 @@ class TestReadingRoutesUnit:
             content="Content...",
             corpus_section="3.2",
             knowledge_area_id="strategy",
-            concept_ids=[str(concept_id1), str(concept_id3)],
+            concept_ids=[concept_id1, concept_id3],
             estimated_read_time_minutes=5,
             chunk_index=1,
             created_at=datetime.utcnow(),
@@ -276,6 +279,7 @@ class TestReadingRoutesUnit:
 
         mock_concept_repo = MagicMock()
         mock_concept_repo.get_by_id = AsyncMock(return_value=None)
+        mock_concept_repo.get_by_ids = AsyncMock(return_value=[])
 
         mock_request = MockRequest()
 
@@ -350,6 +354,7 @@ class TestReadingRoutesUnit:
 
         mock_concept_repo = MagicMock()
         mock_concept_repo.get_by_id = AsyncMock(return_value=test_concept)
+        mock_concept_repo.get_by_ids = AsyncMock(return_value=[test_concept])
 
         mock_request = MockRequest()
 
@@ -437,7 +442,7 @@ class TestReadingRoutesUnit:
             content="Content...",
             corpus_section="1.1",
             knowledge_area_id="strategy",
-            concept_ids=[str(concept_id)],
+            concept_ids=[concept_id],  # Use UUID, not string
             estimated_read_time_minutes=5,
             chunk_index=0,
             created_at=datetime.utcnow(),
@@ -468,6 +473,7 @@ class TestReadingRoutesUnit:
 
         mock_concept_repo = MagicMock()
         mock_concept_repo.get_by_id = AsyncMock(return_value=test_concept)
+        mock_concept_repo.get_by_ids = AsyncMock(return_value=[test_concept])
 
         mock_request = MockRequest()
 

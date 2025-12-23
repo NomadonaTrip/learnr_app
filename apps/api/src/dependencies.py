@@ -15,10 +15,12 @@ from src.exceptions import RateLimitError
 from src.models.enrollment import Enrollment
 from src.models.user import User
 from src.repositories.belief_repository import BeliefRepository
+from src.repositories.concept_repository import ConceptRepository
 from src.repositories.question_repository import QuestionRepository
 from src.repositories.quiz_session_repository import QuizSessionRepository
 from src.repositories.response_repository import ResponseRepository
 from src.repositories.user_repository import UserRepository
+from src.services.belief_updater import BeliefUpdater
 from src.services.question_selector import QuestionSelector
 from src.services.quiz_answer_service import QuizAnswerService
 from src.services.quiz_session_service import QuizSessionService
@@ -313,18 +315,55 @@ def get_response_repository(
     return ResponseRepository(db)
 
 
+def get_concept_repository(
+    db: AsyncSession = Depends(get_db),
+) -> ConceptRepository:
+    """Dependency for ConceptRepository."""
+    return ConceptRepository(db)
+
+
 def get_quiz_answer_service(
     response_repo: ResponseRepository = Depends(get_response_repository),
     question_repo: QuestionRepository = Depends(get_question_repository),
     session_repo: QuizSessionRepository = Depends(get_quiz_session_repository),
+    belief_repo: BeliefRepository = Depends(get_belief_repository),
+    concept_repo: ConceptRepository = Depends(get_concept_repository),
 ) -> QuizAnswerService:
     """
     Dependency for QuizAnswerService.
 
-    Provides the answer submission service with all required repositories.
+    Provides the answer submission service with all required repositories
+    and the belief updater for Bayesian knowledge tracing.
     """
+    belief_updater = BeliefUpdater(
+        belief_repository=belief_repo,
+        concept_repository=concept_repo,
+        default_slip=0.10,
+        default_guess=0.25,
+        prerequisite_propagation=0.3,
+    )
     return QuizAnswerService(
         response_repo=response_repo,
         question_repo=question_repo,
         session_repo=session_repo,
+        belief_updater=belief_updater,
+    )
+
+
+def get_belief_updater(
+    belief_repo: BeliefRepository = Depends(get_belief_repository),
+    concept_repo: ConceptRepository = Depends(get_concept_repository),
+) -> BeliefUpdater:
+    """
+    Dependency for BeliefUpdater.
+
+    Provides the Bayesian belief update service with default parameters.
+    Includes ConceptRepository for prerequisite propagation.
+    """
+    return BeliefUpdater(
+        belief_repository=belief_repo,
+        concept_repository=concept_repo,
+        default_slip=0.10,
+        default_guess=0.25,
+        prerequisite_propagation=0.3,
     )

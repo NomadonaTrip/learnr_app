@@ -4,19 +4,17 @@ Unit tests for Qdrant utility functions
 Tests helper functions for building filters, pagination, scoring, and validation.
 """
 
-import pytest
-from uuid import uuid4, UUID
+from uuid import uuid4
 
 from src.utils.qdrant_utils import (
     build_filter_conditions,
     build_multi_course_query,
-    paginate_results,
-    interpret_similarity_score,
     calculate_score_percentage,
-    validate_vector_dimensions,
     format_search_result,
+    interpret_similarity_score,
+    paginate_results,
+    validate_vector_dimensions,
 )
-
 
 # =============================================================================
 # build_filter_conditions Tests

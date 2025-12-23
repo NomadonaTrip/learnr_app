@@ -3,13 +3,16 @@ Unit tests for authentication dependencies.
 Tests get_current_user with rate limiting and caching.
 """
 
-import pytest
 import uuid
+from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from fastapi import HTTPException
+
 from src.dependencies import get_current_user
-from src.utils.auth import create_access_token
 from src.models.user import User
+from src.utils.auth import create_access_token
 
 
 # Mock Request object for tests
@@ -176,14 +179,16 @@ async def test_get_current_user_user_not_found():
 @pytest.mark.asyncio
 async def test_get_current_user_token_missing_sub_claim():
     """Test get_current_user with token missing 'sub' claim raises 401."""
+    from datetime import datetime, timedelta
+
     from jose import jwt
+
     from src.config import settings
-    from datetime import datetime, timedelta, timezone
 
     # Create token without 'sub' claim
     payload = {
-        "exp": datetime.now(timezone.utc) + timedelta(days=1),
-        "iat": datetime.now(timezone.utc)
+        "exp": datetime.now(UTC) + timedelta(days=1),
+        "iat": datetime.now(UTC)
         # Missing 'sub' claim
     }
     token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
@@ -204,15 +209,17 @@ async def test_get_current_user_token_missing_sub_claim():
 @pytest.mark.asyncio
 async def test_get_current_user_token_malformed_user_id():
     """Test get_current_user with malformed user_id in token raises 401."""
+    from datetime import datetime, timedelta
+
     from jose import jwt
+
     from src.config import settings
-    from datetime import datetime, timedelta, timezone
 
     # Create token with invalid UUID format
     payload = {
         "sub": "not-a-valid-uuid",
-        "exp": datetime.now(timezone.utc) + timedelta(days=1),
-        "iat": datetime.now(timezone.utc)
+        "exp": datetime.now(UTC) + timedelta(days=1),
+        "iat": datetime.now(UTC)
     }
     token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     authorization = f"Bearer {token}"

@@ -1,0 +1,190 @@
+NotebookLM Prompt: CBAP Question Generation (Full Curriculum Coverage)
+
+Role & Context
+
+You are a Senior CBAP® Curriculum Architect, Business Analysis Educator, and Assessment Psychometrician. You design certification-grade assessments aligned to the IIBA® BABOK Guide v3, with expertise in Bayesian Knowledge Tracing (BKT), knowledge graphs, and Item Response Theory (IRT)–driven adaptive learning systems.
+
+Your task is to generate 400 CBAP-aligned practice questions that together provide complete and comprehensive coverage of the CBAP examination curriculum, sufficient for a learner to achieve exam readiness.
+
+Mandatory Curriculum Coverage (NON-NEGOTIABLE)
+
+The question set must fully cover the CBAP exam blueprint, including all BABOK v3 knowledge areas, tasks, techniques, perspectives, and underlying competencies required for a successful examination attempt.
+
+Knowledge Areas (100% coverage required)
+
+Every task within each knowledge area must be assessed by multiple questions across difficulty levels.
+
+Business Analysis Planning and Monitoring
+
+Elicitation and Collaboration
+
+Requirements Life Cycle Management
+
+Strategy Analysis
+
+Requirements Analysis and Design Definition
+
+Solution Evaluation
+
+BABOK Tasks
+
+Each BABOK task must appear in at least 5–10 questions across the dataset.
+
+Task coverage must include:
+
+Purpose
+
+Inputs
+
+Elements
+
+Outputs
+
+Stakeholder considerations
+
+Techniques Coverage
+
+Ensure broad and repeated coverage of commonly tested BABOK techniques, including but not limited to:
+
+Stakeholder Analysis
+
+SWOT Analysis
+
+Business Cases
+
+Requirements Workshops
+
+Interviews
+
+Prototyping
+
+Backlog Management
+
+Risk Analysis
+
+Data Modeling
+
+Process Modeling
+
+Acceptance Criteria
+
+Techniques must be contextualized, not asked in isolation.
+
+Underlying Competencies
+
+Questions must meaningfully exercise:
+
+Analytical Thinking and Problem Solving
+
+Behavioral Characteristics
+
+Business Knowledge
+
+Communication Skills
+
+Interaction Skills
+
+Tools and Technology
+
+Perspectives
+
+Where relevant, questions should reflect CBAP perspectives such as:
+
+Agile
+
+Business Intelligence
+
+Information Technology
+
+Business Architecture
+
+Process Management
+
+Distribution & Weighting Rules
+Knowledge Area Weighting
+
+The overall question distribution must reflect CBAP exam weighting, approximately:
+
+Requirements Analysis and Design Definition: ~30%
+
+Strategy Analysis: ~15%
+
+Requirements Life Cycle Management: ~15%
+
+Business Analysis Planning and Monitoring: ~15%
+
+Elicitation and Collaboration: ~20%
+
+Solution Evaluation: ~10%
+
+Difficulty Distribution (IRT-Calibrated)
+
+20% Easy — recall and foundational application
+
+60% Medium — scenario-based reasoning and applied judgment
+
+20% Hard — ambiguity, trade-offs, multi-constraint decision-making
+
+Difficulty must progress smoothly within each knowledge area.
+
+Adaptive Learning & Psychometrics Constraints
+
+Each question must:
+
+Target one primary knowledge node (for graph mapping)
+
+Optionally reference 1–2 prerequisite nodes
+
+Avoid overlapping unrelated competencies
+
+Be suitable for mastery inference using BKT
+
+Support parameterization for IRT (discrimination, difficulty, guessing)
+
+CSV Output Rules (STRICT)
+
+Follow the attached CSV vendor_questions_sample_txt.txt template exactly
+
+Do not modify column names, order, or formatting
+
+Populate every column
+
+One question per row
+
+No markdown, commentary, or explanations outside the CSV
+
+Output exactly 400 rows
+
+Maintain consistent identifiers for:
+
+Knowledge areas
+
+Tasks
+
+Techniques
+
+Difficulty levels
+
+Concept IDs
+
+Question Quality Rules
+
+All questions must be scenario-based unless the CSV template explicitly allows otherwise
+
+Only one clearly correct answer
+
+Distractors must be plausible and diagnostically meaningful
+
+Avoid memorization-only or trick questions
+
+Language must be professional, exam-appropriate, and unambiguous
+
+Final Instruction
+
+Generate 400 CBAP practice questions that collectively provide full curriculum coverage required to pass the CBAP examination, formatted exactly according to the attached CSV file and ready for direct ingestion into a Bayesian Knowledge Tracer with a knowledge graph and IRT learning system.
+
+Do not stop early.
+Do not summarize your approach.
+Do not add commentary.
+
+Begin generation now.

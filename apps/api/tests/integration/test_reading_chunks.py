@@ -4,11 +4,11 @@ Integration tests for ReadingChunks.
 Tests reading_chunks table creation, bulk insert, GIN index queries,
 and section queries with multi-course support.
 """
-import pytest
 from uuid import uuid4
 
+import pytest
+
 from src.models.course import Course
-from src.models.reading_chunk import ReadingChunk
 from src.repositories.reading_chunk_repository import ReadingChunkRepository
 from src.schemas.reading_chunk import ChunkCreate
 
@@ -93,7 +93,7 @@ async def test_reading_chunks_indexes_exist(db_session):
     # Check for required indexes
     has_course_idx = any("course" in idx for idx in indexes)
     has_section_idx = any("section" in idx for idx in indexes)
-    has_concepts_idx = any("concepts" in idx for idx in indexes)
+    has_concepts_idx = any("concept_ids" in idx for idx in indexes)
 
     assert has_course_idx, f"Missing course index. Available: {indexes}"
     assert has_section_idx, f"Missing section index. Available: {indexes}"
@@ -119,8 +119,8 @@ async def test_reading_chunks_gin_index_type(db_session):
 
     # Should have at least 1 GIN index (for concept_ids array)
     assert len(gin_indexes) >= 1
-    # Check that it's the concepts index
-    assert any("concepts" in idx[0].lower() for idx in gin_indexes)
+    # Check that it's the concept_ids index
+    assert any("concept_ids" in idx[0].lower() for idx in gin_indexes)
 
 
 # ============================================================================

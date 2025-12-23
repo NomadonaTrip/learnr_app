@@ -81,6 +81,7 @@ class QuizSessionStartResponse(BaseModel):
     started_at: datetime = Field(..., description="Session start timestamp")
     is_resumed: bool = Field(..., description="Whether an existing session was resumed")
     status: QuizSessionStatus = Field(..., description="Current session status")
+    version: int = Field(..., description="Session version for optimistic locking")
     # first_question will be populated by Story 4.2 (placeholder for now)
     first_question: dict | None = Field(None, description="First question (populated in Story 4.2)")
 
@@ -110,6 +111,7 @@ class QuizSessionPauseResponse(BaseModel):
     session_id: UUID = Field(..., description="Paused session UUID")
     status: QuizSessionStatus = Field(..., description="New session status (paused)")
     is_paused: bool = Field(default=True, description="Pause confirmation")
+    version: int = Field(..., description="Updated session version for optimistic locking")
     message: str = Field(default="Session paused successfully", description="Status message")
 
 
@@ -121,4 +123,5 @@ class QuizSessionResumeResponse(BaseModel):
     is_paused: bool = Field(default=False, description="Pause status confirmation")
     total_questions: int = Field(..., description="Questions answered so far")
     correct_count: int = Field(..., description="Correct answers so far")
+    version: int = Field(..., description="Updated session version for optimistic locking")
     message: str = Field(default="Session resumed successfully", description="Status message")

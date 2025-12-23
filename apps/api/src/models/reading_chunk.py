@@ -5,7 +5,7 @@ Represents chunked reading content from course materials (e.g., BABOK v3).
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
@@ -25,6 +25,15 @@ class ReadingChunk(Base):
     via the concept_ids array for semantic retrieval.
     """
     __tablename__ = "reading_chunks"
+
+    __table_args__ = (
+        # GIN index for efficient array overlap/contains queries on concept_ids
+        Index(
+            "ix_reading_chunks_concept_ids_gin",
+            "concept_ids",
+            postgresql_using="gin"
+        ),
+    )
 
     # Primary key
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -48,11 +57,11 @@ class ReadingChunk(Base):
     knowledge_area_id = Column(String(50), nullable=False)
 
     # Array of concept UUIDs this chunk is linked to
+    # GIN index defined in __table_args__ for efficient array queries
     concept_ids = Column(
         ARRAY(UUID(as_uuid=True)),
         nullable=False,
-        server_default='{}',
-        index=True  # GIN index for array queries
+        server_default='{}'
     )
 
     # Metadata

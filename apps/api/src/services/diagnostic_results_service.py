@@ -5,7 +5,7 @@ Aggregates belief states to produce comprehensive knowledge profile.
 from uuid import UUID
 
 import structlog
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 

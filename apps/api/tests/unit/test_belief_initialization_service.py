@@ -3,9 +3,10 @@ Unit tests for BeliefInitializationService.
 Tests belief initialization logic and edge cases.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
+
+import pytest
 
 from src.exceptions import BeliefInitializationError, DatabaseError
 from src.models.belief_state import BeliefState
@@ -16,7 +17,6 @@ from src.repositories.belief_repository import BeliefRepository
 from src.repositories.concept_repository import ConceptRepository
 from src.services.belief_initialization_service import (
     BeliefInitializationService,
-    PERFORMANCE_THRESHOLD_MS
 )
 from src.utils.auth import hash_password
 
@@ -546,6 +546,13 @@ async def test_logging_fallback_on_structlog_error():
     mock_belief_repo = AsyncMock(spec=BeliefRepository)
     mock_concept_repo = AsyncMock(spec=ConceptRepository)
 
+    # Mock the session and its execute method for enrollment check
+    mock_session = AsyncMock()
+    mock_enrollment_result = MagicMock()
+    mock_enrollment_result.scalar_one_or_none.return_value = uuid4()  # Return enrollment UUID
+    mock_session.execute.return_value = mock_enrollment_result
+    mock_belief_repo.session = mock_session
+
     mock_belief_repo.get_belief_count.return_value = 0
     mock_concept_repo.get_all_concepts.return_value = []
 
@@ -592,6 +599,13 @@ async def test_service_logging_methods_with_uuid_conversion():
     """Test that UUID values are converted to strings in logging."""
     mock_belief_repo = AsyncMock(spec=BeliefRepository)
     mock_concept_repo = AsyncMock(spec=ConceptRepository)
+
+    # Mock the session and its execute method for enrollment check
+    mock_session = AsyncMock()
+    mock_enrollment_result = MagicMock()
+    mock_enrollment_result.scalar_one_or_none.return_value = uuid4()  # Return enrollment UUID
+    mock_session.execute.return_value = mock_enrollment_result
+    mock_belief_repo.session = mock_session
 
     mock_belief_repo.get_belief_count.return_value = 5
 

@@ -2,29 +2,29 @@
 Unit tests for question schemas.
 Tests validation, serialization, and helper methods.
 """
-import pytest
 from datetime import datetime
 from uuid import uuid4
 
+import pytest
 from pydantic import ValidationError
 
 from src.schemas.question import (
-    QuestionOptionsSchema,
-    QuestionBase,
-    QuestionCreate,
-    QuestionUpdate,
-    QuestionResponse,
-    QuestionWithConceptsResponse,
-    QuestionImport,
-    QuestionImportResult,
-    QuestionConceptCreate,
-    QuestionConceptResponse,
+    ConceptCoverageStats,
     ConceptMappingResponse,
     ConceptMappingWithReasoning,
-    QuestionConceptMappingResult,
-    ConceptCoverageStats,
-    QuestionDistributionStats,
     ImportValidationReport,
+    QuestionBase,
+    QuestionConceptCreate,
+    QuestionConceptMappingResult,
+    QuestionConceptResponse,
+    QuestionCreate,
+    QuestionDistributionStats,
+    QuestionImport,
+    QuestionImportResult,
+    QuestionOptionsSchema,
+    QuestionResponse,
+    QuestionUpdate,
+    QuestionWithConceptsResponse,
 )
 
 
@@ -118,23 +118,23 @@ class TestQuestionBase:
         assert "pattern" in str(exc_info.value).lower() or "string_pattern" in str(exc_info.value).lower()
 
     def test_difficulty_range_validation(self):
-        """Test difficulty must be between 0.0 and 1.0."""
+        """Test difficulty must be between -3.0 and 3.0 (IRT b-parameter scale)."""
         options = QuestionOptionsSchema(
             A="Option A", B="Option B", C="Option C", D="Option D"
         )
 
-        # Valid difficulty
+        # Valid difficulty (IRT scale allows 1.5)
         question = QuestionBase(
             question_text="This is a valid question text",
             options=options,
             correct_answer="A",
             explanation="This is the explanation",
             knowledge_area_id="KA1",
-            difficulty=0.7,
+            difficulty=1.5,
         )
-        assert question.difficulty == 0.7
+        assert question.difficulty == 1.5
 
-        # Invalid difficulty > 1.0
+        # Invalid difficulty > 3.0
         with pytest.raises(ValidationError):
             QuestionBase(
                 question_text="This is a valid question text",
@@ -142,10 +142,10 @@ class TestQuestionBase:
                 correct_answer="A",
                 explanation="This is the explanation",
                 knowledge_area_id="KA1",
-                difficulty=1.5,
+                difficulty=3.5,
             )
 
-        # Invalid difficulty < 0.0
+        # Invalid difficulty < -3.0
         with pytest.raises(ValidationError):
             QuestionBase(
                 question_text="This is a valid question text",
@@ -153,7 +153,7 @@ class TestQuestionBase:
                 correct_answer="A",
                 explanation="This is the explanation",
                 knowledge_area_id="KA1",
-                difficulty=-0.1,
+                difficulty=-3.5,
             )
 
     def test_default_values(self):
@@ -168,7 +168,7 @@ class TestQuestionBase:
             explanation="This is the explanation",
             knowledge_area_id="KA1",
         )
-        assert question.difficulty == 0.5  # Default
+        assert question.difficulty == 0.0  # Default (IRT medium)
         assert question.source == "vendor"  # Default
         assert question.corpus_reference is None  # Default
 
@@ -311,7 +311,8 @@ class TestQuestionResponse:
             correct_answer="A",
             explanation="This is the explanation",
             knowledge_area_id="KA1",
-            difficulty=0.5,
+            difficulty=0.0,
+            difficulty_label="Medium",
             source="vendor",
             corpus_reference=None,
             discrimination=1.0,
@@ -358,7 +359,8 @@ class TestQuestionWithConceptsResponse:
             correct_answer="A",
             explanation="This is the explanation",
             knowledge_area_id="KA1",
-            difficulty=0.5,
+            difficulty=0.0,
+            difficulty_label="Medium",
             source="vendor",
             corpus_reference=None,
             discrimination=1.0,
@@ -392,7 +394,8 @@ class TestQuestionWithConceptsResponse:
             correct_answer="A",
             explanation="This is the explanation",
             knowledge_area_id="KA1",
-            difficulty=0.5,
+            difficulty=0.0,
+            difficulty_label="Medium",
             source="vendor",
             corpus_reference=None,
             discrimination=1.0,
@@ -468,7 +471,7 @@ class TestQuestionImport:
         assert question.get_difficulty_float() == 0.75
 
     def test_difficulty_float_from_easy(self):
-        """Test difficulty conversion from 'Easy' string."""
+        """Test difficulty conversion from 'Easy' string to IRT b-parameter."""
         question = QuestionImport(
             question_text="This is a valid question text",
             correct_answer="A",
@@ -477,10 +480,10 @@ class TestQuestionImport:
             options={"A": "A", "B": "B", "C": "C", "D": "D"},
             difficulty="Easy",
         )
-        assert question.get_difficulty_float() == 0.3
+        assert question.get_difficulty_float() == -1.5
 
     def test_difficulty_float_from_medium(self):
-        """Test difficulty conversion from 'Medium' string."""
+        """Test difficulty conversion from 'Medium' string to IRT b-parameter."""
         question = QuestionImport(
             question_text="This is a valid question text",
             correct_answer="A",
@@ -489,10 +492,10 @@ class TestQuestionImport:
             options={"A": "A", "B": "B", "C": "C", "D": "D"},
             difficulty="medium",
         )
-        assert question.get_difficulty_float() == 0.5
+        assert question.get_difficulty_float() == 0.0
 
     def test_difficulty_float_from_hard(self):
-        """Test difficulty conversion from 'Hard' string."""
+        """Test difficulty conversion from 'Hard' string to IRT b-parameter."""
         question = QuestionImport(
             question_text="This is a valid question text",
             correct_answer="A",
@@ -501,10 +504,10 @@ class TestQuestionImport:
             options={"A": "A", "B": "B", "C": "C", "D": "D"},
             difficulty="HARD",
         )
-        assert question.get_difficulty_float() == 0.7
+        assert question.get_difficulty_float() == 1.5
 
     def test_difficulty_float_default(self):
-        """Test difficulty returns default when None."""
+        """Test difficulty returns default when None (IRT medium = 0.0)."""
         question = QuestionImport(
             question_text="This is a valid question text",
             correct_answer="A",
@@ -512,10 +515,10 @@ class TestQuestionImport:
             knowledge_area="KA1",
             options={"A": "A", "B": "B", "C": "C", "D": "D"},
         )
-        assert question.get_difficulty_float() == 0.5
+        assert question.get_difficulty_float() == 0.0
 
     def test_difficulty_float_unknown_string(self):
-        """Test difficulty returns default for unknown string."""
+        """Test difficulty returns default for unknown string (IRT medium = 0.0)."""
         question = QuestionImport(
             question_text="This is a valid question text",
             correct_answer="A",
@@ -524,19 +527,114 @@ class TestQuestionImport:
             options={"A": "A", "B": "B", "C": "C", "D": "D"},
             difficulty="Very Hard",  # Unknown
         )
-        assert question.get_difficulty_float() == 0.5
+        assert question.get_difficulty_float() == 0.0
 
-    def test_difficulty_float_clamped(self):
-        """Test difficulty is clamped to 0.0-1.0 range."""
+    def test_get_difficulty_label_from_easy_string(self):
+        """Test get_difficulty_label returns 'Easy' from easy string."""
         question = QuestionImport(
             question_text="This is a valid question text",
             correct_answer="A",
             explanation="Explanation",
             knowledge_area="KA1",
             options={"A": "A", "B": "B", "C": "C", "D": "D"},
-            difficulty="1.5",  # Above max
+            difficulty="easy",
         )
-        assert question.get_difficulty_float() == 1.0
+        assert question.get_difficulty_label() == "Easy"
+
+    def test_get_difficulty_label_from_medium_string(self):
+        """Test get_difficulty_label returns 'Medium' from medium string."""
+        question = QuestionImport(
+            question_text="This is a valid question text",
+            correct_answer="A",
+            explanation="Explanation",
+            knowledge_area="KA1",
+            options={"A": "A", "B": "B", "C": "C", "D": "D"},
+            difficulty="MEDIUM",
+        )
+        assert question.get_difficulty_label() == "Medium"
+
+    def test_get_difficulty_label_from_hard_string(self):
+        """Test get_difficulty_label returns 'Hard' from hard string."""
+        question = QuestionImport(
+            question_text="This is a valid question text",
+            correct_answer="A",
+            explanation="Explanation",
+            knowledge_area="KA1",
+            options={"A": "A", "B": "B", "C": "C", "D": "D"},
+            difficulty="Hard",
+        )
+        assert question.get_difficulty_label() == "Hard"
+
+    def test_get_difficulty_label_from_numeric_easy(self):
+        """Test get_difficulty_label classifies IRT b-parameter < -1.0 as Easy."""
+        question = QuestionImport(
+            question_text="This is a valid question text",
+            correct_answer="A",
+            explanation="Explanation",
+            knowledge_area="KA1",
+            options={"A": "A", "B": "B", "C": "C", "D": "D"},
+            difficulty="-1.5",
+        )
+        assert question.get_difficulty_label() == "Easy"
+
+    def test_get_difficulty_label_from_numeric_medium(self):
+        """Test get_difficulty_label classifies IRT b-parameter -1.0 to 1.0 as Medium."""
+        question = QuestionImport(
+            question_text="This is a valid question text",
+            correct_answer="A",
+            explanation="Explanation",
+            knowledge_area="KA1",
+            options={"A": "A", "B": "B", "C": "C", "D": "D"},
+            difficulty="0.5",
+        )
+        assert question.get_difficulty_label() == "Medium"
+
+    def test_get_difficulty_label_from_numeric_hard(self):
+        """Test get_difficulty_label classifies IRT b-parameter > 1.0 as Hard."""
+        question = QuestionImport(
+            question_text="This is a valid question text",
+            correct_answer="A",
+            explanation="Explanation",
+            knowledge_area="KA1",
+            options={"A": "A", "B": "B", "C": "C", "D": "D"},
+            difficulty="2.0",
+        )
+        assert question.get_difficulty_label() == "Hard"
+
+    def test_get_difficulty_label_default(self):
+        """Test get_difficulty_label returns 'Medium' when difficulty is None."""
+        question = QuestionImport(
+            question_text="This is a valid question text",
+            correct_answer="A",
+            explanation="Explanation",
+            knowledge_area="KA1",
+            options={"A": "A", "B": "B", "C": "C", "D": "D"},
+        )
+        assert question.get_difficulty_label() == "Medium"
+
+    def test_get_difficulty_label_unknown_string(self):
+        """Test get_difficulty_label returns 'Medium' for unknown string."""
+        question = QuestionImport(
+            question_text="This is a valid question text",
+            correct_answer="A",
+            explanation="Explanation",
+            knowledge_area="KA1",
+            options={"A": "A", "B": "B", "C": "C", "D": "D"},
+            difficulty="Expert",  # Unknown
+        )
+        assert question.get_difficulty_label() == "Medium"
+
+    def test_difficulty_float_clamped(self):
+        """Test difficulty is clamped to -3.0 to 3.0 range (IRT scale)."""
+        question = QuestionImport(
+            question_text="This is a valid question text",
+            correct_answer="A",
+            explanation="Explanation",
+            knowledge_area="KA1",
+            options={"A": "A", "B": "B", "C": "C", "D": "D"},
+            difficulty="4.0",  # Above max
+        )
+        assert question.get_difficulty_float() == 3.0
 
         question2 = QuestionImport(
             question_text="This is a valid question text",
@@ -544,9 +642,9 @@ class TestQuestionImport:
             explanation="Explanation",
             knowledge_area="KA1",
             options={"A": "A", "B": "B", "C": "C", "D": "D"},
-            difficulty="-0.5",  # Below min
+            difficulty="-4.0",  # Below min
         )
-        assert question2.get_difficulty_float() == 0.0
+        assert question2.get_difficulty_float() == -3.0
 
     def test_import_with_babok_reference_alias(self):
         """Test corpus_reference accepts babok_reference alias."""

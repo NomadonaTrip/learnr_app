@@ -16,13 +16,20 @@ Supporting documents provide **supplementary details** for specific areas. Use t
 | Specification | PRD Section | Status |
 |---------------|-------------|--------|
 | **Database Schemas** | Database Schema Summary (15 tables with SQL) | ✅ Complete |
-| **Core Algorithms** | Algorithm Specifications (6 algorithms with pseudocode) | ✅ Complete |
+| **Core Algorithms** | Algorithm Specifications (9 algorithms with pseudocode) | ✅ Complete |
+| **IRT Algorithms (7-9)** | Algorithm Specifications → Algorithms 7, 8, 9 | ✅ Complete |
+| **Gamification (FR19)** | Functional Requirements → FR19 | ✅ Complete |
+| **Mastery Gates (4.11)** | Epic 4 → Story 4.11 | ✅ Complete |
+| **Exam Readiness (FR5C)** | Functional Requirements → FR5C, Epic 4 → Story 4.12 | ✅ Complete |
+| **Advanced Analytics (4.13)** | Epic 4 → Story 4.13 | ✅ Complete |
+| **Curriculum Progress (6.6)** | Epic 6 → Story 6.6 | ✅ Complete |
 | **Design Tokens** | UI Design Goals → Design System Tokens | ✅ Complete |
 | **Color Palettes** | Light mode (17 colors) + Dark mode (12 colors) with hex codes | ✅ Complete |
 | **Typography Scale** | 8-level system (H1 → Caption) with weights and line heights | ✅ Complete |
 | **Spacing System** | 7-level system (xs → 3xl) with rem values | ✅ Complete |
 | **API Versioning** | Technical Assumptions → API Versioning Strategy | ✅ Complete |
 | **Success Metrics** | Success Criteria → v2.1 Feature Validation table | ✅ Complete |
+| **IRT Traceability** | Traceability Matrix IRT | ✅ Complete |
 
 ### Supplementary Documentation (Optional Reference)
 

@@ -4,8 +4,9 @@ Tests Redis-based rate limiting functionality.
 """
 
 import pytest
-from src.utils.rate_limit import check_rate_limit, reset_rate_limit, get_remaining_attempts
+
 from src.db.redis_client import get_redis
+from src.utils.rate_limit import check_rate_limit, get_remaining_attempts, reset_rate_limit
 
 
 @pytest.mark.asyncio

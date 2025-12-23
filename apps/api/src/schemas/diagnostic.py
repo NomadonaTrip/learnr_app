@@ -2,7 +2,7 @@
 Diagnostic Pydantic schemas for request/response validation.
 Used for diagnostic assessment question selection API.
 """
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -50,7 +50,7 @@ class DiagnosticQuestionResponse(BaseModel):
         description="Answer options as {A: text, B: text, C: text, D: text}"
     )
     knowledge_area_id: str = Field(..., description="Knowledge area ID")
-    difficulty: float = Field(..., ge=0.0, le=1.0, description="IRT difficulty (0.0-1.0)")
+    difficulty: float = Field(..., ge=-3.0, le=3.0, description="IRT difficulty b-parameter (-3.0 to +3.0)")
     discrimination: float = Field(..., ge=0.0, description="IRT discrimination parameter")
 
 

@@ -3,10 +3,10 @@ Unit tests for PrerequisiteGraphService.
 Tests the in-memory prerequisite graph cache for BKT lookups.
 """
 import asyncio
+from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
+
 import pytest
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import uuid4, UUID
 
 from src.services.prerequisite_graph_service import (
     CachedConcept,
@@ -514,8 +514,9 @@ class TestPrerequisiteGraphServiceStatistics:
     @pytest.fixture
     def stats_service(self):
         """Create a service with data for statistics."""
-        import networkx as nx
         import time
+
+        import networkx as nx
 
         service = PrerequisiteGraphService()
         service.graph = nx.DiGraph()

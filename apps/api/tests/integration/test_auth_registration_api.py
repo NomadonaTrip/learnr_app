@@ -6,9 +6,10 @@ Tests the full registration flow from HTTP request to database.
 import pytest
 from httpx import AsyncClient
 from jose import jwt
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.config import settings
 from src.repositories.user_repository import UserRepository
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio
