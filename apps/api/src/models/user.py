@@ -14,6 +14,7 @@ from ..db.session import Base
 
 if TYPE_CHECKING:
     from .belief_state import BeliefState
+    from .concept_unlock_event import ConceptUnlockEvent
     from .diagnostic_session import DiagnosticSession
     from .enrollment import Enrollment
     from .quiz_response import QuizResponse
@@ -85,6 +86,11 @@ class User(Base):
     )
     quiz_responses: Mapped[list["QuizResponse"]] = relationship(
         "QuizResponse",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    unlock_events: Mapped[list["ConceptUnlockEvent"]] = relationship(
+        "ConceptUnlockEvent",
         back_populates="user",
         cascade="all, delete-orphan"
     )

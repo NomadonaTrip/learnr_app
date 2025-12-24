@@ -4,22 +4,30 @@ QuestionSelector service for Bayesian question selection with IRT difficulty dis
 Implements combined BKT-IRT question selection (Algorithm 9):
 - BKT Layer: Selects target concept based on information gain
 - IRT Layer: Selects question difficulty based on user ability level
+
+Also implements prerequisite-based mastery gates (Story 4.11):
+- Soft enforcement: Deprioritize locked concepts (weight = 0.1)
+- Hard enforcement: Exclude locked concepts entirely
 """
 import math
 import random
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
 import structlog
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.belief_state import BeliefState
 from src.models.question import Question
 from src.models.quiz_response import QuizResponse
+from src.schemas.mastery_gate import EnforcementMode
+
+if TYPE_CHECKING:
+    from src.services.mastery_gate import MasteryGateService
 
 logger = structlog.get_logger(__name__)
 
@@ -70,6 +78,13 @@ ABILITY_THRESHOLDS = {
     "medium_accuracy_min": 0.6,      # 60%+ accuracy at medium for intermediate
     "hard_accuracy_min": 0.5,        # 50%+ accuracy at hard for expert
 }
+
+# =============================================================================
+# Prerequisite Gate Configuration (Story 4.11)
+# =============================================================================
+
+# Weight multiplier for questions testing locked concepts (soft enforcement)
+LOCKED_CONCEPT_WEIGHT = 0.1
 
 
 @dataclass
@@ -693,6 +708,141 @@ class QuestionSelector:
         return base_gain
 
     # =========================================================================
+    # Prerequisite Gate Methods (Story 4.11)
+    # =========================================================================
+
+    async def get_locked_concept_ids(
+        self,
+        user_id: UUID,
+        concept_ids: set[UUID],
+        mastery_gate_service: "MasteryGateService",
+    ) -> set[UUID]:
+        """
+        Get set of concept IDs that are locked (prerequisites not mastered).
+
+        Args:
+            user_id: User UUID
+            concept_ids: Set of concept IDs to check
+            mastery_gate_service: MasteryGate service instance
+
+        Returns:
+            Set of locked concept UUIDs
+        """
+        locked = set()
+        for concept_id in concept_ids:
+            try:
+                gate_result = await mastery_gate_service.check_prerequisites_mastered(
+                    user_id=user_id,
+                    concept_id=concept_id,
+                )
+                if not gate_result.is_unlocked:
+                    locked.add(concept_id)
+            except ValueError:
+                # Concept not found - skip
+                continue
+        return locked
+
+    def apply_prerequisite_filter(
+        self,
+        candidates: list[Question],
+        locked_concept_ids: set[UUID],
+        enforcement: EnforcementMode,
+    ) -> tuple[list[Question], int]:
+        """
+        Apply prerequisite filter to question candidates.
+
+        For soft enforcement: Questions remain in pool but will be deprioritized
+        during scoring (weight = 0.1). Returns all candidates.
+
+        For hard enforcement: Questions testing locked concepts are removed
+        entirely from the pool.
+
+        Args:
+            candidates: List of candidate questions
+            locked_concept_ids: Set of locked concept UUIDs
+            enforcement: Enforcement mode (SOFT or HARD)
+
+        Returns:
+            Tuple of (filtered_questions, excluded_count)
+        """
+        if not locked_concept_ids:
+            return candidates, 0
+
+        if enforcement == EnforcementMode.HARD:
+            # Hard enforcement: exclude questions testing locked concepts
+            filtered = []
+            excluded_count = 0
+            for q in candidates:
+                question_concept_ids = {qc.concept_id for qc in q.question_concepts}
+                if question_concept_ids.isdisjoint(locked_concept_ids):
+                    filtered.append(q)
+                else:
+                    excluded_count += 1
+                    logger.debug(
+                        "prerequisite_gate_excluded",
+                        question_id=str(q.id),
+                        locked_concepts=[str(c) for c in question_concept_ids & locked_concept_ids],
+                    )
+            return filtered, excluded_count
+
+        # Soft enforcement: return all, deprioritization happens in scoring
+        return candidates, 0
+
+    def _select_by_info_gain_with_prerequisite_gate(
+        self,
+        candidates: list[Question],
+        beliefs: dict[UUID, BeliefState],
+        locked_concept_ids: set[UUID],
+        apply_prerequisite_bonus: bool = False,
+    ) -> tuple[Question, float]:
+        """
+        Select question with maximum expected information gain, with prerequisite gates.
+
+        Applies weight of 0.1 to questions testing locked concepts (soft enforcement).
+
+        Args:
+            candidates: Eligible questions
+            beliefs: User's belief states by concept
+            locked_concept_ids: Set of locked concept UUIDs
+            apply_prerequisite_bonus: Whether to add bonus for foundational concepts
+
+        Returns:
+            Tuple of (best_question, info_gain)
+        """
+        best_question = None
+        best_gain = -1.0
+
+        for question in candidates:
+            gain = self._calculate_expected_info_gain(question, beliefs)
+
+            # Apply prerequisite bonus if configured
+            if apply_prerequisite_bonus:
+                gain = self._apply_prerequisite_bonus(question, beliefs, gain)
+
+            # Apply prerequisite gate penalty (soft enforcement)
+            if locked_concept_ids:
+                question_concept_ids = {qc.concept_id for qc in question.question_concepts}
+                if not question_concept_ids.isdisjoint(locked_concept_ids):
+                    original_gain = gain
+                    gain *= LOCKED_CONCEPT_WEIGHT
+                    logger.debug(
+                        "prerequisite_gate_deprioritized",
+                        question_id=str(question.id),
+                        original_gain=round(original_gain, 4),
+                        adjusted_gain=round(gain, 4),
+                        weight=LOCKED_CONCEPT_WEIGHT,
+                    )
+
+            if gain > best_gain:
+                best_gain = gain
+                best_question = question
+
+        if best_question is None:
+            raise ValueError("No question could be selected")
+
+        return best_question, best_gain
+
+    # =========================================================================
     # IRT Difficulty Distribution Methods (Algorithm 7 & 8)
     # =========================================================================
 
@@ -984,21 +1134,27 @@ class QuestionSelector:
         available_questions: list[Question],
         knowledge_area_filter: str | None = None,
         use_irt: bool = True,
+        mastery_gate_service: "MasteryGateService | None" = None,
+        enforcement_mode: EnforcementMode = EnforcementMode.SOFT,
     ) -> tuple[Question, float, AbilityLevel | None, str | None]:
         """
         Combined BKT-IRT adaptive question selection (Algorithm 9).
 
         This method orchestrates the complete adaptive selection process:
 
+        Prerequisite Gate Layer (Story 4.11):
+        0. Check which concepts have unmastered prerequisites
+        1. Apply soft/hard enforcement to candidate pool
+
         BKT Layer (What to teach):
-        1. Calculate information gain for each concept
-        2. Apply prerequisite weighting
-        3. Select concept with highest info gain
+        2. Calculate information gain for each concept
+        3. Apply prerequisite weighting (deprioritize locked in soft mode)
+        4. Select concept with highest info gain
 
         IRT Layer (How hard to teach):
-        4. Classify user ability for selected concept
-        5. Sample difficulty tier from distribution
-        6. Select question at appropriate difficulty
+        5. Classify user ability for selected concept
+        6. Sample difficulty tier from distribution
+        7. Select question at appropriate difficulty
 
         Args:
             user_id: User UUID
@@ -1007,6 +1163,8 @@ class QuestionSelector:
             available_questions: List of all available questions
             knowledge_area_filter: Optional knowledge area filter
             use_irt: Whether to apply IRT difficulty distribution
+            mastery_gate_service: Optional MasteryGate service for prerequisite checking
+            enforcement_mode: SOFT (deprioritize, weight=0.1) or HARD (exclude)
 
         Returns:
             Tuple of (question, info_gain, ability_level, difficulty_tier)
@@ -1031,8 +1189,53 @@ class QuestionSelector:
                 )
             raise ValueError("No eligible questions available for selection")
 
-        # BKT Layer: Select by information gain to find best concept
-        question, info_gain = self._select_by_info_gain(candidates, beliefs)
+        # Prerequisite Gate Layer (Story 4.11)
+        locked_concept_ids: set[UUID] = set()
+        excluded_count = 0
+
+        if mastery_gate_service:
+            # Collect all unique concept IDs from candidates
+            all_concept_ids = set()
+            for q in candidates:
+                for qc in q.question_concepts:
+                    all_concept_ids.add(qc.concept_id)
+
+            # Check which are locked
+            locked_concept_ids = await self.get_locked_concept_ids(
+                user_id=user_id,
+                concept_ids=all_concept_ids,
+                mastery_gate_service=mastery_gate_service,
+            )
+
+            if locked_concept_ids:
+                logger.info(
+                    "prerequisite_gate_check",
+                    session_id=str(session_id),
+                    locked_concepts_count=len(locked_concept_ids),
+                    enforcement_mode=enforcement_mode.value,
+                )
+
+                # Apply filtering (hard mode removes, soft mode keeps for deprioritization)
+                candidates, excluded_count = self.apply_prerequisite_filter(
+                    candidates=candidates,
+                    locked_concept_ids=locked_concept_ids,
+                    enforcement=enforcement_mode,
+                )
+
+                if not candidates:
+                    raise ValueError(
+                        "No eligible questions available after prerequisite filtering"
+                    )
+
+        # BKT Layer: Select by information gain with prerequisite gating
+        if locked_concept_ids and enforcement_mode == EnforcementMode.SOFT:
+            # Use gated selection (applies weight penalty)
+            question, info_gain = self._select_by_info_gain_with_prerequisite_gate(
+                candidates, beliefs, locked_concept_ids
+            )
+        else:
+            # Standard selection (no locked concepts or already filtered in hard mode)
+            question, info_gain = self._select_by_info_gain(candidates, beliefs)
 
         # Get the primary concept for this question
         primary_concept_id = None
@@ -1073,6 +1276,10 @@ class QuestionSelector:
             concepts_tested=[str(c) for c in concept_ids],
             candidates_count=len(candidates),
             use_irt=use_irt,
+            prerequisite_gate_enabled=mastery_gate_service is not None,
+            enforcement_mode=enforcement_mode.value if mastery_gate_service else None,
+            locked_concepts_count=len(locked_concept_ids),
+            excluded_by_gate=excluded_count,
             selection_duration_ms=round(duration_ms, 2),
         )
 

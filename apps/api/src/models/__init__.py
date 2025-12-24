@@ -5,6 +5,7 @@ Exports all database models for easy importing.
 from .belief_state import BeliefState
 from .concept import Concept
 from .concept_prerequisite import ConceptPrerequisite
+from .concept_unlock_event import ConceptUnlockEvent
 from .course import Course
 from .diagnostic_session import DiagnosticSession
 from .enrollment import Enrollment
@@ -27,6 +28,7 @@ __all__ = [
     "Enrollment",
     "Concept",
     "ConceptPrerequisite",
+    "ConceptUnlockEvent",
     "ReadingChunk",
     "BeliefState",
     "DiagnosticSession",

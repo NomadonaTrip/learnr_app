@@ -7,10 +7,13 @@ Classifies each concept as:
 - GAP: High confidence of non-mastery (P(mastery) < 0.5, confidence >= 0.7)
 - BORDERLINE: Moderate mastery, high confidence (0.5 <= P(mastery) < 0.8, confidence >= 0.7)
 - UNCERTAIN: Need more data to classify (confidence < 0.7)
+
+Enhanced with prerequisite lock status tracking (Story 4.11).
 """
 import json
 import logging
 import time
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from redis.asyncio import Redis
@@ -30,6 +33,9 @@ from src.schemas.coverage import (
     GapConceptList,
     KnowledgeAreaCoverage,
 )
+
+if TYPE_CHECKING:
+    from src.services.mastery_gate import MasteryGateService
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +176,8 @@ class CoverageAnalyzer:
     def _build_concept_status(
         self,
         belief: BeliefState,
-        concept: Concept
+        concept: Concept,
+        is_locked: bool = False,
     ) -> ConceptStatus:
         """
         Build ConceptStatus from belief and concept.
@@ -178,6 +185,7 @@ class CoverageAnalyzer:
         Args:
             belief: BeliefState model
             concept: Concept model
+            is_locked: Whether concept is locked due to unmastered prerequisites
 
         Returns:
             ConceptStatus schema
@@ -189,13 +197,46 @@ class CoverageAnalyzer:
             status=BeliefStatus(belief.status),
             probability=round(belief.mean, 4),
             confidence=round(belief.confidence, 4),
+            is_locked=is_locked,
         )
+
+    async def _get_locked_concept_ids(
+        self,
+        user_id: UUID,
+        concept_ids: set[UUID],
+        mastery_gate_service: "MasteryGateService",
+    ) -> set[UUID]:
+        """
+        Get set of concept IDs that are locked (prerequisites not mastered).
+
+        Args:
+            user_id: User UUID
+            concept_ids: Set of concept IDs to check
+            mastery_gate_service: MasteryGate service instance
+
+        Returns:
+            Set of locked concept UUIDs
+        """
+        locked = set()
+        for concept_id in concept_ids:
+            try:
+                gate_result = await mastery_gate_service.check_prerequisites_mastered(
+                    user_id=user_id,
+                    concept_id=concept_id,
+                )
+                if not gate_result.is_unlocked:
+                    locked.add(concept_id)
+            except ValueError:
+                # Concept not found - skip
+                continue
+        return locked
 
     async def analyze_coverage(
         self,
         user_id: UUID,
         course_id: UUID,
-        use_cache: bool = True
+        use_cache: bool = True,
+        mastery_gate_service: "MasteryGateService | None" = None,
     ) -> CoverageReport:
         """
         Generate comprehensive coverage report.
@@ -204,19 +245,19 @@ class CoverageAnalyzer:
             user_id: User UUID
             course_id: Course UUID
             use_cache: Whether to use cached results
+            mastery_gate_service: Optional MasteryGate service for prerequisite status
 
         Returns:
-            CoverageReport with summary and KA breakdown
+            CoverageReport with summary, KA breakdown, and lock status
         """
         start_time = time.perf_counter()
 
-        # Check cache first
-        if use_cache:
+        # Check cache first (only if no gate service, as lock status is dynamic)
+        if use_cache and not mastery_gate_service:
             cached = await self._get_cached_coverage(user_id)
             if cached:
                 logger.debug(f"Returning cached coverage for user {user_id}")
                 # For cached summary, we need to fetch KA breakdown separately
-                # or cache the full report. For now, return summary-only.
                 ka_breakdown = await self.analyze_coverage_by_ka(user_id, course_id)
                 return CoverageReport(
                     **cached.model_dump(),
@@ -244,6 +285,19 @@ class CoverageAnalyzer:
         borderline_count = len(status_groups["borderline"])
         uncertain_count = len(status_groups["uncertain"])
 
+        # Calculate locked/unlocked counts (Story 4.11)
+        locked_count = 0
+        unlocked_count = total_concepts
+        if mastery_gate_service and beliefs:
+            concept_ids = {b.concept_id for b in beliefs}
+            locked_concept_ids = await self._get_locked_concept_ids(
+                user_id=user_id,
+                concept_ids=concept_ids,
+                mastery_gate_service=mastery_gate_service,
+            )
+            locked_count = len(locked_concept_ids)
+            unlocked_count = total_concepts - locked_count
+
         # Calculate percentages (avoid division by zero)
         if total_concepts > 0:
             coverage_percentage = mastered_count / total_concepts
@@ -264,21 +318,28 @@ class CoverageAnalyzer:
             gaps=gap_count,
             borderline=borderline_count,
             uncertain=uncertain_count,
+            locked_concepts=locked_count,
+            unlocked_concepts=unlocked_count,
             coverage_percentage=round(coverage_percentage, 4),
             confidence_percentage=round(confidence_percentage, 4),
             estimated_questions_remaining=estimated_remaining,
         )
 
-        # Cache the summary
-        if use_cache:
+        # Cache the summary (only if no gate service, as lock status is dynamic)
+        if use_cache and not mastery_gate_service:
             await self._set_cached_coverage(user_id, summary)
 
         # Get KA breakdown
-        ka_breakdown = await self.analyze_coverage_by_ka(user_id, course_id)
+        ka_breakdown = await self.analyze_coverage_by_ka(
+            user_id, course_id, mastery_gate_service
+        )
 
         # Log performance
         elapsed_ms = (time.perf_counter() - start_time) * 1000
-        logger.info(f"Coverage analysis for user {user_id} completed in {elapsed_ms:.2f}ms")
+        logger.info(
+            f"Coverage analysis for user {user_id} completed in {elapsed_ms:.2f}ms "
+            f"(locked={locked_count}, unlocked={unlocked_count})"
+        )
 
         return CoverageReport(
             **summary.model_dump(),
@@ -288,7 +349,8 @@ class CoverageAnalyzer:
     async def analyze_coverage_by_ka(
         self,
         user_id: UUID,
-        course_id: UUID
+        course_id: UUID,
+        mastery_gate_service: "MasteryGateService | None" = None,
     ) -> list[KnowledgeAreaCoverage]:
         """
         Generate coverage breakdown by knowledge area.
@@ -296,6 +358,7 @@ class CoverageAnalyzer:
         Args:
             user_id: User UUID
             course_id: Course UUID
+            mastery_gate_service: Optional MasteryGate service for prerequisite status
 
         Returns:
             List of KnowledgeAreaCoverage for each KA
@@ -319,6 +382,16 @@ class CoverageAnalyzer:
         concepts = await self.concept_repository.get_all_concepts(course_id)
         concept_map: dict[UUID, Concept] = {c.id: c for c in concepts}
 
+        # Get locked concept IDs if gate service provided (Story 4.11)
+        locked_concept_ids: set[UUID] = set()
+        if mastery_gate_service and beliefs:
+            all_concept_ids = {b.concept_id for b in beliefs}
+            locked_concept_ids = await self._get_locked_concept_ids(
+                user_id=user_id,
+                concept_ids=all_concept_ids,
+                mastery_gate_service=mastery_gate_service,
+            )
+
         # Group beliefs by KA
         ka_beliefs: dict[str, list[BeliefState]] = {}
         for belief in beliefs:
@@ -338,6 +411,8 @@ class CoverageAnalyzer:
             gap = 0
             borderline = 0
             uncertain = 0
+            locked = 0
+            unlocked = 0
 
             for b in ka_belief_list:
                 status = b.status
@@ -350,6 +425,12 @@ class CoverageAnalyzer:
                 else:
                     uncertain += 1
 
+                # Count locked/unlocked (Story 4.11)
+                if b.concept_id in locked_concept_ids:
+                    locked += 1
+                else:
+                    unlocked += 1
+
             total = len(ka_belief_list)
             readiness = mastered / total if total > 0 else 0.0
 
@@ -361,6 +442,8 @@ class CoverageAnalyzer:
                 gap_count=gap,
                 borderline_count=borderline,
                 uncertain_count=uncertain,
+                locked_count=locked,
+                unlocked_count=unlocked,
                 readiness_score=round(readiness, 4),
             ))
 
@@ -429,7 +512,8 @@ class CoverageAnalyzer:
     async def get_detailed_coverage(
         self,
         user_id: UUID,
-        course_id: UUID
+        course_id: UUID,
+        mastery_gate_service: "MasteryGateService | None" = None,
     ) -> CoverageDetailReport:
         """
         Get detailed coverage report with concept lists.
@@ -439,17 +523,30 @@ class CoverageAnalyzer:
         Args:
             user_id: User UUID
             course_id: Course UUID
+            mastery_gate_service: Optional MasteryGate service for prerequisite status
 
         Returns:
             CoverageDetailReport with full concept lists
         """
         # Get basic coverage
-        report = await self.analyze_coverage(user_id, course_id, use_cache=False)
+        report = await self.analyze_coverage(
+            user_id, course_id, use_cache=False, mastery_gate_service=mastery_gate_service
+        )
 
         # Get all beliefs and concepts
         beliefs = await self.belief_repository.get_all_beliefs(user_id)
         concepts = await self.concept_repository.get_all_concepts(course_id)
         concept_map: dict[UUID, Concept] = {c.id: c for c in concepts}
+
+        # Get locked concept IDs if gate service provided (Story 4.11)
+        locked_concept_ids: set[UUID] = set()
+        if mastery_gate_service and beliefs:
+            all_concept_ids = {b.concept_id for b in beliefs}
+            locked_concept_ids = await self._get_locked_concept_ids(
+                user_id=user_id,
+                concept_ids=all_concept_ids,
+                mastery_gate_service=mastery_gate_service,
+            )
 
         # Build concept status lists
         mastered_concepts: list[ConceptStatus] = []
@@ -462,7 +559,8 @@ class CoverageAnalyzer:
             if not concept:
                 continue
 
-            status_obj = self._build_concept_status(belief, concept)
+            is_locked = belief.concept_id in locked_concept_ids
+            status_obj = self._build_concept_status(belief, concept, is_locked=is_locked)
 
             if belief.status == "mastered":
                 mastered_concepts.append(status_obj)
