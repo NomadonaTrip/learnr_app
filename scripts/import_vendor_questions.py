@@ -1565,6 +1565,37 @@ class VendorQuestionImporter:
         # Distribution by KA
         ka_counts = Counter(q.knowledge_area_id for q in questions)
 
+        # IRT parameter statistics (Story 10.2 AC 6)
+        difficulties = [q.difficulty for q in questions]
+        discriminations = [q.discrimination for q in questions]
+        guess_rates = [q.guess_rate for q in questions]
+        slip_rates = [q.slip_rate for q in questions]
+        difficulty_labels = Counter(q.difficulty_label for q in questions if q.difficulty_label)
+
+        irt_stats = {
+            "difficulty": {
+                "min": min(difficulties) if difficulties else 0.0,
+                "max": max(difficulties) if difficulties else 0.0,
+                "avg": sum(difficulties) / len(difficulties) if difficulties else 0.0,
+            },
+            "discrimination": {
+                "min": min(discriminations) if discriminations else 1.0,
+                "max": max(discriminations) if discriminations else 1.0,
+                "avg": sum(discriminations) / len(discriminations) if discriminations else 1.0,
+            },
+            "guess_rate": {
+                "min": min(guess_rates) if guess_rates else 0.25,
+                "max": max(guess_rates) if guess_rates else 0.25,
+                "avg": sum(guess_rates) / len(guess_rates) if guess_rates else 0.25,
+            },
+            "slip_rate": {
+                "min": min(slip_rates) if slip_rates else 0.10,
+                "max": max(slip_rates) if slip_rates else 0.10,
+                "avg": sum(slip_rates) / len(slip_rates) if slip_rates else 0.10,
+            },
+            "by_tier": dict(difficulty_labels),
+        }
+
         report = {
             "total_questions": len(questions),
             "mapped_questions": len(questions) - len(unmapped),
@@ -1574,6 +1605,7 @@ class VendorQuestionImporter:
             "concepts_with_questions": len([c for c in self.concepts if concept_question_count.get(str(c.id), 0) > 0]),
             "concepts_needing_content": len(concepts_needing_content),
             "avg_mappings_per_question": sum(len(m) for m in mappings.values()) / max(1, len(mappings)),
+            "irt_parameters": irt_stats,
         }
 
         # Log warnings for concepts with few questions
@@ -1877,6 +1909,24 @@ class VendorQuestionImporter:
         logger.info("")
         logger.info(f"Concepts with questions: {report.get('concepts_with_questions', 0)}/{report.get('total_concepts', 0)}")
         logger.info(f"Concepts needing content: {report.get('concepts_needing_content', 0)}")
+        logger.info("")
+        # Story 10.2 AC 6: IRT parameter statistics
+        irt_params = report.get("irt_parameters", {})
+        if irt_params:
+            logger.info("IRT Parameter Statistics:")
+            difficulty = irt_params.get("difficulty", {})
+            logger.info(f"  Difficulty (b-parameter): min={difficulty.get('min', 0):.2f}, max={difficulty.get('max', 0):.2f}, avg={difficulty.get('avg', 0):.2f}")
+            discrimination = irt_params.get("discrimination", {})
+            logger.info(f"  Discrimination (a-parameter): min={discrimination.get('min', 1):.2f}, max={discrimination.get('max', 1):.2f}, avg={discrimination.get('avg', 1):.2f}")
+            guess_rate = irt_params.get("guess_rate", {})
+            logger.info(f"  Guess rate: min={guess_rate.get('min', 0.25):.2f}, max={guess_rate.get('max', 0.25):.2f}, avg={guess_rate.get('avg', 0.25):.2f}")
+            slip_rate = irt_params.get("slip_rate", {})
+            logger.info(f"  Slip rate: min={slip_rate.get('min', 0.10):.2f}, max={slip_rate.get('max', 0.10):.2f}, avg={slip_rate.get('avg', 0.10):.2f}")
+            by_tier = irt_params.get("by_tier", {})
+            if by_tier:
+                logger.info("  Distribution by difficulty tier:")
+                for tier, count in sorted(by_tier.items()):
+                    logger.info(f"    - {tier}: {count}")
         logger.info("=" * 60)
 
         if self.result.errors:
