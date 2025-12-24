@@ -196,6 +196,9 @@ class QuestionData:
     corpus_reference: Optional[str] = None
     row_number: int = 0
     concept_tags: List[str] = field(default_factory=list)
+    # Relevance overrides for primary/secondary concept distinction
+    # Maps normalized tag -> relevance score (1.0 for primary, 0.7 for secondary)
+    concept_relevance: Dict[str, float] = field(default_factory=dict)
     # Story 2.15: Secondary tags for filtering/analysis
     perspectives: List[str] = field(default_factory=list)
     competencies: List[str] = field(default_factory=list)
@@ -756,16 +759,62 @@ class VendorQuestionImporter:
             self.result.errors.append(f"Row {row_num}: Missing knowledge_area")
             return None
 
-        # Parse concept_tags column FIRST (needed for non-conventional KA inference)
-        # Supports both , and ; delimiters
+        # Parse concept columns - support both new format (primary_concept + secondary_concepts)
+        # and legacy format (concept_tags). New format enables explicit relevance weighting.
         concept_tags = []
+        concept_relevance: Dict[str, float] = {}
         perspectives = []
         competencies = []
         raw_tags = []
-        tags_raw = row.get("concept_tags", "").strip()
-        if tags_raw:
-            # Normalize: replace ; with , then split
-            raw_tags = [t.strip() for t in tags_raw.replace(";", ",").split(",") if t.strip()]
+
+        # Check for new IRT format with primary_concept and secondary_concepts
+        primary_concept = row.get("primary_concept", "").strip()
+        secondary_concepts_raw = row.get("secondary_concepts", "").strip()
+
+        if primary_concept:
+            # New format: explicit primary/secondary distinction
+            concept_tags.append(primary_concept)
+            concept_relevance[primary_concept.lower()] = 1.0  # Primary gets full relevance
+            raw_tags.append(primary_concept)
+
+            secondary_tags = []
+            if secondary_concepts_raw:
+                secondary_tags = [
+                    t.strip() for t in secondary_concepts_raw.replace(";", ",").split(",")
+                    if t.strip()
+                ]
+                concept_tags.extend(secondary_tags)
+                raw_tags.extend(secondary_tags)
+                for tag in secondary_tags:
+                    concept_relevance[tag.lower()] = 0.7  # Secondary gets reduced relevance
+
+            logger.debug(
+                f"Row {row_num}: New format - primary='{primary_concept}', "
+                f"secondary={secondary_tags}"
+            )
+        else:
+            # Fall back to legacy concept_tags column (backward compatibility)
+            # Supports both , and ; delimiters
+            tags_raw = row.get("concept_tags", "").strip()
+            if tags_raw:
+                # Normalize: replace ; with , then split
+                raw_tags = [t.strip() for t in tags_raw.replace(";", ",").split(",") if t.strip()]
+
+        # Check for explicit perspectives column (new format)
+        perspectives_raw = row.get("perspectives", "").strip()
+        if perspectives_raw:
+            perspectives = [
+                p.strip() for p in perspectives_raw.replace(";", ",").split(",")
+                if p.strip()
+            ]
+
+        # Check for explicit competencies column (new format)
+        competencies_raw = row.get("competencies", "").strip()
+        if competencies_raw:
+            competencies = [
+                c.strip() for c in competencies_raw.replace(";", ",").split(",")
+                if c.strip()
+            ]
 
         # Story 2.16: Check for non-conventional KA (perspectives or competencies)
         ka_id = None
@@ -795,7 +844,17 @@ class VendorQuestionImporter:
                 return None
 
         # Story 2.15: Classify tags using course-configurable keywords
-        if self.tag_classifier and raw_tags:
+        # Only use TagClassifier for legacy format (concept_tags column) without explicit
+        # perspectives/competencies columns. New format provides these directly.
+        use_tag_classifier = (
+            self.tag_classifier
+            and raw_tags
+            and not primary_concept  # Legacy format only
+            and not perspectives_raw  # No explicit perspectives column
+            and not competencies_raw  # No explicit competencies column
+        )
+
+        if use_tag_classifier:
             classified = self.tag_classifier.classify_tags(raw_tags)
             concept_tags = classified["concepts"]
             # Extend (not replace) perspectives/competencies to include those from KA mapping
@@ -811,8 +870,8 @@ class VendorQuestionImporter:
                 f"{len(concept_tags)} concepts, {len(perspectives)} perspectives, "
                 f"{len(competencies)} competencies"
             )
-        elif raw_tags:
-            # Fallback if tag_classifier not initialized (shouldn't happen)
+        elif raw_tags and not primary_concept:
+            # Legacy format without tag_classifier - use raw_tags as concept_tags
             concept_tags = raw_tags
             logger.debug(f"Row {row_num}: Parsed {len(raw_tags)} concept tags (no classifier)")
 
@@ -892,6 +951,7 @@ class VendorQuestionImporter:
             corpus_reference=row.get("corpus_reference", row.get("babok_reference")),
             row_number=row_num,
             concept_tags=concept_tags,
+            concept_relevance=concept_relevance,
             perspectives=perspectives,
             competencies=competencies,
         )
@@ -1361,7 +1421,7 @@ class VendorQuestionImporter:
                 result = matcher.match_tag(tag)
 
                 if result:
-                    concept, score, relevance = result
+                    concept, score, match_relevance = result
 
                     # Skip if we already mapped this concept for this question
                     if concept.id in seen_concept_ids:
@@ -1385,16 +1445,28 @@ class VendorQuestionImporter:
                         tag_ka_usage[tag_lower][question.knowledge_area_id] = []
                     tag_ka_usage[tag_lower][question.knowledge_area_id].append(question.row_number)
 
+                    # Use explicit relevance override if available (primary/secondary distinction),
+                    # otherwise fall back to match-based relevance
+                    relevance = question.concept_relevance.get(tag_lower, match_relevance)
+                    is_primary = tag_lower in question.concept_relevance and relevance == 1.0
+
                     question_mappings.append(ConceptMapping(
                         concept_id=concept.id,
                         concept_name=concept.name,
                         relevance=relevance,
-                        reasoning=f"Matched from CSV tag '{tag}' (score: {score:.0f}%)"
+                        reasoning=(
+                            f"Primary concept from CSV (score: {score:.0f}%)"
+                            if is_primary
+                            else f"Secondary concept from CSV tag '{tag}' (score: {score:.0f}%)"
+                            if tag_lower in question.concept_relevance
+                            else f"Matched from CSV tag '{tag}' (score: {score:.0f}%)"
+                        )
                     ))
                     matched_count += 1
                     logger.debug(
                         f"Row {question.row_number}: Matched tag '{tag}' -> "
-                        f"'{concept.name}' (score: {score:.0f}%, relevance: {relevance})"
+                        f"'{concept.name}' (score: {score:.0f}%, relevance: {relevance}, "
+                        f"primary: {is_primary})"
                     )
                 else:
                     # Track unmatched tag for reporting
