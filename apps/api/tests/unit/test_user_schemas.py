@@ -8,7 +8,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from src.schemas.user import UserCreate, UserResponse, UserUpdate
+from src.schemas.user import OnboardingData, UserCreate, UserResponse, UserUpdate
 
 
 class TestUserCreateSchema:
@@ -60,6 +60,152 @@ class TestUserCreateSchema:
         """Test that minimum valid password (8 chars, 1 letter, 1 number) works."""
         user = UserCreate(email="test@example.com", password="Pass1234")
         assert user.password == "Pass1234"
+
+    def test_user_create_with_onboarding_data(self):
+        """Test UserCreate with optional onboarding_data (Story 3.4.1)."""
+        user_data = {
+            "email": "test@example.com",
+            "password": "Password123",
+            "onboarding_data": {
+                "course": "business-analysis",
+                "motivation": "certification",
+                "familiarity": "basics",
+                "initial_belief_prior": 0.3
+            }
+        }
+        user = UserCreate(**user_data)
+        assert user.email == "test@example.com"
+        assert user.onboarding_data is not None
+        assert user.onboarding_data.course == "business-analysis"
+        assert user.onboarding_data.familiarity == "basics"
+        assert user.onboarding_data.initial_belief_prior == 0.3
+
+    def test_user_create_without_onboarding_data(self):
+        """Test UserCreate without onboarding_data (legacy registration)."""
+        user = UserCreate(email="test@example.com", password="Password123")
+        assert user.email == "test@example.com"
+        assert user.onboarding_data is None
+
+
+class TestOnboardingDataSchema:
+    """Tests for OnboardingData schema validation (Story 3.4.1)."""
+
+    def test_valid_onboarding_data(self):
+        """Test creating valid onboarding data."""
+        data = OnboardingData(
+            course="business-analysis",
+            motivation="certification",
+            familiarity="basics",
+            initial_belief_prior=0.3
+        )
+        assert data.course == "business-analysis"
+        assert data.motivation == "certification"
+        assert data.familiarity == "basics"
+        assert data.initial_belief_prior == 0.3
+
+    def test_valid_familiarity_new(self):
+        """Test familiarity='new' with prior 0.1."""
+        data = OnboardingData(
+            course="cbap",
+            motivation="learning",
+            familiarity="new",
+            initial_belief_prior=0.1
+        )
+        assert data.familiarity == "new"
+        assert data.initial_belief_prior == 0.1
+
+    def test_valid_familiarity_intermediate(self):
+        """Test familiarity='intermediate' with prior 0.5."""
+        data = OnboardingData(
+            course="cbap",
+            motivation="career",
+            familiarity="intermediate",
+            initial_belief_prior=0.5
+        )
+        assert data.familiarity == "intermediate"
+
+    def test_valid_familiarity_expert(self):
+        """Test familiarity='expert' with prior 0.7."""
+        data = OnboardingData(
+            course="cbap",
+            motivation="review",
+            familiarity="expert",
+            initial_belief_prior=0.7
+        )
+        assert data.familiarity == "expert"
+
+    def test_invalid_familiarity_value(self):
+        """Test that invalid familiarity value raises ValidationError."""
+        with pytest.raises(ValidationError) as exc_info:
+            OnboardingData(
+                course="cbap",
+                motivation="learning",
+                familiarity="advanced",  # Invalid: should be new/basics/intermediate/expert
+                initial_belief_prior=0.5
+            )
+
+        errors = exc_info.value.errors()
+        assert len(errors) > 0
+        # Check that it's a literal type error
+        assert any("familiarity" in str(error["loc"]) for error in errors)
+
+    def test_invalid_prior_too_high(self):
+        """Test that prior > 1.0 raises ValidationError."""
+        with pytest.raises(ValidationError) as exc_info:
+            OnboardingData(
+                course="cbap",
+                motivation="learning",
+                familiarity="basics",
+                initial_belief_prior=1.5  # Invalid: must be <= 1.0
+            )
+
+        errors = exc_info.value.errors()
+        assert any("between 0.0 and 1.0" in str(error["ctx"]["error"]) for error in errors)
+
+    def test_invalid_prior_negative(self):
+        """Test that negative prior raises ValidationError."""
+        with pytest.raises(ValidationError) as exc_info:
+            OnboardingData(
+                course="cbap",
+                motivation="learning",
+                familiarity="basics",
+                initial_belief_prior=-0.1  # Invalid: must be >= 0.0
+            )
+
+        errors = exc_info.value.errors()
+        assert any("between 0.0 and 1.0" in str(error["ctx"]["error"]) for error in errors)
+
+    def test_prior_edge_case_zero(self):
+        """Test that prior=0.0 is valid (edge case)."""
+        data = OnboardingData(
+            course="cbap",
+            motivation="learning",
+            familiarity="new",
+            initial_belief_prior=0.0
+        )
+        assert data.initial_belief_prior == 0.0
+
+    def test_prior_edge_case_one(self):
+        """Test that prior=1.0 is valid (edge case)."""
+        data = OnboardingData(
+            course="cbap",
+            motivation="learning",
+            familiarity="expert",
+            initial_belief_prior=1.0
+        )
+        assert data.initial_belief_prior == 1.0
+
+    def test_all_familiarity_levels_valid(self):
+        """Test all valid familiarity levels: new, basics, intermediate, expert."""
+        valid_levels = ["new", "basics", "intermediate", "expert"]
+        for level in valid_levels:
+            data = OnboardingData(
+                course="cbap",
+                motivation="learning",
+                familiarity=level,
+                initial_belief_prior=0.5
+            )
+            assert data.familiarity == level
 
 
 class TestUserUpdateSchema:

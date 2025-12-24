@@ -16,6 +16,7 @@ from src.models.enrollment import Enrollment
 from src.repositories.belief_repository import BeliefRepository
 from src.repositories.concept_repository import ConceptRepository
 from src.schemas.belief_state import BeliefInitializationStatus, InitializationResult
+from src.utils.bkt_math import calculate_alpha_beta
 
 # Performance threshold in milliseconds
 PERFORMANCE_THRESHOLD_MS = 2000
@@ -44,17 +45,28 @@ class BeliefInitializationService:
     async def initialize_beliefs_for_user(
         self,
         user_id: UUID,
-        course_id: UUID
+        course_id: UUID,
+        initial_belief_prior: float | None = None
     ) -> InitializationResult:
         """
         Initialize belief states for a user across all concepts in a course.
 
-        Uses uninformative prior: Beta(1, 1) = Uniform[0, 1]
-        This represents "we have no information about this user's knowledge."
+        When initial_belief_prior is provided (from onboarding):
+            - Converts to Beta distribution using pseudo-observations scaling
+            - Prior 0.1 → alpha=1, beta=9 (new to topic)
+            - Prior 0.3 → alpha=3, beta=7 (knows basics)
+            - Prior 0.5 → alpha=5, beta=5 (intermediate)
+            - Prior 0.7 → alpha=7, beta=3 (expert)
+
+        When initial_belief_prior is None (legacy/API-only registration):
+            - Uses uninformative prior: Beta(1, 1) = Uniform[0, 1]
+            - This represents "we have no information about this user's knowledge."
 
         Args:
             user_id: UUID of the user
             course_id: UUID of the course to initialize beliefs for
+            initial_belief_prior: Initial belief probability [0.0, 1.0] from onboarding,
+                                  or None for default Beta(1,1) fallback
 
         Returns:
             InitializationResult with success status, counts, and timing
@@ -155,13 +167,28 @@ class BeliefInitializationService:
                     enrollment_id=enrollment_id
                 )
 
-            # Create belief states with uninformative prior
+            # Calculate alpha/beta from prior or use default Beta(1,1)
+            if initial_belief_prior is not None:
+                alpha, beta = calculate_alpha_beta(initial_belief_prior)
+                self._log_info(
+                    "Using familiarity-based prior",
+                    user_id=user_id,
+                    course_id=course_id,
+                    prior=initial_belief_prior,
+                    alpha=alpha,
+                    beta=beta
+                )
+            else:
+                # Fallback: Uninformative prior Beta(1,1) = Uniform[0,1]
+                alpha, beta = 1.0, 1.0
+
+            # Create belief states with calculated alpha/beta
             beliefs = [
                 BeliefState(
                     user_id=user_id,
                     concept_id=concept.id,
-                    alpha=1.0,  # Uninformative prior
-                    beta=1.0,   # Beta(1,1) = Uniform[0,1]
+                    alpha=alpha,
+                    beta=beta,
                     response_count=0
                 )
                 for concept in concepts

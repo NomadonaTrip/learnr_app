@@ -12,6 +12,7 @@ from src.db.session import get_db
 from src.exceptions import RateLimitError
 from src.repositories.belief_repository import BeliefRepository
 from src.repositories.concept_repository import ConceptRepository
+from src.repositories.course_repository import CourseRepository
 from src.repositories.password_reset_repository import PasswordResetRepository
 from src.repositories.user_repository import UserRepository
 from src.schemas.auth import (
@@ -39,7 +40,7 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
     response_model=RegisterResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register new user account",
-    description="Create a new user account with email and password. Returns user object and JWT token. Rate limited to 5 requests per minute per IP address."
+    description="Create a new user account with email and password. Returns user object and JWT token. Rate limited to 5 requests per minute per IP address. Optionally accepts onboarding_data to set initial belief priors based on user's declared familiarity level."
 )
 @limiter.limit(settings.REGISTRATION_RATE_LIMIT)
 async def register(
@@ -52,6 +53,15 @@ async def register(
 
     - **email**: Valid email address (unique)
     - **password**: Minimum 8 characters, must contain letter and number
+    - **onboarding_data**: Optional onboarding data with course, familiarity, and initial_belief_prior
+
+    When onboarding_data is provided:
+    - Course is looked up by slug to get course_id
+    - Initial belief prior sets alpha/beta for belief states (e.g., 0.3 → Beta(3,7))
+
+    When onboarding_data is not provided (legacy/API-only registration):
+    - Default course (cbap) is used
+    - Default uninformative prior Beta(1,1) is used
 
     Returns user object (without password) and JWT token with 7-day expiration.
 
@@ -59,27 +69,61 @@ async def register(
     - **409 Conflict**: Email already registered
     - **422 Unprocessable Entity**: Invalid email format or weak password
     """
-    # Initialize repository and service
+    # Initialize repositories and service
     user_repo = UserRepository(db)
+    course_repo = CourseRepository(db)
     auth_service = AuthService(user_repo)
 
     # Register user
     user, token = await auth_service.register_user(user_data.email, user_data.password)
 
-    # Initialize belief states for all concepts (Story 3.4)
-    # Uses database function for maximum performance
+    # Initialize belief states (Story 3.4.1: Familiarity-Based Prior Integration)
     # Errors are logged but don't fail registration
     try:
         belief_repo = BeliefRepository(db)
         concept_repo = ConceptRepository(db)
         belief_service = BeliefInitializationService(belief_repo, concept_repo)
 
-        result = await belief_service.initialize_beliefs_via_db_function(user.id)
+        # Extract onboarding data (if present)
+        if user_data.onboarding_data:
+            # Look up course by slug from onboarding data
+            course = await course_repo.get_by_slug(user_data.onboarding_data.course)
+            if course:
+                course_id = course.id
+            else:
+                # Fallback to default course (cbap) if course not found
+                default_course = await course_repo.get_by_slug("cbap")
+                course_id = default_course.id if default_course else None
+                logger.warning(
+                    f"Course slug '{user_data.onboarding_data.course}' not found, using default",
+                    extra={"user_id": str(user.id), "requested_course": user_data.onboarding_data.course}
+                )
 
-        logger.info(
-            f"Initialized {result.belief_count} belief states for user {user.id} "
-            f"in {result.duration_ms:.2f}ms"
-        )
+            initial_belief_prior = user_data.onboarding_data.initial_belief_prior
+        else:
+            # Fallback: No onboarding data (legacy/API-only registration)
+            # Use default course and uninformative prior Beta(1,1)
+            default_course = await course_repo.get_by_slug("cbap")
+            course_id = default_course.id if default_course else None
+            initial_belief_prior = None  # Triggers Beta(1,1) fallback in service
+
+        # Initialize beliefs with prior (or fallback to Beta(1,1))
+        if course_id:
+            result = await belief_service.initialize_beliefs_for_user(
+                user_id=user.id,
+                course_id=course_id,
+                initial_belief_prior=initial_belief_prior
+            )
+
+            logger.info(
+                f"Initialized {result.belief_count} belief states for user {user.id} "
+                f"with prior={initial_belief_prior} in {result.duration_ms:.2f}ms"
+            )
+        else:
+            logger.error(
+                "Cannot initialize beliefs: no course found",
+                extra={"user_id": str(user.id)}
+            )
     except Exception as e:
         # Log error but don't fail registration
         # User can retry via /v1/beliefs/initialize endpoint

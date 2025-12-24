@@ -196,6 +196,9 @@ class QuestionData:
     corpus_reference: Optional[str] = None
     row_number: int = 0
     concept_tags: List[str] = field(default_factory=list)
+    # Relevance overrides for primary/secondary concept distinction
+    # Maps normalized tag -> relevance score (1.0 for primary, 0.7 for secondary)
+    concept_relevance: Dict[str, float] = field(default_factory=dict)
     # Story 2.15: Secondary tags for filtering/analysis
     perspectives: List[str] = field(default_factory=list)
     competencies: List[str] = field(default_factory=list)
@@ -756,16 +759,62 @@ class VendorQuestionImporter:
             self.result.errors.append(f"Row {row_num}: Missing knowledge_area")
             return None
 
-        # Parse concept_tags column FIRST (needed for non-conventional KA inference)
-        # Supports both , and ; delimiters
+        # Parse concept columns - support both new format (primary_concept + secondary_concepts)
+        # and legacy format (concept_tags). New format enables explicit relevance weighting.
         concept_tags = []
+        concept_relevance: Dict[str, float] = {}
         perspectives = []
         competencies = []
         raw_tags = []
-        tags_raw = row.get("concept_tags", "").strip()
-        if tags_raw:
-            # Normalize: replace ; with , then split
-            raw_tags = [t.strip() for t in tags_raw.replace(";", ",").split(",") if t.strip()]
+
+        # Check for new IRT format with primary_concept and secondary_concepts
+        primary_concept = row.get("primary_concept", "").strip()
+        secondary_concepts_raw = row.get("secondary_concepts", "").strip()
+
+        if primary_concept:
+            # New format: explicit primary/secondary distinction
+            concept_tags.append(primary_concept)
+            concept_relevance[primary_concept.lower()] = 1.0  # Primary gets full relevance
+            raw_tags.append(primary_concept)
+
+            secondary_tags = []
+            if secondary_concepts_raw:
+                secondary_tags = [
+                    t.strip() for t in secondary_concepts_raw.replace(";", ",").split(",")
+                    if t.strip()
+                ]
+                concept_tags.extend(secondary_tags)
+                raw_tags.extend(secondary_tags)
+                for tag in secondary_tags:
+                    concept_relevance[tag.lower()] = 0.7  # Secondary gets reduced relevance
+
+            logger.debug(
+                f"Row {row_num}: New format - primary='{primary_concept}', "
+                f"secondary={secondary_tags}"
+            )
+        else:
+            # Fall back to legacy concept_tags column (backward compatibility)
+            # Supports both , and ; delimiters
+            tags_raw = row.get("concept_tags", "").strip()
+            if tags_raw:
+                # Normalize: replace ; with , then split
+                raw_tags = [t.strip() for t in tags_raw.replace(";", ",").split(",") if t.strip()]
+
+        # Check for explicit perspectives column (new format)
+        perspectives_raw = row.get("perspectives", "").strip()
+        if perspectives_raw:
+            perspectives = [
+                p.strip() for p in perspectives_raw.replace(";", ",").split(",")
+                if p.strip()
+            ]
+
+        # Check for explicit competencies column (new format)
+        competencies_raw = row.get("competencies", "").strip()
+        if competencies_raw:
+            competencies = [
+                c.strip() for c in competencies_raw.replace(";", ",").split(",")
+                if c.strip()
+            ]
 
         # Story 2.16: Check for non-conventional KA (perspectives or competencies)
         ka_id = None
@@ -795,7 +844,17 @@ class VendorQuestionImporter:
                 return None
 
         # Story 2.15: Classify tags using course-configurable keywords
-        if self.tag_classifier and raw_tags:
+        # Only use TagClassifier for legacy format (concept_tags column) without explicit
+        # perspectives/competencies columns. New format provides these directly.
+        use_tag_classifier = (
+            self.tag_classifier
+            and raw_tags
+            and not primary_concept  # Legacy format only
+            and not perspectives_raw  # No explicit perspectives column
+            and not competencies_raw  # No explicit competencies column
+        )
+
+        if use_tag_classifier:
             classified = self.tag_classifier.classify_tags(raw_tags)
             concept_tags = classified["concepts"]
             # Extend (not replace) perspectives/competencies to include those from KA mapping
@@ -811,8 +870,8 @@ class VendorQuestionImporter:
                 f"{len(concept_tags)} concepts, {len(perspectives)} perspectives, "
                 f"{len(competencies)} competencies"
             )
-        elif raw_tags:
-            # Fallback if tag_classifier not initialized (shouldn't happen)
+        elif raw_tags and not primary_concept:
+            # Legacy format without tag_classifier - use raw_tags as concept_tags
             concept_tags = raw_tags
             logger.debug(f"Row {row_num}: Parsed {len(raw_tags)} concept tags (no classifier)")
 
@@ -892,6 +951,7 @@ class VendorQuestionImporter:
             corpus_reference=row.get("corpus_reference", row.get("babok_reference")),
             row_number=row_num,
             concept_tags=concept_tags,
+            concept_relevance=concept_relevance,
             perspectives=perspectives,
             competencies=competencies,
         )
@@ -1361,7 +1421,7 @@ class VendorQuestionImporter:
                 result = matcher.match_tag(tag)
 
                 if result:
-                    concept, score, relevance = result
+                    concept, score, match_relevance = result
 
                     # Skip if we already mapped this concept for this question
                     if concept.id in seen_concept_ids:
@@ -1385,16 +1445,28 @@ class VendorQuestionImporter:
                         tag_ka_usage[tag_lower][question.knowledge_area_id] = []
                     tag_ka_usage[tag_lower][question.knowledge_area_id].append(question.row_number)
 
+                    # Use explicit relevance override if available (primary/secondary distinction),
+                    # otherwise fall back to match-based relevance
+                    relevance = question.concept_relevance.get(tag_lower, match_relevance)
+                    is_primary = tag_lower in question.concept_relevance and relevance == 1.0
+
                     question_mappings.append(ConceptMapping(
                         concept_id=concept.id,
                         concept_name=concept.name,
                         relevance=relevance,
-                        reasoning=f"Matched from CSV tag '{tag}' (score: {score:.0f}%)"
+                        reasoning=(
+                            f"Primary concept from CSV (score: {score:.0f}%)"
+                            if is_primary
+                            else f"Secondary concept from CSV tag '{tag}' (score: {score:.0f}%)"
+                            if tag_lower in question.concept_relevance
+                            else f"Matched from CSV tag '{tag}' (score: {score:.0f}%)"
+                        )
                     ))
                     matched_count += 1
                     logger.debug(
                         f"Row {question.row_number}: Matched tag '{tag}' -> "
-                        f"'{concept.name}' (score: {score:.0f}%, relevance: {relevance})"
+                        f"'{concept.name}' (score: {score:.0f}%, relevance: {relevance}, "
+                        f"primary: {is_primary})"
                     )
                 else:
                     # Track unmatched tag for reporting
@@ -1565,6 +1637,37 @@ class VendorQuestionImporter:
         # Distribution by KA
         ka_counts = Counter(q.knowledge_area_id for q in questions)
 
+        # IRT parameter statistics (Story 10.2 AC 6)
+        difficulties = [q.difficulty for q in questions]
+        discriminations = [q.discrimination for q in questions]
+        guess_rates = [q.guess_rate for q in questions]
+        slip_rates = [q.slip_rate for q in questions]
+        difficulty_labels = Counter(q.difficulty_label for q in questions if q.difficulty_label)
+
+        irt_stats = {
+            "difficulty": {
+                "min": min(difficulties) if difficulties else 0.0,
+                "max": max(difficulties) if difficulties else 0.0,
+                "avg": sum(difficulties) / len(difficulties) if difficulties else 0.0,
+            },
+            "discrimination": {
+                "min": min(discriminations) if discriminations else 1.0,
+                "max": max(discriminations) if discriminations else 1.0,
+                "avg": sum(discriminations) / len(discriminations) if discriminations else 1.0,
+            },
+            "guess_rate": {
+                "min": min(guess_rates) if guess_rates else 0.25,
+                "max": max(guess_rates) if guess_rates else 0.25,
+                "avg": sum(guess_rates) / len(guess_rates) if guess_rates else 0.25,
+            },
+            "slip_rate": {
+                "min": min(slip_rates) if slip_rates else 0.10,
+                "max": max(slip_rates) if slip_rates else 0.10,
+                "avg": sum(slip_rates) / len(slip_rates) if slip_rates else 0.10,
+            },
+            "by_tier": dict(difficulty_labels),
+        }
+
         report = {
             "total_questions": len(questions),
             "mapped_questions": len(questions) - len(unmapped),
@@ -1574,6 +1677,7 @@ class VendorQuestionImporter:
             "concepts_with_questions": len([c for c in self.concepts if concept_question_count.get(str(c.id), 0) > 0]),
             "concepts_needing_content": len(concepts_needing_content),
             "avg_mappings_per_question": sum(len(m) for m in mappings.values()) / max(1, len(mappings)),
+            "irt_parameters": irt_stats,
         }
 
         # Log warnings for concepts with few questions
@@ -1877,6 +1981,24 @@ class VendorQuestionImporter:
         logger.info("")
         logger.info(f"Concepts with questions: {report.get('concepts_with_questions', 0)}/{report.get('total_concepts', 0)}")
         logger.info(f"Concepts needing content: {report.get('concepts_needing_content', 0)}")
+        logger.info("")
+        # Story 10.2 AC 6: IRT parameter statistics
+        irt_params = report.get("irt_parameters", {})
+        if irt_params:
+            logger.info("IRT Parameter Statistics:")
+            difficulty = irt_params.get("difficulty", {})
+            logger.info(f"  Difficulty (b-parameter): min={difficulty.get('min', 0):.2f}, max={difficulty.get('max', 0):.2f}, avg={difficulty.get('avg', 0):.2f}")
+            discrimination = irt_params.get("discrimination", {})
+            logger.info(f"  Discrimination (a-parameter): min={discrimination.get('min', 1):.2f}, max={discrimination.get('max', 1):.2f}, avg={discrimination.get('avg', 1):.2f}")
+            guess_rate = irt_params.get("guess_rate", {})
+            logger.info(f"  Guess rate: min={guess_rate.get('min', 0.25):.2f}, max={guess_rate.get('max', 0.25):.2f}, avg={guess_rate.get('avg', 0.25):.2f}")
+            slip_rate = irt_params.get("slip_rate", {})
+            logger.info(f"  Slip rate: min={slip_rate.get('min', 0.10):.2f}, max={slip_rate.get('max', 0.10):.2f}, avg={slip_rate.get('avg', 0.10):.2f}")
+            by_tier = irt_params.get("by_tier", {})
+            if by_tier:
+                logger.info("  Distribution by difficulty tier:")
+                for tier, count in sorted(by_tier.items()):
+                    logger.info(f"    - {tier}: {count}")
         logger.info("=" * 60)
 
         if self.result.errors:

@@ -1,0 +1,235 @@
+{
+  "$schema": "pipeline-state-schema-v1",
+  "version": "1.0.0",
+  "lastUpdated": "2025-12-23T13:40:00Z",
+  "currentStory": "10.3",
+  "pipeline": {
+    "status": "running",
+    "phase": "qa_review",
+    "checkpoint": null,
+    "startedAt": "2025-12-23T13:15:00Z",
+    "completedAt": "2025-12-23T13:30:00Z",
+    "pausedAt": null,
+    "error": null
+  },
+  "stories": {
+    "10.1": {
+      "id": "10.1",
+      "title": "IRT Scale Database Migration",
+      "epicId": "10",
+      "state": "complete",
+      "storyFile": "docs/stories/10.1-irt-scale-database-migration.story.md",
+      "timestamps": {
+        "entered": "2025-12-23T12:00:00Z",
+        "drafted": "2025-12-23T12:00:00Z",
+        "validated": "2025-12-23T12:00:00Z",
+        "approved": "2025-12-23T12:00:00Z",
+        "implemented": "2025-12-23T12:00:00Z",
+        "qaReviewed": "2025-12-23T12:15:00Z",
+        "completed": "2025-12-23T12:30:00Z"
+      },
+      "agents": {
+        "sm": { "status": "complete", "output": "Story previously drafted" },
+        "po": { "status": "complete", "output": "Story previously validated (Score: 9/10)" },
+        "dev": { "status": "complete", "output": "Implementation complete + QA fixes applied" },
+        "qa": { "status": "complete", "output": "Gate: PASS - all 9 ACs verified" }
+      },
+      "qaGate": "PASS",
+      "qaGateFile": "docs/qa/gates/10.1-irt-scale-database-migration.yml",
+      "iterations": 2,
+      "error": null
+    },
+    "10.6": {
+      "id": "10.6",
+      "title": "Pydantic Schema Updates for IRT",
+      "epicId": "10",
+      "state": "complete",
+      "storyFile": "docs/stories/10.6-pydantic-schema-updates-for-irt.story.md",
+      "timestamps": {
+        "entered": "2025-12-23T13:00:00Z",
+        "drafted": "2025-12-23T13:00:00Z",
+        "validated": "2025-12-23T13:00:00Z",
+        "approved": "2025-12-23T13:00:00Z",
+        "implemented": "2025-12-23T13:00:00Z",
+        "qaReviewed": "2025-12-23T13:05:00Z",
+        "completed": "2025-12-23T13:10:00Z"
+      },
+      "agents": {
+        "sm": { "status": "complete", "output": "Story documented (previously implemented with 10.1)" },
+        "po": { "status": "complete", "output": "Validation skipped - implementation verified" },
+        "dev": { "status": "complete", "output": "Implementation complete (part of Story 10.1)" },
+        "qa": { "status": "complete", "output": "Gate: PASS - all 9 ACs verified (98/100)" }
+      },
+      "qaGate": "PASS",
+      "qaGateFile": "docs/qa/gates/10.6-pydantic-schema-updates-for-irt.yml",
+      "iterations": 1,
+      "error": null
+    },
+    "10.2": {
+      "id": "10.2",
+      "title": "Question Import IRT Support",
+      "epicId": "10",
+      "state": "complete",
+      "storyFile": "docs/stories/10.2-question-import-irt-support.story.md",
+      "timestamps": {
+        "entered": "2025-12-23T13:15:00Z",
+        "drafted": "2025-12-23T13:15:00Z",
+        "validated": "2025-12-23T13:15:00Z",
+        "approved": "2025-12-23T13:15:00Z",
+        "implemented": "2025-12-23T13:20:00Z",
+        "qaReviewed": "2025-12-23T13:20:00Z",
+        "completed": "2025-12-23T13:30:00Z"
+      },
+      "agents": {
+        "sm": { "status": "complete", "output": "Story documented (mostly pre-implemented)" },
+        "po": { "status": "complete", "output": "Validation skipped - implementation verified" },
+        "dev": { "status": "complete", "output": "Added IRT statistics to summary (AC 6)" },
+        "qa": { "status": "complete", "output": "Gate: PASS - all 7 ACs verified (95/100)" }
+      },
+      "qaGate": "PASS",
+      "qaGateFile": "docs/qa/gates/10.2-question-import-irt-support.yml",
+      "iterations": 1,
+      "error": null
+    },
+    "10.3": {
+      "id": "10.3",
+      "title": "User Ability Classification per Concept (Algorithm 7)",
+      "epicId": "10",
+      "state": "qa_review",
+      "storyFile": "docs/stories/10.3-user-ability-classification.story.md",
+      "timestamps": {
+        "entered": "2025-12-23T13:35:00Z",
+        "drafted": "2025-12-23T13:35:00Z",
+        "validated": "2025-12-23T13:35:00Z",
+        "approved": "2025-12-23T13:35:00Z",
+        "implemented": "2025-12-23T13:35:00Z",
+        "qaReviewed": "2025-12-23T13:40:00Z",
+        "completed": null
+      },
+      "agents": {
+        "sm": { "status": "complete", "output": "Story documented (pre-implemented)" },
+        "po": { "status": "complete", "output": "Validation skipped - implementation verified" },
+        "dev": { "status": "complete", "output": "Implementation verified complete" },
+        "qa": { "status": "complete", "output": "Gate: PASS - all 7 ACs verified (96/100)" }
+      },
+      "qaGate": "PASS",
+      "qaGateFile": "docs/qa/gates/10.3-user-ability-classification.yml",
+      "iterations": 1,
+      "error": null
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2025-12-23T12:00:00Z",
+      "storyId": "10.1",
+      "event": "pipeline_started",
+      "phase": "drafting",
+      "details": "Pipeline started for story 10.1 - IRT Scale Database Migration"
+    },
+    {
+      "timestamp": "2025-12-23T12:05:00Z",
+      "storyId": "10.1",
+      "event": "phase_changed",
+      "phase": "qa_review",
+      "details": "Story already implemented - skipping to QA review"
+    },
+    {
+      "timestamp": "2025-12-23T12:15:00Z",
+      "storyId": "10.1",
+      "event": "checkpoint_reached",
+      "phase": "qa_review",
+      "details": "HITL #2: QA Review Complete - Gate: PASS"
+    },
+    {
+      "timestamp": "2025-12-23T12:20:00Z",
+      "storyId": "10.1",
+      "event": "phase_changed",
+      "phase": "fixing",
+      "details": "User requested QA fixes - adding difficulty_label index"
+    },
+    {
+      "timestamp": "2025-12-23T12:25:00Z",
+      "storyId": "10.1",
+      "event": "checkpoint_reached",
+      "phase": "committing",
+      "details": "HITL #3: Commit approval"
+    },
+    {
+      "timestamp": "2025-12-23T12:30:00Z",
+      "storyId": "10.1",
+      "event": "completed",
+      "phase": null,
+      "details": "Story 10.1 completed successfully"
+    },
+    {
+      "timestamp": "2025-12-23T13:00:00Z",
+      "storyId": "10.6",
+      "event": "pipeline_started",
+      "phase": "qa_review",
+      "details": "Pipeline started for story 10.6 - Pydantic Schema Updates for IRT"
+    },
+    {
+      "timestamp": "2025-12-23T13:00:00Z",
+      "storyId": "10.6",
+      "event": "phase_changed",
+      "phase": "qa_review",
+      "details": "Story already implemented as part of 10.1 - skipping to QA review"
+    },
+    {
+      "timestamp": "2025-12-23T13:05:00Z",
+      "storyId": "10.6",
+      "event": "checkpoint_reached",
+      "phase": "qa_review",
+      "details": "HITL #2: QA Review Complete - Gate: PASS (98/100)"
+    },
+    {
+      "timestamp": "2025-12-23T13:10:00Z",
+      "storyId": "10.6",
+      "event": "completed",
+      "phase": null,
+      "details": "Story 10.6 completed successfully - no code changes required"
+    },
+    {
+      "timestamp": "2025-12-23T13:15:00Z",
+      "storyId": "10.2",
+      "event": "pipeline_started",
+      "phase": "implementing",
+      "details": "Pipeline started for story 10.2 - Question Import IRT Support"
+    },
+    {
+      "timestamp": "2025-12-23T13:20:00Z",
+      "storyId": "10.2",
+      "event": "phase_changed",
+      "phase": "qa_review",
+      "details": "Implementation complete - added IRT statistics to import summary"
+    },
+    {
+      "timestamp": "2025-12-23T13:20:00Z",
+      "storyId": "10.2",
+      "event": "checkpoint_reached",
+      "phase": "qa_review",
+      "details": "HITL #2: QA Review Complete - Gate: PASS (95/100)"
+    },
+    {
+      "timestamp": "2025-12-23T13:30:00Z",
+      "storyId": "10.2",
+      "event": "completed",
+      "phase": null,
+      "details": "Story 10.2 completed successfully - user approved after IRT range verification"
+    },
+    {
+      "timestamp": "2025-12-23T13:35:00Z",
+      "storyId": "10.3",
+      "event": "pipeline_started",
+      "phase": "qa_review",
+      "details": "Pipeline started for story 10.3 - User Ability Classification (Algorithm 7)"
+    },
+    {
+      "timestamp": "2025-12-23T13:40:00Z",
+      "storyId": "10.3",
+      "event": "checkpoint_reached",
+      "phase": "qa_review",
+      "details": "HITL #2: QA Review Complete - Gate: PASS (96/100)"
+    }
+  ]
+}

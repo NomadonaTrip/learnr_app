@@ -622,3 +622,218 @@ async def test_service_logging_methods_with_uuid_conversion():
 
     assert result.success is True
     assert result.already_initialized is True
+
+
+# Story 3.4.1: Familiarity-Based Belief Prior Integration Tests
+
+@pytest.mark.asyncio
+async def test_initialize_with_prior_0_1(
+    db_session, test_course_init, test_concepts_init
+):
+    """Test initialization with prior=0.1 (new user) creates beliefs with alpha=1, beta=9."""
+    # Create a fresh user for this test
+    user = User(
+        email="new_user_prior@example.com",
+        hashed_password=hash_password("testpass123"),
+        is_admin=False
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.refresh(user)
+
+    belief_repo = BeliefRepository(db_session)
+    concept_repo = ConceptRepository(db_session)
+    service = BeliefInitializationService(belief_repo, concept_repo)
+
+    result = await service.initialize_beliefs_for_user(
+        user_id=user.id,
+        course_id=test_course_init.id,
+        initial_belief_prior=0.1
+    )
+    await db_session.commit()
+
+    assert result.success is True
+    assert result.belief_count == 10
+
+    # Verify beliefs have correct prior-based alpha/beta
+    beliefs = await belief_repo.get_all_beliefs(user.id)
+    for belief in beliefs:
+        assert belief.alpha == 1.0
+        assert belief.beta == 9.0
+        # Mean should be 0.1
+        assert abs(belief.mean - 0.1) < 0.001
+
+
+@pytest.mark.asyncio
+async def test_initialize_with_prior_0_3(
+    db_session, test_course_init, test_concepts_init
+):
+    """Test initialization with prior=0.3 (basics) creates beliefs with alpha=3, beta=7."""
+    user = User(
+        email="basics_user_prior@example.com",
+        hashed_password=hash_password("testpass123"),
+        is_admin=False
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.refresh(user)
+
+    belief_repo = BeliefRepository(db_session)
+    concept_repo = ConceptRepository(db_session)
+    service = BeliefInitializationService(belief_repo, concept_repo)
+
+    result = await service.initialize_beliefs_for_user(
+        user_id=user.id,
+        course_id=test_course_init.id,
+        initial_belief_prior=0.3
+    )
+    await db_session.commit()
+
+    assert result.success is True
+
+    beliefs = await belief_repo.get_all_beliefs(user.id)
+    for belief in beliefs:
+        assert belief.alpha == 3.0
+        assert belief.beta == 7.0
+
+
+@pytest.mark.asyncio
+async def test_initialize_with_prior_0_7(
+    db_session, test_course_init, test_concepts_init
+):
+    """Test initialization with prior=0.7 (expert) creates beliefs with alpha=7, beta=3."""
+    user = User(
+        email="expert_user_prior@example.com",
+        hashed_password=hash_password("testpass123"),
+        is_admin=False
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.refresh(user)
+
+    belief_repo = BeliefRepository(db_session)
+    concept_repo = ConceptRepository(db_session)
+    service = BeliefInitializationService(belief_repo, concept_repo)
+
+    result = await service.initialize_beliefs_for_user(
+        user_id=user.id,
+        course_id=test_course_init.id,
+        initial_belief_prior=0.7
+    )
+    await db_session.commit()
+
+    assert result.success is True
+
+    beliefs = await belief_repo.get_all_beliefs(user.id)
+    for belief in beliefs:
+        assert belief.alpha == 7.0
+        assert abs(belief.beta - 3.0) < 0.001  # Float precision tolerance
+        # Mean should be 0.7
+        assert abs(belief.mean - 0.7) < 0.001
+
+
+@pytest.mark.asyncio
+async def test_initialize_without_prior_uses_default(
+    db_session, test_course_init, test_concepts_init
+):
+    """Test initialization without prior uses default Beta(1,1)."""
+    user = User(
+        email="default_prior_user@example.com",
+        hashed_password=hash_password("testpass123"),
+        is_admin=False
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.refresh(user)
+
+    belief_repo = BeliefRepository(db_session)
+    concept_repo = ConceptRepository(db_session)
+    service = BeliefInitializationService(belief_repo, concept_repo)
+
+    # Call without initial_belief_prior (defaults to None)
+    result = await service.initialize_beliefs_for_user(
+        user_id=user.id,
+        course_id=test_course_init.id
+        # initial_belief_prior=None (implicit)
+    )
+    await db_session.commit()
+
+    assert result.success is True
+
+    beliefs = await belief_repo.get_all_beliefs(user.id)
+    for belief in beliefs:
+        assert belief.alpha == 1.0
+        assert belief.beta == 1.0
+        # Mean should be 0.5 (uninformative)
+        assert belief.mean == 0.5
+
+
+@pytest.mark.asyncio
+async def test_initialize_with_prior_none_explicit(
+    db_session, test_course_init, test_concepts_init
+):
+    """Test initialization with explicit None prior uses default Beta(1,1)."""
+    user = User(
+        email="explicit_none_prior@example.com",
+        hashed_password=hash_password("testpass123"),
+        is_admin=False
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.refresh(user)
+
+    belief_repo = BeliefRepository(db_session)
+    concept_repo = ConceptRepository(db_session)
+    service = BeliefInitializationService(belief_repo, concept_repo)
+
+    result = await service.initialize_beliefs_for_user(
+        user_id=user.id,
+        course_id=test_course_init.id,
+        initial_belief_prior=None  # Explicit None
+    )
+    await db_session.commit()
+
+    assert result.success is True
+
+    beliefs = await belief_repo.get_all_beliefs(user.id)
+    for belief in beliefs:
+        assert belief.alpha == 1.0
+        assert belief.beta == 1.0
+
+
+@pytest.mark.asyncio
+async def test_initialize_with_mock_verifies_alpha_beta_passed():
+    """Test that bulk_create receives correct alpha/beta from prior calculation."""
+    mock_belief_repo = AsyncMock(spec=BeliefRepository)
+    mock_concept_repo = AsyncMock(spec=ConceptRepository)
+
+    # Setup mocks
+    mock_session = AsyncMock()
+    mock_enrollment_result = MagicMock()
+    mock_enrollment_result.scalar_one_or_none.return_value = uuid4()
+    mock_session.execute.return_value = mock_enrollment_result
+    mock_belief_repo.session = mock_session
+
+    mock_belief_repo.get_belief_count.return_value = 0
+    mock_concept = MagicMock()
+    mock_concept.id = uuid4()
+    mock_concept_repo.get_all_concepts.return_value = [mock_concept]
+    mock_belief_repo.bulk_create.return_value = 1
+
+    service = BeliefInitializationService(mock_belief_repo, mock_concept_repo)
+
+    # Initialize with prior=0.3
+    result = await service.initialize_beliefs_for_user(
+        user_id=uuid4(),
+        course_id=uuid4(),
+        initial_belief_prior=0.3
+    )
+
+    assert result.success is True
+
+    # Verify bulk_create was called with belief having correct alpha/beta
+    call_args = mock_belief_repo.bulk_create.call_args
+    beliefs_passed = call_args[0][0]  # First positional arg is list of beliefs
+    assert len(beliefs_passed) == 1
+    assert beliefs_passed[0].alpha == 3.0
+    assert beliefs_passed[0].beta == 7.0
