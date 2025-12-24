@@ -6,6 +6,45 @@ from uuid import UUID
 
 from scipy.special import betaln, digamma
 
+# Default pseudo-observations for prior scaling
+# Higher values = more confidence in initial belief
+DEFAULT_PSEUDO_OBSERVATIONS = 10
+
+
+def calculate_alpha_beta(
+    prior: float,
+    pseudo_observations: int = DEFAULT_PSEUDO_OBSERVATIONS
+) -> tuple[float, float]:
+    """
+    Calculate Beta distribution alpha/beta parameters from initial belief prior.
+
+    Uses pseudo-observations scaling to convert declared familiarity (0-1)
+    to Beta distribution parameters. Higher pseudo_observations = more stable
+    initial beliefs that won't swing wildly on first question.
+
+    Example:
+        prior=0.3 with pseudo_observations=10:
+        alpha = 0.3 * 10 = 3 ("3 successes observed")
+        beta = 0.7 * 10 = 7 ("7 failures observed")
+        mean = 3 / (3 + 7) = 0.3 (same as declared prior)
+
+    Args:
+        prior: Initial belief probability [0.0, 1.0]
+        pseudo_observations: Number of pseudo-observations for scaling (default 10)
+
+    Returns:
+        Tuple of (alpha, beta) values satisfying DB CHECK constraints (> 0)
+    """
+    # Calculate raw alpha/beta from prior
+    raw_alpha = prior * pseudo_observations
+    raw_beta = (1 - prior) * pseudo_observations
+
+    # Ensure minimum values to satisfy CHECK constraint (alpha > 0, beta > 0)
+    alpha = max(raw_alpha, 0.1)
+    beta = max(raw_beta, 0.1)
+
+    return alpha, beta
+
 
 def beta_entropy(alpha: float, beta: float) -> float:
     """

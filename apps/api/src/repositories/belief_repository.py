@@ -142,6 +142,48 @@ class BeliefRepository:
         except Exception as e:
             raise DatabaseError(f"Failed to initialize beliefs: {str(e)}") from e
 
+    async def initialize_via_db_function_with_prior(
+        self,
+        user_id: UUID,
+        course_id: UUID,
+        alpha: float,
+        beta: float
+    ) -> int:
+        """
+        Initialize beliefs with custom prior using the database function.
+
+        Uses the PostgreSQL function `initialize_beliefs_with_prior` which
+        inserts beliefs for all concepts in a course with specified alpha/beta.
+        Created for Story 3.4.1 familiarity-based belief initialization.
+
+        Args:
+            user_id: User UUID
+            course_id: Course UUID to initialize beliefs for
+            alpha: Initial alpha value (must be > 0)
+            beta: Initial beta value (must be > 0)
+
+        Returns:
+            Number of beliefs created
+
+        Raises:
+            DatabaseError: If database operation fails
+        """
+        try:
+            result = await self.session.execute(
+                text("SELECT initialize_beliefs_with_prior(:user_id, :course_id, :alpha, :beta)"),
+                {
+                    "user_id": str(user_id),
+                    "course_id": str(course_id),
+                    "alpha": alpha,
+                    "beta": beta
+                }
+            )
+            count = result.scalar_one()
+            await self.session.flush()
+            return count
+        except Exception as e:
+            raise DatabaseError(f"Failed to initialize beliefs with prior: {str(e)}") from e
+
     async def get_all_beliefs(self, user_id: UUID) -> list[BeliefState]:
         """
         Get all belief states for a user.

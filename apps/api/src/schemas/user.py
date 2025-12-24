@@ -3,18 +3,54 @@ Pydantic schemas for User model.
 Handles request/response validation and serialization.
 """
 from datetime import date, datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, field_validator
+
+# Valid familiarity levels from onboarding Q3
+FamiliarityLevel = Literal["new", "basics", "intermediate", "expert"]
+
+
+class OnboardingData(BaseModel):
+    """
+    Schema for onboarding data collected during registration.
+    Maps user's declared familiarity to initial belief prior.
+    """
+    course: str  # e.g., 'business-analysis'
+    motivation: str  # e.g., 'certification', 'career', etc.
+    familiarity: FamiliarityLevel  # 'new', 'basics', 'intermediate', 'expert'
+    initial_belief_prior: float  # 0.1, 0.3, 0.5, or 0.7
+
+    @field_validator('initial_belief_prior')
+    @classmethod
+    def validate_prior(cls, v: float) -> float:
+        """Initial belief prior must be in [0.0, 1.0]."""
+        if not (0.0 <= v <= 1.0):
+            raise ValueError('initial_belief_prior must be between 0.0 and 1.0')
+        return v
+
+    class Config:
+        """Pydantic config with example."""
+        json_schema_extra = {
+            "example": {
+                "course": "business-analysis",
+                "motivation": "certification",
+                "familiarity": "basics",
+                "initial_belief_prior": 0.3
+            }
+        }
 
 
 class UserCreate(BaseModel):
     """
     Schema for user registration.
     Validates email format and password strength.
+    Optional onboarding_data sets initial belief priors based on familiarity.
     """
     email: EmailStr
     password: str
+    onboarding_data: OnboardingData | None = None
 
     @field_validator('password')
     @classmethod
@@ -35,7 +71,13 @@ class UserCreate(BaseModel):
         json_schema_extra = {
             "example": {
                 "email": "user@example.com",
-                "password": "SecurePass123"
+                "password": "SecurePass123",
+                "onboarding_data": {
+                    "course": "business-analysis",
+                    "motivation": "certification",
+                    "familiarity": "basics",
+                    "initial_belief_prior": 0.3
+                }
             }
         }
 
