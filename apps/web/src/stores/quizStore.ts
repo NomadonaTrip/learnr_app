@@ -1,5 +1,11 @@
 import { create } from 'zustand'
-import type { SessionType, QuestionStrategy, SelectedQuestion, AnswerResponse } from '../services/quizService'
+import type {
+  SessionType,
+  QuestionStrategy,
+  SelectedQuestion,
+  AnswerResponse,
+  SessionSummary,
+} from '../services/quizService'
 
 /**
  * Quiz session status.
@@ -41,6 +47,10 @@ interface QuizState {
   endedAt: string | null
   error: string | null
 
+  // Story 4.7: Progress tracking state
+  currentQuestionNumber: number
+  questionTarget: number
+
   // Question state
   currentQuestion: SelectedQuestion | null
   questionsRemaining: number
@@ -51,6 +61,9 @@ interface QuizState {
   feedbackResult: AnswerResponse | null
   isSubmitting: boolean
   showFeedback: boolean
+
+  // Story 4.7: Session summary state
+  sessionSummary: SessionSummary | null
 
   // Computed: accuracy percentage
   accuracy: () => number | null
@@ -65,10 +78,14 @@ interface QuizState {
   clearSession: () => void
 
   // Question actions
-  setQuestion: (question: SelectedQuestion, questionsRemaining: number) => void
+  setQuestion: (question: SelectedQuestion, questionsRemaining: number, currentQuestionNumber?: number, questionTarget?: number) => void
   setLoadingQuestion: (isLoading: boolean) => void
   setSelectedAnswer: (answer: string | null) => void
   clearQuestion: () => void
+
+  // Story 4.7: Progress actions
+  setProgress: (currentQuestionNumber: number, questionTarget: number) => void
+  setSessionSummary: (summary: SessionSummary | null) => void
 
   // Feedback actions
   setFeedback: (result: AnswerResponse) => void
@@ -94,6 +111,10 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
   endedAt: null,
   error: null,
 
+  // Story 4.7: Progress tracking state
+  currentQuestionNumber: 1,
+  questionTarget: 10,
+
   // Question state
   currentQuestion: null,
   questionsRemaining: 0,
@@ -104,6 +125,9 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
   feedbackResult: null,
   isSubmitting: false,
   showFeedback: false,
+
+  // Story 4.7: Session summary state
+  sessionSummary: null,
 
   // Computed: accuracy percentage (null if no questions answered)
   accuracy: () => {
@@ -178,6 +202,9 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       startedAt: null,
       endedAt: null,
       error: null,
+      // Story 4.7: Reset progress tracking
+      currentQuestionNumber: 1,
+      questionTarget: 10,
       currentQuestion: null,
       questionsRemaining: 0,
       isLoadingQuestion: false,
@@ -185,11 +212,13 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       feedbackResult: null,
       isSubmitting: false,
       showFeedback: false,
+      // Story 4.7: Reset session summary
+      sessionSummary: null,
     })
   },
 
-  // Action: set current question
-  setQuestion: (question, questionsRemaining) => {
+  // Action: set current question (Story 4.7: added progress parameters)
+  setQuestion: (question, questionsRemaining, currentQuestionNumber, questionTarget) => {
     set({
       currentQuestion: question,
       questionsRemaining,
@@ -198,6 +227,9 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       feedbackResult: null,
       isSubmitting: false,
       showFeedback: false,
+      // Story 4.7: Update progress if provided
+      ...(currentQuestionNumber !== undefined && { currentQuestionNumber }),
+      ...(questionTarget !== undefined && { questionTarget }),
     })
   },
 
@@ -240,5 +272,15 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       showFeedback: false,
       selectedAnswer: null,
     })
+  },
+
+  // Story 4.7: Action to set progress
+  setProgress: (currentQuestionNumber, questionTarget) => {
+    set({ currentQuestionNumber, questionTarget })
+  },
+
+  // Story 4.7: Action to set session summary
+  setSessionSummary: (summary) => {
+    set({ sessionSummary: summary })
   },
 }))

@@ -49,6 +49,11 @@ class User(Base):
     is_admin = Column(Boolean, nullable=False, default=False)
     dark_mode = Column(String(10), nullable=False, default='auto')
 
+    # Lifetime quiz statistics (Story 4.7)
+    quizzes_completed = Column(Integer, nullable=False, default=0)
+    total_questions_answered = Column(Integer, nullable=False, default=0)
+    total_time_spent_seconds = Column(Integer, nullable=False, default=0)
+
     # Timestamps
     created_at = Column(
         DateTime(timezone=True),
@@ -112,6 +117,19 @@ class User(Base):
         CheckConstraint(
             "dark_mode IN ('light', 'dark', 'auto')",
             name='check_dark_mode'
+        ),
+        # Quiz stats constraints (Story 4.7)
+        CheckConstraint(
+            'quizzes_completed >= 0',
+            name='check_quizzes_completed_non_negative'
+        ),
+        CheckConstraint(
+            'total_questions_answered >= 0',
+            name='check_total_questions_answered_non_negative'
+        ),
+        CheckConstraint(
+            'total_time_spent_seconds >= 0',
+            name='check_total_time_spent_seconds_non_negative'
         ),
     )
 

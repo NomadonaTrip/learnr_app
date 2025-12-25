@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { quizService, SessionConfig, NextQuestionRequest, AnswerSubmissionRequest } from '../services/quizService'
 import { useQuizStore, QuizSessionStatus } from '../stores/quizStore'
 import { AxiosError } from 'axios'
@@ -53,6 +53,7 @@ function getErrorMessage(error: unknown): string {
  */
 export function useQuizSession(config?: SessionConfig) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const isInitializedRef = useRef(false)
   const questionStartTimeRef = useRef<number | null>(null)
   const isEndingSessionRef = useRef(false)
@@ -77,6 +78,10 @@ export function useQuizSession(config?: SessionConfig) {
     feedbackResult,
     isSubmitting,
     showFeedback,
+    // Story 4.7: Progress tracking
+    currentQuestionNumber,
+    questionTarget,
+    sessionSummary,
     setSession,
     setStatus,
     setPaused,
@@ -90,6 +95,7 @@ export function useQuizSession(config?: SessionConfig) {
     setFeedback,
     setSubmitting,
     clearFeedback,
+    setSessionSummary,
   } = useQuizStore()
 
   // Start session mutation
@@ -154,6 +160,8 @@ export function useQuizSession(config?: SessionConfig) {
         totalQuestions: data.total_questions,
         correctCount: data.correct_count,
       })
+      // Invalidate diagnostic results cache so updated belief states are reflected
+      queryClient.invalidateQueries({ queryKey: ['diagnostic', 'results'] })
     },
     onError: (error) => {
       setError(getErrorMessage(error))
@@ -168,7 +176,13 @@ export function useQuizSession(config?: SessionConfig) {
       setLoadingQuestion(true)
     },
     onSuccess: (data) => {
-      setQuestion(data.question, data.questions_remaining)
+      // Story 4.7: Pass progress data to setQuestion
+      setQuestion(
+        data.question,
+        data.questions_remaining,
+        data.current_question_number,
+        data.question_target
+      )
       // Reset question start time when new question loads
       questionStartTimeRef.current = Date.now()
     },
@@ -201,10 +215,14 @@ export function useQuizSession(config?: SessionConfig) {
             totalQuestions,
             correctCount,
           })
+          // Invalidate diagnostic results cache so updated belief states are reflected
+          queryClient.invalidateQueries({ queryKey: ['diagnostic', 'results'] })
           navigate('/diagnostic/results')
         } else {
           // Fresh session but no questions available - user has answered all questions recently
           setEnded(new Date().toISOString(), { totalQuestions: 0, correctCount: 0 })
+          // Invalidate diagnostic results cache so updated belief states are reflected
+          queryClient.invalidateQueries({ queryKey: ['diagnostic', 'results'] })
           // Navigate to results - they'll see their existing progress
           navigate('/diagnostic/results')
         }
@@ -229,6 +247,17 @@ export function useQuizSession(config?: SessionConfig) {
         correctCount: Math.round(data.session_stats.accuracy * data.session_stats.questions_answered),
         version: data.session_stats.session_version,
       })
+
+      // Story 4.7: Handle auto-completion
+      if (data.session_completed && data.session_summary) {
+        setSessionSummary(data.session_summary)
+        setEnded(new Date().toISOString(), {
+          totalQuestions: data.session_summary.questions_answered,
+          correctCount: data.session_summary.correct_count,
+        })
+        // Invalidate diagnostic results cache so updated belief states are reflected
+        queryClient.invalidateQueries({ queryKey: ['diagnostic', 'results'] })
+      }
     },
     onError: (error) => {
       setSubmitting(false)
@@ -353,6 +382,11 @@ export function useQuizSession(config?: SessionConfig) {
     endedAt,
     error,
     accuracy: accuracy(),
+
+    // Story 4.7: Progress tracking
+    currentQuestionNumber,
+    questionTarget,
+    sessionSummary,
 
     // Question state
     currentQuestion,

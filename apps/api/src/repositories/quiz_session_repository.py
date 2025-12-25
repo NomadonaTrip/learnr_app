@@ -28,6 +28,7 @@ class QuizSessionRepository:
         session_type: str = "adaptive",
         question_strategy: str = "max_info_gain",
         knowledge_area_filter: str | None = None,
+        question_target: int = 10,
     ) -> QuizSession:
         """
         Create a new quiz session.
@@ -38,6 +39,7 @@ class QuizSessionRepository:
             session_type: Type of session (diagnostic, adaptive, focused, review)
             question_strategy: Question selection strategy
             knowledge_area_filter: Optional knowledge area filter for focused sessions
+            question_target: Target number of questions (default 10 for habit-forming consistency)
 
         Returns:
             Created QuizSession
@@ -48,6 +50,7 @@ class QuizSessionRepository:
             session_type=session_type,
             question_strategy=question_strategy,
             knowledge_area_filter=knowledge_area_filter,
+            question_target=question_target,
         )
         self.session.add(quiz_session)
         await self.session.flush()

@@ -126,6 +126,9 @@ export function DiagnosticResultsPage() {
         {/* Hero Section - Overall stats */}
         <ResultsHeroSection
           score={data.score}
+          overallCompetence={data.overall_competence}
+          conceptsAssessed={data.concepts_assessed}
+          hasCompletedAdaptiveQuiz={data.has_completed_adaptive_quiz}
           totalConcepts={data.total_concepts}
           conceptsTouched={data.concepts_touched}
           coveragePercentage={data.coverage_percentage}

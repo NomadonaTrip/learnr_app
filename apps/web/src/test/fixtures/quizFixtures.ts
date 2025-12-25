@@ -6,6 +6,7 @@ import type {
   SessionEndResponse,
   AnswerResponse,
   AnswerSubmissionRequest,
+  SessionSummary,
 } from '../../services/quizService'
 
 /**
@@ -145,6 +146,9 @@ export const mockCorrectAnswerResponse: AnswerResponse = {
     coverage_progress: 0.52,
     session_version: 9,
   },
+  // Story 4.7: Auto-completion fields
+  session_completed: false,
+  session_summary: null,
 }
 
 /**
@@ -168,6 +172,47 @@ export const mockIncorrectAnswerResponse: AnswerResponse = {
     coverage_progress: 0.58,
     session_version: 10,
   },
+  // Story 4.7: Auto-completion fields
+  session_completed: false,
+  session_summary: null,
+}
+
+/**
+ * Story 4.7: Mock session summary for completed session.
+ */
+export const mockSessionSummary: SessionSummary = {
+  questions_answered: 12,
+  question_target: 12,
+  correct_count: 9,
+  accuracy: 75.0,
+  concepts_strengthened: 8,
+  quizzes_completed_total: 5,
+  session_duration_seconds: 480,
+}
+
+/**
+ * Story 4.7: Mock answer response with session completion.
+ */
+export const mockCompletedSessionAnswerResponse: AnswerResponse = {
+  is_correct: true,
+  correct_answer: 'C',
+  explanation: 'Final question explanation.',
+  concepts_updated: [
+    {
+      concept_id: 'concept-uuid-3',
+      name: 'Business Process Modeling',
+      new_mastery: 0.85,
+    },
+  ],
+  session_stats: {
+    questions_answered: 12,
+    accuracy: 0.75,
+    total_info_gain: 18.5,
+    coverage_progress: 0.72,
+    session_version: 13,
+  },
+  session_completed: true,
+  session_summary: mockSessionSummary,
 }
 
 /**

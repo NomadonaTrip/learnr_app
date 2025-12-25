@@ -111,11 +111,16 @@ export interface NextQuestionRequest {
 
 /**
  * Response from next-question endpoint.
+ * Story 4.7: Added progress indicator fields.
  */
 export interface NextQuestionResponse {
   session_id: string
   question: SelectedQuestion
   questions_remaining: number
+  // Story 4.7: Progress indicator fields
+  current_question_number: number
+  question_target: number
+  progress_percentage: number
 }
 
 /**
@@ -148,7 +153,22 @@ export interface SessionStats {
 }
 
 /**
+ * Session summary returned when quiz auto-completes.
+ * Story 4.7: Fixed-Length Session Auto-Completion
+ */
+export interface SessionSummary {
+  questions_answered: number
+  question_target: number
+  correct_count: number
+  accuracy: number
+  concepts_strengthened: number
+  quizzes_completed_total: number
+  session_duration_seconds: number
+}
+
+/**
  * Response from answer submission endpoint.
+ * Story 4.7: Added session_completed and session_summary fields.
  */
 export interface AnswerResponse {
   is_correct: boolean
@@ -156,6 +176,9 @@ export interface AnswerResponse {
   explanation: string
   concepts_updated: ConceptUpdate[]
   session_stats: SessionStats
+  // Story 4.7: Auto-completion fields
+  session_completed: boolean
+  session_summary: SessionSummary | null
 }
 
 /**

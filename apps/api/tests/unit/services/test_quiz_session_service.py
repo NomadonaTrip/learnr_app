@@ -35,6 +35,7 @@ def create_mock_session(
     session_type="adaptive",
     question_strategy="max_info_gain",
     knowledge_area_filter=None,
+    question_target=10,
     started_at=None,
     ended_at=None,
     total_questions=0,
@@ -51,6 +52,7 @@ def create_mock_session(
     session.session_type = session_type
     session.question_strategy = question_strategy
     session.knowledge_area_filter = knowledge_area_filter
+    session.question_target = question_target
     session.started_at = started_at or datetime.now(UTC)
     session.ended_at = ended_at
     session.total_questions = total_questions

@@ -66,6 +66,9 @@ class QuizSession(Base):
     )
     knowledge_area_filter = Column(String(50), nullable=True)
 
+    # Session target (fixed-length sessions for habit-forming consistency)
+    question_target = Column(Integer, nullable=False, default=10)
+
     # Progress tracking
     total_questions = Column(Integer, nullable=False, default=0)
     correct_count = Column(Integer, nullable=False, default=0)
@@ -102,6 +105,10 @@ class QuizSession(Base):
         CheckConstraint(
             "question_strategy IN ('max_info_gain', 'max_uncertainty', 'prerequisite_first', 'balanced')",
             name="check_quiz_question_strategy"
+        ),
+        CheckConstraint(
+            "question_target BETWEEN 10 AND 15",
+            name="check_quiz_session_question_target"
         ),
     )
 

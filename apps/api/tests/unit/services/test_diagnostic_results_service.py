@@ -482,7 +482,9 @@ class TestFullComputation:
             results_service, '_get_course', return_value=course
         ) as mock_get_course, patch.object(
             results_service, '_get_beliefs_with_concepts', return_value=beliefs
-        ) as mock_get_beliefs:
+        ) as mock_get_beliefs, patch.object(
+            results_service, '_has_completed_adaptive_quiz', return_value=True
+        ) as mock_has_quiz:
 
             results = await results_service.compute_diagnostic_results(
                 user_id=user_id,
@@ -491,6 +493,7 @@ class TestFullComputation:
 
             mock_get_course.assert_called_once_with(course_id)
             mock_get_beliefs.assert_called_once_with(user_id, course_id)
+            mock_has_quiz.assert_called_once_with(user_id)
 
             # Verify basic counts
             assert results.total_concepts == 3
@@ -515,3 +518,11 @@ class TestFullComputation:
             # Verify recommendations
             assert results.recommendations.primary_focus is not None
             assert results.recommendations.message is not None
+
+            # Verify new overall competence fields
+            assert results.overall_competence is not None
+            assert results.has_completed_adaptive_quiz is True
+            # Only 2 beliefs have response_count > 0, so concepts_assessed = 2
+            assert results.concepts_assessed == 2
+            # Average mean of ASSESSED concepts only: (10/12 + 2/12) / 2 = (0.833 + 0.167) / 2 = 0.5
+            assert round(results.overall_competence, 0) == 50  # ~50%

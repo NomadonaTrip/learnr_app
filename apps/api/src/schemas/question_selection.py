@@ -1,6 +1,7 @@
 """
 Pydantic schemas for question selection API.
 Defines request/response models for the next-question endpoint.
+Story 4.7: Added progress indicator fields.
 """
 from uuid import UUID
 
@@ -61,6 +62,19 @@ class QuestionSelectionResponse(BaseModel):
     question: SelectedQuestion = Field(..., description="Selected question details")
     questions_remaining: int = Field(
         ..., ge=0, description="Estimate of available questions remaining"
+    )
+    # Story 4.7: Progress indicator fields
+    current_question_number: int = Field(
+        ..., ge=1, description="Current question number (1-indexed, e.g., 8 of 12)"
+    )
+    question_target: int = Field(
+        ..., ge=1, description="Target number of questions for this session (e.g., 12)"
+    )
+    progress_percentage: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Session progress as fraction (0.0-1.0), e.g., 0.667 for 8/12",
     )
 
 

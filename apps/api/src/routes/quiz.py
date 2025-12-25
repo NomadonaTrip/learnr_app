@@ -5,6 +5,7 @@ Implements session lifecycle: create, get, pause, resume, end.
 Also includes question selection and answer submission endpoints.
 
 Story 4.3: Answer Submission and Immediate Feedback
+Story 4.7: Fixed-Length Session Auto-Completion
 """
 from uuid import UUID
 
@@ -126,6 +127,7 @@ async def start_quiz_session(
         session_id=session.id,
         session_type=QuizSessionType(session.session_type),
         question_strategy=QuestionStrategy(session.question_strategy),
+        question_target=session.question_target,
         started_at=session.started_at,
         is_resumed=is_resumed,
         status=QuizSessionStatus(session.status),
@@ -199,6 +201,7 @@ async def get_quiz_session(
         session_type=QuizSessionType(session.session_type),
         question_strategy=QuestionStrategy(session.question_strategy),
         knowledge_area_filter=session.knowledge_area_filter,
+        question_target=session.question_target,
         status=QuizSessionStatus(session.status),
         started_at=session.started_at,
         ended_at=session.ended_at,
@@ -570,9 +573,8 @@ async def get_next_question(
         if qc.concept:
             concept_names.append(qc.concept.name)
 
-    # Calculate questions remaining (estimate)
-    # Filter out already-answered questions from total
-    questions_remaining = len(available_questions) - session.total_questions
+    # Calculate questions remaining based on session target (Story 4.7)
+    questions_remaining = session.question_target - session.total_questions
 
     # Build response (without correct_answer or explanation)
     selected_question = SelectedQuestion(
@@ -586,18 +588,32 @@ async def get_next_question(
         concepts_tested=concept_names,
     )
 
+    # Story 4.7: Progress indicator fields
+    # Current question number is next question (1-indexed)
+    current_question_number = session.total_questions + 1
+    question_target = session.question_target
+    progress_percentage = (
+        session.total_questions / question_target
+        if question_target > 0
+        else 0.0
+    )
+
     logger.info(
         "next_question_served",
         session_id=str(session.id),
         question_id=str(question.id),
         info_gain=round(info_gain, 4),
         strategy=strategy,
+        progress=f"{current_question_number}/{question_target}",
     )
 
     return QuestionSelectionResponse(
         session_id=session.id,
         question=selected_question,
         questions_remaining=max(0, questions_remaining),
+        current_question_number=current_question_number,
+        question_target=question_target,
+        progress_percentage=round(progress_percentage, 3),
     )
 
 

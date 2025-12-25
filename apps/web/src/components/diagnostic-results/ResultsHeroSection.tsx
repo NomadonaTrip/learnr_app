@@ -3,6 +3,12 @@ import type { ConfidenceLevel, DiagnosticScore } from '../../types/diagnostic'
 
 interface ResultsHeroSectionProps {
   score?: DiagnosticScore
+  /** Overall competence percentage (0-100), shown after first adaptive quiz */
+  overallCompetence?: number | null
+  /** Number of concepts that have been assessed (used for competence calculation) */
+  conceptsAssessed?: number
+  /** Whether user has completed at least one adaptive quiz */
+  hasCompletedAdaptiveQuiz?: boolean
   totalConcepts: number
   conceptsTouched: number
   coveragePercentage: number
@@ -14,10 +20,14 @@ interface ResultsHeroSectionProps {
 
 /**
  * Hero section for diagnostic results page.
- * Displays diagnostic score in donut chart and coverage statistics below.
+ * Displays overall competence (after first quiz) or diagnostic score in donut chart,
+ * along with coverage statistics below.
  */
 export function ResultsHeroSection({
   score,
+  overallCompetence,
+  conceptsAssessed = 0,
+  hasCompletedAdaptiveQuiz = false,
   totalConcepts,
   conceptsTouched,
   coveragePercentage,
@@ -27,6 +37,10 @@ export function ResultsHeroSection({
   confidenceLevel,
 }: ResultsHeroSectionProps) {
   const coveragePercent = Math.round(coveragePercentage * 100)
+
+  // After first adaptive quiz, show overall competence instead of diagnostic score
+  const showCompetence = hasCompletedAdaptiveQuiz && overallCompetence != null
+  const displayPercentage = showCompetence ? overallCompetence : (score?.score_percentage ?? 0)
 
   // Determine score color based on percentage
   const getScoreColor = (percentage: number) => {
@@ -47,10 +61,8 @@ export function ResultsHeroSection({
   const radius = 70
   const circumference = 2 * Math.PI * radius
 
-  // Use score percentage for donut if available, otherwise coverage
-  const scorePercentage = score?.score_percentage ?? 0
-  const scoreDecimal = scorePercentage / 100
-  const scoreStrokeDashoffset = circumference - (scoreDecimal * circumference)
+  const displayDecimal = displayPercentage / 100
+  const strokeDashoffset = circumference - (displayDecimal * circumference)
 
   // Confidence level display text
   const confidenceDisplay: Record<ConfidenceLevel, { label: string; color: string }> = {
@@ -61,26 +73,33 @@ export function ResultsHeroSection({
 
   const { label: confidenceLabel, color: confidenceColor } = confidenceDisplay[confidenceLevel]
 
+  // Title changes based on whether showing competence or diagnostic score
+  const pageTitle = showCompetence ? 'Your Knowledge Profile' : 'Your Diagnostic Results'
+
   return (
     <section
       className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-2xl p-6 md:p-8"
       aria-labelledby="results-hero-title"
     >
       <h1 id="results-hero-title" className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-        Your Diagnostic Results
+        {pageTitle}
       </h1>
       <p className={clsx('text-sm font-medium mb-6', confidenceColor)}>
         {confidenceLabel}
       </p>
 
-      {/* Main content: Score donut + stats */}
+      {/* Main content: Score/Competence donut + stats */}
       <div className="flex flex-col md:flex-row items-center gap-8">
-        {/* Diagnostic Score donut chart */}
-        {score && score.questions_answered > 0 ? (
+        {/* Donut chart - shows competence or diagnostic score */}
+        {(showCompetence || (score && score.questions_answered > 0)) ? (
           <div
             className="relative w-48 h-48 flex-shrink-0"
             role="img"
-            aria-label={`Score: ${scorePercentage}% - ${score.questions_correct} of ${score.questions_answered} correct`}
+            aria-label={
+              showCompetence
+                ? `Overall Competence: ${displayPercentage}%`
+                : `Score: ${displayPercentage}% - ${score?.questions_correct} of ${score?.questions_answered} correct`
+            }
           >
             <svg
               className="w-full h-full transform -rotate-90"
@@ -106,22 +125,31 @@ export function ResultsHeroSection({
                 strokeWidth="12"
                 strokeLinecap="round"
                 className={clsx(
-                  getScoreStrokeColor(scorePercentage),
+                  getScoreStrokeColor(displayPercentage),
                   'transition-all duration-700 ease-out motion-reduce:transition-none'
                 )}
                 strokeDasharray={circumference}
-                strokeDashoffset={scoreStrokeDashoffset}
+                strokeDashoffset={strokeDashoffset}
               />
             </svg>
             {/* Center text */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={clsx('text-4xl font-bold', getScoreColor(scorePercentage))}>
-                {scorePercentage}%
+              <span className={clsx('text-4xl font-bold', getScoreColor(displayPercentage))}>
+                {displayPercentage}%
               </span>
-              <span className="text-sm text-gray-600">Your Score</span>
-              <span className="text-xs text-gray-500 mt-1">
-                {score.questions_correct}/{score.questions_answered} correct
+              <span className="text-sm text-gray-600">
+                {showCompetence ? 'Overall Competence' : 'Your Score'}
               </span>
+              {!showCompetence && score && (
+                <span className="text-xs text-gray-500 mt-1">
+                  {score.questions_correct}/{score.questions_answered} correct
+                </span>
+              )}
+              {showCompetence && (
+                <span className="text-xs text-gray-500 mt-1">
+                  Based on {conceptsAssessed} concepts
+                </span>
+              )}
             </div>
           </div>
         ) : (
@@ -154,20 +182,20 @@ export function ResultsHeroSection({
         {/* Stats grid */}
         <div className="grid grid-cols-2 gap-4 flex-1 w-full max-w-md">
           <div className="bg-white rounded-lg p-4 shadow-sm">
-            <p className="text-2xl font-bold text-green-600">{score?.questions_correct ?? 0}</p>
-            <p className="text-sm text-gray-600">Correct Answers</p>
-          </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <p className="text-2xl font-bold text-red-600">{score?.questions_incorrect ?? 0}</p>
-            <p className="text-sm text-gray-600">Incorrect Answers</p>
-          </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm">
             <p className="text-2xl font-bold text-green-600">{estimatedMastered}</p>
             <p className="text-sm text-gray-600">Likely Mastered</p>
           </div>
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <p className="text-2xl font-bold text-red-600">{estimatedGaps}</p>
             <p className="text-sm text-gray-600">Identified Gaps</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-2xl font-bold text-amber-600">{uncertain}</p>
+            <p className="text-sm text-gray-600">Uncertain</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-2xl font-bold text-primary-600">{coveragePercent}%</p>
+            <p className="text-sm text-gray-600">Coverage</p>
           </div>
         </div>
       </div>

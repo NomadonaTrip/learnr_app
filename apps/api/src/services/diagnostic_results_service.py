@@ -13,6 +13,7 @@ from src.models.belief_state import BeliefState
 from src.models.concept import Concept
 from src.models.course import Course
 from src.models.question import Question
+from src.models.quiz_session import QuizSession
 from src.schemas.diagnostic_results import (
     ConceptGap,
     ConfidenceLevel,
@@ -126,19 +127,39 @@ class DiagnosticResultsService:
             classification["uncertain"],
         )
 
+        # Calculate overall competence (average mean across ASSESSED concepts only)
+        # Only include concepts where the user has actually been tested (response_count > 0)
+        assessed_beliefs = [b for b in beliefs if b.response_count > 0]
+        concepts_assessed = len(assessed_beliefs)
+
+        overall_competence = None
+        if assessed_beliefs:
+            total_mean = sum(b.mean for b in assessed_beliefs)
+            average_mean = total_mean / len(assessed_beliefs)
+            overall_competence = round(average_mean * 100, 1)  # Convert to percentage
+
+        # Check if user has completed at least one adaptive quiz session
+        has_completed_adaptive_quiz = await self._has_completed_adaptive_quiz(user_id)
+
         logger.info(
             "Diagnostic results computed",
             user_id=str(user_id),
             total_concepts=total_concepts,
             concepts_touched=concepts_touched,
+            concepts_assessed=concepts_assessed,
             coverage_percentage=round(coverage_percentage, 3),
             estimated_mastered=classification["mastered"],
             estimated_gaps=classification["gaps"],
             uncertain=classification["uncertain"],
+            overall_competence=overall_competence,
+            has_completed_adaptive_quiz=has_completed_adaptive_quiz,
         )
 
         return DiagnosticResultsResponse(
             score=score,
+            overall_competence=overall_competence,
+            concepts_assessed=concepts_assessed,
+            has_completed_adaptive_quiz=has_completed_adaptive_quiz,
             total_concepts=total_concepts,
             concepts_touched=concepts_touched,
             coverage_percentage=round(coverage_percentage, 3),
@@ -451,3 +472,24 @@ class DiagnosticResultsService:
             estimated_questions_to_coverage=estimated_questions,
             message=message,
         )
+
+    async def _has_completed_adaptive_quiz(self, user_id: UUID) -> bool:
+        """
+        Check if user has completed at least one adaptive quiz session.
+
+        Args:
+            user_id: User UUID
+
+        Returns:
+            True if user has at least one completed quiz session
+        """
+        from sqlalchemy import func as sql_func
+
+        result = await self.db.execute(
+            select(sql_func.count(QuizSession.id))
+            .where(QuizSession.user_id == user_id)
+            .where(QuizSession.ended_at.isnot(None))
+            .where(QuizSession.session_type == "adaptive")
+        )
+        count = result.scalar() or 0
+        return count > 0
