@@ -323,6 +323,27 @@ class QuizAnswerService:
             session_completed=session_completed,
         )
 
+        # 12. Story 5.5: Dispatch reading queue population task (async, non-blocking)
+        try:
+            from src.tasks.reading_queue_tasks import add_reading_to_queue
+
+            add_reading_to_queue.delay(
+                str(user_id),
+                str(session.enrollment_id),
+                str(question_id),
+                str(session_id),
+                is_correct,
+                question.difficulty,
+            )
+        except Exception as e:
+            # Log but don't fail the answer submission if task dispatch fails
+            logger.warning(
+                "reading_queue_dispatch_failed",
+                session_id=str(session_id),
+                question_id=str(question_id),
+                error=str(e),
+            )
+
         return self._build_response(
             response, question, session, session_completed, session_summary
         ), False

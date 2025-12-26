@@ -15,6 +15,7 @@ from .question_concept import QuestionConcept
 from .quiz_response import QuizResponse
 from .quiz_session import QuizSession
 from .reading_chunk import ReadingChunk
+from .reading_queue import ReadingQueue
 from .user import User
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "ConceptPrerequisite",
     "ConceptUnlockEvent",
     "ReadingChunk",
+    "ReadingQueue",
     "BeliefState",
     "DiagnosticSession",
 ]

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from .enrollment import Enrollment
     from .quiz_response import QuizResponse
     from .quiz_session import QuizSession
+    from .reading_queue import ReadingQueue
 
 
 class User(Base):
@@ -96,6 +97,11 @@ class User(Base):
     )
     unlock_events: Mapped[list["ConceptUnlockEvent"]] = relationship(
         "ConceptUnlockEvent",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    reading_queue_items: Mapped[list["ReadingQueue"]] = relationship(
+        "ReadingQueue",
         back_populates="user",
         cascade="all, delete-orphan"
     )

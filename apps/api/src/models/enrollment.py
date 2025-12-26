@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from .course import Course
     from .diagnostic_session import DiagnosticSession
     from .quiz_session import QuizSession
+    from .reading_queue import ReadingQueue
     from .user import User
 
 
@@ -94,6 +95,11 @@ class Enrollment(Base):
     )
     quiz_sessions: Mapped[list["QuizSession"]] = relationship(
         "QuizSession",
+        back_populates="enrollment",
+        cascade="all, delete-orphan"
+    )
+    reading_queue_items: Mapped[list["ReadingQueue"]] = relationship(
+        "ReadingQueue",
         back_populates="enrollment",
         cascade="all, delete-orphan"
     )

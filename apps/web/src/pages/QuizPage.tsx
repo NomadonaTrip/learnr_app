@@ -1,6 +1,9 @@
 import { useQuizSession } from '../hooks/useQuizSession'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 import type { SelectedQuestion, AnswerResponse } from '../services/quizService'
-import { FeedbackOverlay } from '../components/quiz/FeedbackOverlay'
+import { InlineExplanation } from '../components/quiz/InlineExplanation'
+import { CheckIcon, XIcon } from '../components/shared/icons'
+// Note: FeedbackOverlay retained in codebase for session summary overlay (future use)
 
 /**
  * Format session type for display.
@@ -195,27 +198,123 @@ function QuestionLoading() {
 }
 
 /**
- * Question card component.
+ * Question card component with inline feedback support.
  */
 function QuestionCard({
   question,
   selectedAnswer,
   onSelectAnswer,
   questionsRemaining,
+  showFeedback = false,
+  feedbackResult = null,
 }: {
   question: SelectedQuestion
   selectedAnswer: string | null
   onSelectAnswer: (answer: string) => void
   questionsRemaining: number
+  showFeedback?: boolean
+  feedbackResult?: AnswerResponse | null
 }) {
+  const prefersReducedMotion = useReducedMotion()
   const optionLabels = ['A', 'B', 'C', 'D']
   const optionEntries = Object.entries(question.options)
+
+  /**
+   * Get the styling classes for an answer option based on feedback state.
+   */
+  const getOptionClasses = (key: string, isSelected: boolean): string => {
+    const baseClasses = 'w-full text-left p-4 rounded-[14px] border-2 focus:outline-none focus:ring-2 focus:ring-offset-2'
+    const transitionClasses = prefersReducedMotion ? '' : 'transition-all duration-200 ease-in-out'
+
+    if (showFeedback && feedbackResult) {
+      const isCorrectAnswer = key === feedbackResult.correct_answer
+      const isUserSelection = isSelected
+
+      if (isCorrectAnswer) {
+        // Correct answer - always green
+        return `${baseClasses} ${transitionClasses} border-green-500 bg-green-50 text-green-800 cursor-default focus:ring-green-500`
+      } else if (isUserSelection && !feedbackResult.is_correct) {
+        // User's incorrect selection - red
+        return `${baseClasses} ${transitionClasses} border-red-500 bg-red-50 text-red-800 cursor-default focus:ring-red-500`
+      } else {
+        // Neutral option (not selected, not correct)
+        return `${baseClasses} ${transitionClasses} border-gray-200 bg-gray-50 text-gray-400 opacity-60 cursor-default focus:ring-gray-300`
+      }
+    }
+
+    // Default interactive state (no feedback)
+    if (isSelected) {
+      return `${baseClasses} ${transitionClasses} border-primary-500 bg-primary-50 text-primary-900 focus:ring-primary-500`
+    }
+    return `${baseClasses} ${transitionClasses} border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 focus:ring-primary-500`
+  }
+
+  /**
+   * Get the icon badge styling and content for an option.
+   */
+  const getOptionBadge = (key: string, isSelected: boolean, label: string) => {
+    if (showFeedback && feedbackResult) {
+      const isCorrectAnswer = key === feedbackResult.correct_answer
+      const isUserSelection = isSelected
+      const animationClass = prefersReducedMotion ? '' : 'animate-icon-appear'
+
+      if (isCorrectAnswer) {
+        return (
+          <span
+            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-green-500 text-white ${animationClass}`}
+          >
+            <CheckIcon className="w-5 h-5" />
+          </span>
+        )
+      } else if (isUserSelection && !feedbackResult.is_correct) {
+        return (
+          <span
+            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-red-500 text-white ${animationClass}`}
+          >
+            <XIcon className="w-5 h-5" />
+          </span>
+        )
+      } else {
+        // Neutral - show label
+        return (
+          <span className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold bg-gray-200 text-gray-400">
+            {label}
+          </span>
+        )
+      }
+    }
+
+    // Default state - show label with selection styling
+    return (
+      <span
+        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+          isSelected ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600'
+        }`}
+      >
+        {label}
+      </span>
+    )
+  }
 
   return (
     <div
       className="bg-white rounded-[14px] shadow-sm border border-gray-200 p-6"
       aria-label="Question card"
     >
+      {/* Screen reader announcement for feedback */}
+      {showFeedback && feedbackResult && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {feedbackResult.is_correct
+            ? 'Correct! Your answer was right.'
+            : `Incorrect. The correct answer is ${feedbackResult.correct_answer}.`}
+        </div>
+      )}
+
       {/* Question header with metadata */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -241,30 +340,29 @@ function QuestionCard({
         {optionEntries.map(([key, text], index) => {
           const label = optionLabels[index] || key
           const isSelected = selectedAnswer === key
+          const isDisabled = showFeedback
 
           return (
             <button
               key={key}
-              onClick={() => onSelectAnswer(key)}
-              className={`w-full text-left p-4 rounded-[14px] border-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
-                isSelected
-                  ? 'border-primary-500 bg-primary-50 text-primary-900'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700'
-              }`}
+              onClick={() => !isDisabled && onSelectAnswer(key)}
+              disabled={isDisabled}
+              className={getOptionClasses(key, isSelected)}
               role="radio"
               aria-checked={isSelected}
-              aria-label={`Option ${label}: ${text}`}
+              aria-disabled={isDisabled}
+              aria-label={`Option ${label}: ${text}${
+                showFeedback && feedbackResult
+                  ? key === feedbackResult.correct_answer
+                    ? '. Correct answer.'
+                    : isSelected && !feedbackResult.is_correct
+                      ? '. Your incorrect selection.'
+                      : ''
+                  : ''
+              }`}
             >
               <div className="flex items-start gap-3">
-                <span
-                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                    isSelected
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {label}
-                </span>
+                {getOptionBadge(key, isSelected, label)}
                 <span className="pt-1">{text}</span>
               </div>
             </button>
@@ -341,35 +439,30 @@ function ActiveState({
           accuracy={accuracy}
         />
 
-        {/* Feedback display (when showing feedback) */}
-        {showFeedback && feedbackResult ? (
-          <FeedbackOverlay
-            feedbackResult={feedbackResult}
-            onNextQuestion={onNextQuestion}
-            isLastQuestion={questionsRemaining === 0}
-          />
-        ) : (
+        {/* Question display with inline feedback */}
+        {isFetchingQuestion ? (
+          <QuestionLoading />
+        ) : question ? (
           <>
-            {/* Question display */}
-            {isFetchingQuestion ? (
-              <QuestionLoading />
-            ) : question ? (
-              <QuestionCard
-                question={question}
-                selectedAnswer={selectedAnswer}
-                onSelectAnswer={onSelectAnswer}
-                questionsRemaining={questionsRemaining}
+            <QuestionCard
+              question={question}
+              selectedAnswer={selectedAnswer}
+              onSelectAnswer={onSelectAnswer}
+              questionsRemaining={questionsRemaining}
+              showFeedback={showFeedback}
+              feedbackResult={feedbackResult}
+            />
+
+            {/* Inline explanation (shown after submission) */}
+            {showFeedback && feedbackResult && feedbackResult.explanation && (
+              <InlineExplanation
+                explanation={feedbackResult.explanation}
+                onNextQuestion={onNextQuestion}
+                isLastQuestion={questionsRemaining === 0}
               />
-            ) : (
-              <div
-                className="bg-white rounded-[14px] shadow-sm border border-gray-200 p-8 text-center"
-                aria-label="No questions available"
-              >
-                <p className="text-gray-600">No questions available.</p>
-              </div>
             )}
 
-            {/* Submit button (shown when answer selected) */}
+            {/* Submit button (shown when answer selected, before feedback) */}
             {selectedAnswer && !showFeedback && (
               <div className="flex justify-center">
                 <button
@@ -383,6 +476,13 @@ function ActiveState({
               </div>
             )}
           </>
+        ) : (
+          <div
+            className="bg-white rounded-[14px] shadow-sm border border-gray-200 p-8 text-center"
+            aria-label="No questions available"
+          >
+            <p className="text-gray-600">No questions available.</p>
+          </div>
         )}
 
         {/* Action buttons */}

@@ -11,7 +11,10 @@ celery_app = Celery(
     "learnr",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["src.tasks.session_cleanup"],
+    include=[
+        "src.tasks.session_cleanup",
+        "src.tasks.reading_queue_tasks",  # Story 5.5
+    ],
 )
 
 # Celery configuration

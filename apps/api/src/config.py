@@ -63,6 +63,14 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
 
+    # Reading Queue Settings (Story 5.5)
+    READING_CHUNKS_INCORRECT: int = 3  # Number of chunks for incorrect answers
+    READING_CHUNKS_HARD_CORRECT: int = 1  # Number of chunks for correct hard answers
+    READING_HARD_CORRECT_ENABLED: bool = True  # Toggle for hard question reinforcement
+    READING_PRIORITY_LOW_THRESHOLD: float = 0.8  # Competency threshold for low priority
+    READING_PRIORITY_HIGH_THRESHOLD: float = 0.6  # Competency threshold for high priority
+    READING_HARD_DIFFICULTY_THRESHOLD: float = 0.7  # IRT difficulty threshold for "hard" questions
+
     class Config:
         env_file = ".env"
         case_sensitive = True
