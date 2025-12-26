@@ -186,6 +186,38 @@ class ReadingQueueRepository:
         )
         return result.scalar_one()
 
+    async def get_unread_stats(self, enrollment_id: UUID) -> dict[str, int]:
+        """
+        Get aggregated stats for unread items in the queue.
+        Story 5.6: Silent Badge Updates in Navigation
+
+        Uses a single query with conditional counts for performance.
+        Leverages the idx_reading_queue_enrollment_status index.
+
+        Args:
+            enrollment_id: Enrollment UUID
+
+        Returns:
+            Dictionary with unread_count and high_priority_count
+        """
+        from sqlalchemy import func
+
+        result = await self.session.execute(
+            select(
+                func.count(ReadingQueue.id).label("unread_count"),
+                func.count(ReadingQueue.id).filter(
+                    ReadingQueue.priority == "High"
+                ).label("high_priority_count"),
+            )
+            .where(ReadingQueue.enrollment_id == enrollment_id)
+            .where(ReadingQueue.status == "unread")
+        )
+        row = result.one()
+        return {
+            "unread_count": row.unread_count or 0,
+            "high_priority_count": row.high_priority_count or 0,
+        }
+
     async def bulk_add_to_queue(
         self, items: list[ReadingQueueCreate]
     ) -> int:

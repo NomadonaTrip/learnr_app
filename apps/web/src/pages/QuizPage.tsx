@@ -3,6 +3,7 @@ import { useReducedMotion } from '../hooks/useReducedMotion'
 import type { SelectedQuestion, AnswerResponse } from '../services/quizService'
 import { InlineExplanation } from '../components/quiz/InlineExplanation'
 import { CheckIcon, XIcon } from '../components/shared/icons'
+import { Navigation } from '../components/layout/Navigation'
 // Note: FeedbackOverlay retained in codebase for session summary overlay (future use)
 
 /**
@@ -427,10 +428,14 @@ function ActiveState({
   onNextQuestion: () => void
 }) {
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-2xl mx-auto space-y-6">
-        {/* Session Info */}
-        <SessionInfoCard
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation with Reading Badge - Story 5.6 */}
+      <Navigation enablePolling={true} />
+
+      <div className="py-8 px-4">
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* Session Info */}
+          <SessionInfoCard
           sessionType={sessionType}
           questionStrategy={questionStrategy}
           status="active"
@@ -507,6 +512,7 @@ function ActiveState({
           >
             {isEnding ? 'Ending...' : 'End Session'}
           </button>
+        </div>
         </div>
       </div>
     </div>

@@ -7,6 +7,12 @@ Tests GET /v1/courses/{course_slug}/reading endpoint with:
 - Semantic search fallback
 - Response time performance
 - Authentication requirement
+
+Story 5.6: Tests GET /v1/reading/stats endpoint with:
+- Authentication requirement
+- Correct unread and high-priority counts
+- Enrollment filtering
+- Empty queue handling
 """
 import time
 from uuid import uuid4
@@ -15,7 +21,10 @@ import pytest
 
 from src.models.concept import Concept
 from src.models.course import Course
+from src.models.enrollment import Enrollment
 from src.models.reading_chunk import ReadingChunk
+from src.models.reading_queue import ReadingQueue
+from src.models.user import User
 
 
 @pytest.fixture
@@ -482,3 +491,300 @@ class TestReadingRetrievalAPI:
                 # The orphan concept should NOT be in the chunk's concept_ids
                 # (since no chunk was linked to it directly)
                 assert orphan_concept_id not in [str(cid) for cid in item["concept_ids"]]
+
+
+# =============================================================================
+# Story 5.6: Reading Stats API Tests
+# =============================================================================
+
+
+@pytest.fixture
+async def stats_test_user(db_session):
+    """Create a user for stats endpoint testing."""
+    from src.utils.auth import hash_password
+
+    user = User(
+        email="statsuser@example.com",
+        hashed_password=hash_password("SecurePassword123!"),
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+async def stats_test_course(db_session):
+    """Create a course for stats testing."""
+    course = Course(
+        slug="stats-test-course",
+        name="Stats Test Course",
+        description="Course for reading stats testing",
+        corpus_name="Test Corpus",
+        knowledge_areas=[],
+        is_active=True,
+        is_public=True,
+    )
+    db_session.add(course)
+    await db_session.commit()
+    await db_session.refresh(course)
+    return course
+
+
+@pytest.fixture
+async def stats_test_enrollment(db_session, stats_test_user, stats_test_course):
+    """Create an enrollment for stats testing."""
+    enrollment = Enrollment(
+        user_id=stats_test_user.id,
+        course_id=stats_test_course.id,
+        status="active",
+    )
+    db_session.add(enrollment)
+    await db_session.commit()
+    await db_session.refresh(enrollment)
+    return enrollment
+
+
+@pytest.fixture
+async def stats_test_chunks(db_session, stats_test_course):
+    """Create reading chunks for stats testing."""
+    chunks = []
+    for i in range(5):
+        chunk = ReadingChunk(
+            course_id=stats_test_course.id,
+            title=f"Stats Test Chunk {i+1}",
+            content=f"Content for chunk {i+1}",
+            corpus_section=f"1.{i+1}",
+            knowledge_area_id="test",
+            concept_ids=[],
+            estimated_read_time_minutes=5,
+            chunk_index=i,
+        )
+        db_session.add(chunk)
+        chunks.append(chunk)
+
+    await db_session.commit()
+    for chunk in chunks:
+        await db_session.refresh(chunk)
+    return chunks
+
+
+@pytest.fixture
+async def stats_test_queue_items(
+    db_session, stats_test_enrollment, stats_test_chunks, stats_test_user
+):
+    """Create reading queue items for stats testing.
+
+    Creates:
+    - 3 unread items (1 high priority, 2 medium priority)
+    - 2 read items (not counted)
+    """
+    queue_items = []
+
+    # Item 1: Unread, High priority
+    item1 = ReadingQueue(
+        user_id=stats_test_user.id,
+        enrollment_id=stats_test_enrollment.id,
+        chunk_id=stats_test_chunks[0].id,
+        status="unread",
+        priority="High",
+    )
+    db_session.add(item1)
+    queue_items.append(item1)
+
+    # Item 2: Unread, Medium priority
+    item2 = ReadingQueue(
+        user_id=stats_test_user.id,
+        enrollment_id=stats_test_enrollment.id,
+        chunk_id=stats_test_chunks[1].id,
+        status="unread",
+        priority="Medium",
+    )
+    db_session.add(item2)
+    queue_items.append(item2)
+
+    # Item 3: Unread, Medium priority
+    item3 = ReadingQueue(
+        user_id=stats_test_user.id,
+        enrollment_id=stats_test_enrollment.id,
+        chunk_id=stats_test_chunks[2].id,
+        status="unread",
+        priority="Medium",
+    )
+    db_session.add(item3)
+    queue_items.append(item3)
+
+    # Item 4: Read (should not be counted)
+    item4 = ReadingQueue(
+        user_id=stats_test_user.id,
+        enrollment_id=stats_test_enrollment.id,
+        chunk_id=stats_test_chunks[3].id,
+        status="read",
+        priority="High",
+    )
+    db_session.add(item4)
+    queue_items.append(item4)
+
+    # Item 5: Read (should not be counted)
+    item5 = ReadingQueue(
+        user_id=stats_test_user.id,
+        enrollment_id=stats_test_enrollment.id,
+        chunk_id=stats_test_chunks[4].id,
+        status="read",
+        priority="Low",
+    )
+    db_session.add(item5)
+    queue_items.append(item5)
+
+    await db_session.commit()
+    return queue_items
+
+
+@pytest.fixture
+async def stats_auth_token(stats_test_user):
+    """Generate auth token for stats test user."""
+    from src.utils.auth import create_access_token
+
+    return create_access_token(data={"sub": str(stats_test_user.id)})
+
+
+@pytest.mark.asyncio
+class TestReadingStatsAPI:
+    """Tests for GET /v1/reading/stats endpoint. Story 5.6."""
+
+    async def test_stats_requires_authentication(self, client):
+        """Test that stats endpoint requires authentication (401 without token)."""
+        response = await client.get("/v1/reading/stats")
+        assert response.status_code == 401
+
+    async def test_stats_returns_correct_counts(
+        self,
+        client,
+        stats_auth_token,
+        stats_test_enrollment,
+        stats_test_queue_items,
+    ):
+        """Test that stats endpoint returns correct unread and high-priority counts."""
+        headers = {"Authorization": f"Bearer {stats_auth_token}"}
+
+        response = await client.get("/v1/reading/stats", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should have 3 unread items (1 High + 2 Medium)
+        assert data["unread_count"] == 3
+        # Should have 1 high priority item
+        assert data["high_priority_count"] == 1
+
+    async def test_stats_empty_queue_returns_zeros(
+        self, client, stats_auth_token, stats_test_enrollment
+    ):
+        """Test that empty queue returns zero counts."""
+        headers = {"Authorization": f"Bearer {stats_auth_token}"}
+
+        response = await client.get("/v1/reading/stats", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Empty queue should return zero counts
+        assert data["unread_count"] == 0
+        assert data["high_priority_count"] == 0
+
+    async def test_stats_filters_by_enrollment(
+        self, client, db_session, stats_test_user, stats_test_course, stats_test_chunks
+    ):
+        """Test that stats only count items from user's active enrollment."""
+        from src.utils.auth import create_access_token
+
+        # Create a second user with their own enrollment and queue items
+        other_user = User(
+            email="otheruser@example.com",
+            hashed_password="hash",
+        )
+        db_session.add(other_user)
+        await db_session.commit()
+        await db_session.refresh(other_user)
+
+        other_enrollment = Enrollment(
+            user_id=other_user.id,
+            course_id=stats_test_course.id,
+            status="active",
+        )
+        db_session.add(other_enrollment)
+        await db_session.commit()
+        await db_session.refresh(other_enrollment)
+
+        # Add queue items for the other user
+        for i in range(5):
+            item = ReadingQueue(
+                user_id=other_user.id,
+                enrollment_id=other_enrollment.id,
+                chunk_id=stats_test_chunks[i].id,
+                status="unread",
+                priority="High",
+            )
+            db_session.add(item)
+        await db_session.commit()
+
+        # Create enrollment for original user (stats_test_user)
+        stats_enrollment = Enrollment(
+            user_id=stats_test_user.id,
+            course_id=stats_test_course.id,
+            status="active",
+        )
+        db_session.add(stats_enrollment)
+        await db_session.commit()
+        await db_session.refresh(stats_enrollment)
+
+        # Add only 2 unread items for original user
+        item1 = ReadingQueue(
+            user_id=stats_test_user.id,
+            enrollment_id=stats_enrollment.id,
+            chunk_id=stats_test_chunks[0].id,
+            status="unread",
+            priority="High",
+        )
+        item2 = ReadingQueue(
+            user_id=stats_test_user.id,
+            enrollment_id=stats_enrollment.id,
+            chunk_id=stats_test_chunks[1].id,
+            status="unread",
+            priority="Medium",
+        )
+        db_session.add(item1)
+        db_session.add(item2)
+        await db_session.commit()
+
+        # Get stats for original user
+        stats_token = create_access_token(data={"sub": str(stats_test_user.id)})
+        headers = {"Authorization": f"Bearer {stats_token}"}
+
+        response = await client.get("/v1/reading/stats", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should only count original user's items (2), not other user's (5)
+        assert data["unread_count"] == 2
+        assert data["high_priority_count"] == 1
+
+    async def test_stats_response_schema(
+        self, client, stats_auth_token, stats_test_enrollment
+    ):
+        """Test that stats response has correct schema fields."""
+        headers = {"Authorization": f"Bearer {stats_auth_token}"}
+
+        response = await client.get("/v1/reading/stats", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify required fields exist and are integers
+        assert "unread_count" in data
+        assert "high_priority_count" in data
+        assert isinstance(data["unread_count"], int)
+        assert isinstance(data["high_priority_count"], int)
+        assert data["unread_count"] >= 0
+        assert data["high_priority_count"] >= 0

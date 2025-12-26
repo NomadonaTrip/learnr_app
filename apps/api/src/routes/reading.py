@@ -10,11 +10,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_db
-from src.dependencies import get_current_user
+from src.dependencies import get_active_enrollment, get_current_user
+from src.models.enrollment import Enrollment
 from src.models.user import User
 from src.repositories.concept_repository import ConceptRepository
 from src.repositories.course_repository import CourseRepository
 from src.repositories.reading_chunk_repository import ReadingChunkRepository
+from src.repositories.reading_queue_repository import ReadingQueueRepository
+from src.schemas.reading import ReadingStatsResponse
 from src.schemas.reading_chunk import (
     ReadingChunkResponse,
     ReadingListResponse,
@@ -42,6 +45,13 @@ def get_course_repository(db: AsyncSession = Depends(get_db)) -> CourseRepositor
 def get_concept_repository(db: AsyncSession = Depends(get_db)) -> ConceptRepository:
     """Dependency for ConceptRepository."""
     return ConceptRepository(db)
+
+
+def get_reading_queue_repository(
+    db: AsyncSession = Depends(get_db),
+) -> ReadingQueueRepository:
+    """Dependency for ReadingQueueRepository."""
+    return ReadingQueueRepository(db)
 
 
 async def get_concept_names_batch(
@@ -237,4 +247,48 @@ async def get_reading_content(
         items=items,
         total=total,
         fallback_used=fallback_used,
+    )
+
+
+@router.get(
+    "/reading/stats",
+    response_model=ReadingStatsResponse,
+    summary="Get reading queue statistics",
+    description=(
+        "Returns aggregated reading queue statistics (unread count, high-priority count) "
+        "for the current user's active enrollment. Used by the navigation badge. "
+        "Requires authentication."
+    ),
+    responses={
+        200: {"description": "Reading stats retrieved successfully"},
+        401: {"description": "Authentication required"},
+        404: {"description": "No active enrollment found"},
+    },
+)
+async def get_reading_stats(
+    enrollment: Enrollment = Depends(get_active_enrollment),
+    queue_repo: ReadingQueueRepository = Depends(get_reading_queue_repository),
+) -> ReadingStatsResponse:
+    """
+    Get reading queue statistics for badge display.
+    Story 5.6: Silent Badge Updates in Navigation
+
+    Returns unread_count and high_priority_count for the user's active enrollment.
+    Optimized to use a single database query with conditional counts.
+    Leverages the idx_reading_queue_enrollment_status index.
+
+    **Performance target:** <50ms response time
+    """
+    stats = await queue_repo.get_unread_stats(enrollment.id)
+
+    logger.debug(
+        "reading_stats: enrollment=%s unread=%d high_priority=%d",
+        str(enrollment.id),
+        stats["unread_count"],
+        stats["high_priority_count"],
+    )
+
+    return ReadingStatsResponse(
+        unread_count=stats["unread_count"],
+        high_priority_count=stats["high_priority_count"],
     )

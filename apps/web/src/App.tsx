@@ -64,6 +64,19 @@ function StudyPlanPlaceholder() {
   )
 }
 
+/** Reading Library placeholder (Story 5.7 will implement full page) */
+function ReadingLibraryPlaceholder() {
+  return (
+    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
+      <div className="max-w-2xl text-center">
+        <h1 className="text-2xl font-bold text-charcoal">Reading Library</h1>
+        <p className="mt-4 text-charcoal/70">Your personalized reading materials will appear here.</p>
+        <p className="mt-2 text-charcoal/50 text-sm">Full implementation coming in Story 5.7</p>
+      </div>
+    </div>
+  )
+}
+
 /** Data router configuration - required for useBlocker hook */
 const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
@@ -102,6 +115,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <StudyPlanPlaceholder />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/reading-library',
+    element: (
+      <ProtectedRoute>
+        <ReadingLibraryPlaceholder />
       </ProtectedRoute>
     ),
   },
