@@ -1,0 +1,228 @@
+course_id,title,corpus_section,knowledge_area,concept_count,concept_names,content_preview,estimated_read_time
+1b8a4860-156f-4d06-8393-85c4088db2d9,If the union,1,unknown,0,,"does not
+agree with
+changes to
+job
+descriptions
+then planned
+staff changes
+will not be
+able to occur...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,If subject,2,unknown,0,,"matter
+experts are
+not available
+for
+requirements
+elicitation
+then scope
+and quality
+will be
+reduced...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Task: Business Analysis Planning,2.0,unknown,0,,and Monitoring,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Task: Requirements Management,2.0,unknown,0,,and Communication,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Task: Solution Assessment and,2.0,unknown,0,,Validation,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Business Analysis Approach,2.1,unknown,0,,"Prioritization and Change
+Management content shifted to 3.3
+Plan Business Analysis Governance",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Requirements Classification,2.3,unknown,0,,Schema,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Business Analysis,2.4,unknown,0,,Communication,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Requirements Management,2.5,unknown,0,,"Process
+Prioritization and Change
+Management content shifted to 3.3
+Plan Business Analysis Governanc...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Manage Business Analysis,2.6,unknown,0,,Performance,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,If an,3,ba-planning,0,,"insufficient
+number of
+customers
+reply to our
+survey
+then we will
+not have a
+representative
+sample o...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Task: Business Analysis Planning,3.0,ba-planning,0,,and Monitoring,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Task: Requirements Life Cycle,3.0,ba-planning,0,,Management,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Task: Requirements Analysis and,3.0,ba-planning,0,,Design Definition,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Business Analysis,3.1,ba-planning,0,,"Approach
+Business Analysis
+Performance Assessment
+3.1
+Business Analysis
+Approach
+3.2
+Plan Stakeholde...",11
+1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Stakeholder,3.2,ba-planning,0,,"Engagement
+Business Analysis
+Performance Assessment
+3.2
+Stakeholder
+Engagement
+Approach
+3.3
+Plan Bus...",8
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholder,3.2,ba-planning,0,,"Engagement
+Approach
+3.1
+Business Analysis
+Approach
+Business Policies
+Current State Description
+5.3
+P...",7
+1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Business Analysis,3.3,ba-planning,0,,"Governance
+Business Analysis
+Performance Assessment
+3.3
+Governance
+Approach
+3.4
+Plan Business
+Analys...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Business Analysis,3.4,ba-planning,0,,"Information Management
+Business Analysis
+Performance Assessment
+3.4
+Information
+Management
+Approach
+...",7
+1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Business Analysis Information,3.4,ba-planning,0,,Management,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Identify Business Analysis,3.5,ba-planning,0,,"Performance Improvements
+Organizational  Performance
+Standards
+3.5
+Business Analysis
+Performance
+Ass...",10
+1b8a4860-156f-4d06-8393-85c4088db2d9,Business,3.5,ba-planning,0,,"Analysis
+Performance
+Assessment
+3.2
+Stakeholder
+Engagement
+Approach
+Business Objectives
+Future State...",42
+1b8a4860-156f-4d06-8393-85c4088db2d9,Identify Business Analysis,3.5,ba-planning,0,,Performance Improvements,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,If the,4,elicitation,0,,"organizational
+structure
+does not
+adjust to the
+new business
+processes
+then the
+enterprise will
+not ...",236
+1b8a4860-156f-4d06-8393-85c4088db2d9,Prepare for Elicitation,4.1,elicitation,0,,"Business Analysis Approach
+4.1
+Elicitation
+Activity Plan
+4.2
+Conduct Elicitation
+3.2
+Stakeholder
+Eng...",22
+1b8a4860-156f-4d06-8393-85c4088db2d9,Manage Solution Scope and,4.1,elicitation,0,,"Requirements
+Solution Scope Management is
+addressed within 5.1 Trace
+Requirements. Conflict and Issu...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Conduct Elicitation,4.2,elicitation,0,,"Summary of Changes from BABOK® Guide v 2.0
+485
+Complimentary IIBA® Member Copy. Not for Distribution...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Manage Requirements Traceability,4.2,elicitation,0,,"Relationships and Configuration
+Management are addressed in 5.1
+Trace Requirements. Impact Analysis ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Communicate Business Analysis,4.4,elicitation,0,,"Information
+n/a",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Communicate Business Analysis,4.4,elicitation,0,,Information,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Communicate Business Analysis,4.4,elicitation,0,,"Information
+Summary of Changes from BABOK® Guide v 2.0
+486
+Complimentary IIBA® Member Copy. Not for ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Manage Stakeholder,4.5,elicitation,0,,Collaboration,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Define Business Need,5.1,rlcm,0,,"Business Problem or Opportunity is
+addressed in 6.1 Analyze Current
+State. Business Goals and Object...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Assess Capability Gaps,5.2,rlcm,0,,"Current Capability Analysis is
+addressed in 6.1 Analyze Current
+State. Assessment of New Capability
+...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Prioritize Requirements,5.3,rlcm,0,,"Moved from 6.1 Prioritize
+Requirements (v2.0)
+N/A",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Determine Solution Approach,5.3,rlcm,0,,"Alternative Generation and
+Assumptions and Constraints are
+addressed in 6.2 Define Future State.
+Ran...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Prioritize Requirements (v3,5.3,rlcm,0,,"Requirements Life Cycle Management
+knowledge area)",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Approve Requirements,5.5,rlcm,0,,"New task which includes the concepts
+from the v2 Elements Conflict and
+Issue Management , Presenting...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Business,6.1,strategy,0,,"Requirements
+Solution Performance Goals
+6.2
+Define Future State
+Solution Performance
+Measures
+Stakeh...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Analyze Current State,6.1,strategy,0,,"Strategy Analysis
+Analyze Current State
+105
+Complimentary IIBA® Member Copy. Not for Distribution or...",349
+1b8a4860-156f-4d06-8393-85c4088db2d9,"Analyze Current State, 6.2 Define",6.1,strategy,0,,Future State,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,"Analyze Current State, 6.2 Define",6.1,strategy,0,,"Future State, 6.4 Define Change
+Strategy
+Define Change Strategy includes a
+Gap Analysis which was no...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,"Define Future State, 7.5 Define",6.2,strategy,0,,"Design Options (v3 Requirements
+Analysis and Design Definition
+knowledge area), 7.6 Analyze
+Potentia...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Define Future State (v3 Strategy,6.2,strategy,0,,"Analysis knowledge area) and 7.6
+Analyze Potential Value and
+Recommend Solution",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Define Assumptions and,6.4,strategy,0,,"Constraints
+Assumptions and Business Constraints
+are addressed in 6.2 Define Future
+State. Technical...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Define Change Strategy (v3,6.4,strategy,0,,"Strategy Analysis knowledge area)
+Summary of Changes from BABOK® Guide v 2.0
+489
+Complimentary IIBA®...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Define Change Strategy (v3,6.4,strategy,0,,"Strategy Analysis knowledge area),",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Allocate Requirements (v2.0,7.2,radd,0,,"Solution Assessment and Validation
+knowledge area)
+N/A",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Validate Requirements,7.3,radd,0,,"Summary of Changes from BABOK® Guide v 2.0
+488
+Complimentary IIBA® Member Copy. Not for Distribution...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Define Design Options,7.5,radd,0,,"New task in Requirements Analysis
+and Design Definition which
+incorporates 5.3 Determine Solution
+Ap...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Define Design Options and 7.6,7.5,radd,0,,"Analyze Potential Value and
+Recommend Solution (v3
+Requirements Analysis and Design
+Definition knowl...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Define Design Options (v3,7.5,radd,0,,"Requirements Analysis and Design
+Definition knowledge area)",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Analyze Potential Value and,7.6,radd,0,,"Recommend Solution (Requirements
+Analysis and Design Definition
+knowledge area), 10.7 Business Cases...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Analyze Potential Value and,7.6,radd,0,,"Recommend Solution
+New task in Requirements Analysis
+and Design Definition which
+incorporates 5.5 De...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Measure Solution Performance,8.1,solution-eval,0,,"New task that incorporates defining
+solution performance measures and
+measuring the actual performan...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Analyze Performance Measures,8.2,solution-eval,0,,"New task that focuses on comparing
+the actual value (solution
+performance) against the expected
+valu...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Assess Enterprise Limitations,8.4,solution-eval,0,,"New task that identifies what, external
+to the solution, may be preventing it
+from delivering its ex...",13
+1b8a4860-156f-4d06-8393-85c4088db2d9,Recommend Actions to Increase,8.5,solution-eval,0,,"Solution Value
+N/A",1
