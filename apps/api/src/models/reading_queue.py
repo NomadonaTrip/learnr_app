@@ -78,6 +78,8 @@ class ReadingQueue(Base):
         nullable=False,
     )
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    first_opened_at = Column(DateTime(timezone=True), nullable=True)
+    dismissed_at = Column(DateTime(timezone=True), nullable=True)
 
     # Engagement tracking
     times_opened = Column(Integer, nullable=False, default=0)

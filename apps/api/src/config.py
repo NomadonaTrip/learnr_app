@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     DB_POOL_TIMEOUT: int = 30
     DB_ECHO: bool = False  # Set True for SQL query logging
 
-    # Redis
-    REDIS_URL: str = "redis://:learnr123@localhost:6379/0"  # Default for local Docker Redis
+    # Redis (using 127.0.0.1 for WSL2/Docker Desktop compatibility)
+    REDIS_URL: str = "redis://:learnr123@127.0.0.1:6379/0"  # Default for local Docker Redis
     REDIS_PASSWORD: str | None = "learnr123"  # Password for local Docker Redis
 
     # Qdrant Vector Database

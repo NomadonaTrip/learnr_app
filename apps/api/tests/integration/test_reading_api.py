@@ -788,3 +788,900 @@ class TestReadingStatsAPI:
         assert isinstance(data["high_priority_count"], int)
         assert data["unread_count"] >= 0
         assert data["high_priority_count"] >= 0
+
+
+# =============================================================================
+# Story 5.7: Reading Queue List API Tests
+# =============================================================================
+
+
+@pytest.fixture
+async def queue_test_user(db_session):
+    """Create a user for queue endpoint testing."""
+    from src.utils.auth import hash_password
+
+    user = User(
+        email="queueuser@example.com",
+        hashed_password=hash_password("SecurePassword123!"),
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+async def queue_test_course(db_session):
+    """Create a course for queue testing with knowledge areas."""
+    course = Course(
+        slug="queue-test-course",
+        name="Queue Test Course",
+        description="Course for reading queue testing",
+        corpus_name="Test Corpus",
+        knowledge_areas=[
+            {
+                "id": "strategy",
+                "name": "Strategy Analysis",
+                "short_name": "Strategy",
+                "display_order": 1,
+                "color": "#EF4444",
+            },
+            {
+                "id": "elicitation",
+                "name": "Elicitation and Collaboration",
+                "short_name": "Elicitation",
+                "display_order": 2,
+                "color": "#10B981",
+            },
+        ],
+        is_active=True,
+        is_public=True,
+    )
+    db_session.add(course)
+    await db_session.commit()
+    await db_session.refresh(course)
+    return course
+
+
+@pytest.fixture
+async def queue_test_enrollment(db_session, queue_test_user, queue_test_course):
+    """Create an enrollment for queue testing."""
+    enrollment = Enrollment(
+        user_id=queue_test_user.id,
+        course_id=queue_test_course.id,
+        status="active",
+    )
+    db_session.add(enrollment)
+    await db_session.commit()
+    await db_session.refresh(enrollment)
+    return enrollment
+
+
+@pytest.fixture
+async def queue_test_chunks(db_session, queue_test_course):
+    """Create reading chunks for queue testing."""
+    chunks = []
+    for i in range(5):
+        ka_id = "strategy" if i < 3 else "elicitation"
+        chunk = ReadingChunk(
+            course_id=queue_test_course.id,
+            title=f"Queue Test Chunk {i+1}",
+            content=f"Content for chunk {i+1}. " * 50,  # ~250 words
+            corpus_section=f"1.{i+1}",
+            knowledge_area_id=ka_id,
+            concept_ids=[],
+            estimated_read_time_minutes=5,
+            chunk_index=i,
+        )
+        db_session.add(chunk)
+        chunks.append(chunk)
+
+    await db_session.commit()
+    for chunk in chunks:
+        await db_session.refresh(chunk)
+    return chunks
+
+
+@pytest.fixture
+async def queue_test_items(
+    db_session, queue_test_enrollment, queue_test_chunks, queue_test_user
+):
+    """Create reading queue items for testing.
+
+    Creates:
+    - 2 unread High priority items (strategy KA)
+    - 2 unread Medium priority items (1 strategy, 1 elicitation)
+    - 1 completed item
+    """
+    from src.models.question import Question
+
+    # Create a test question for triggered_by_question
+    question = Question(
+        course_id=queue_test_chunks[0].course_id,
+        question_text="Test question for queue testing - which technique is best?",
+        options=[
+            {"id": "A", "text": "Option A"},
+            {"id": "B", "text": "Option B"},
+        ],
+        correct_answer="A",
+        knowledge_area_id="strategy",
+        difficulty=0.5,
+        explanation="Test explanation",
+    )
+    db_session.add(question)
+    await db_session.commit()
+    await db_session.refresh(question)
+
+    queue_items = []
+
+    # Item 1: Unread, High priority, Strategy
+    item1 = ReadingQueue(
+        user_id=queue_test_user.id,
+        enrollment_id=queue_test_enrollment.id,
+        chunk_id=queue_test_chunks[0].id,
+        triggered_by_question_id=question.id,
+        status="unread",
+        priority="High",
+    )
+    db_session.add(item1)
+    queue_items.append(item1)
+
+    # Item 2: Unread, High priority, Strategy
+    item2 = ReadingQueue(
+        user_id=queue_test_user.id,
+        enrollment_id=queue_test_enrollment.id,
+        chunk_id=queue_test_chunks[1].id,
+        status="unread",
+        priority="High",
+    )
+    db_session.add(item2)
+    queue_items.append(item2)
+
+    # Item 3: Unread, Medium priority, Strategy
+    item3 = ReadingQueue(
+        user_id=queue_test_user.id,
+        enrollment_id=queue_test_enrollment.id,
+        chunk_id=queue_test_chunks[2].id,
+        status="unread",
+        priority="Medium",
+    )
+    db_session.add(item3)
+    queue_items.append(item3)
+
+    # Item 4: Unread, Medium priority, Elicitation
+    item4 = ReadingQueue(
+        user_id=queue_test_user.id,
+        enrollment_id=queue_test_enrollment.id,
+        chunk_id=queue_test_chunks[3].id,
+        status="unread",
+        priority="Medium",
+    )
+    db_session.add(item4)
+    queue_items.append(item4)
+
+    # Item 5: Completed (should not appear in unread filter)
+    item5 = ReadingQueue(
+        user_id=queue_test_user.id,
+        enrollment_id=queue_test_enrollment.id,
+        chunk_id=queue_test_chunks[4].id,
+        status="completed",
+        priority="Low",
+    )
+    db_session.add(item5)
+    queue_items.append(item5)
+
+    await db_session.commit()
+    for item in queue_items:
+        await db_session.refresh(item)
+    return queue_items
+
+
+@pytest.fixture
+async def queue_auth_token(queue_test_user):
+    """Generate auth token for queue test user."""
+    from src.utils.auth import create_access_token
+
+    return create_access_token(data={"sub": str(queue_test_user.id)})
+
+
+@pytest.mark.asyncio
+class TestReadingQueueAPI:
+    """Tests for GET /v1/reading/queue endpoint. Story 5.7."""
+
+    async def test_queue_requires_authentication(self, client):
+        """Test that queue endpoint requires authentication (401 without token)."""
+        response = await client.get("/v1/reading/queue")
+        assert response.status_code == 401
+
+    async def test_queue_returns_items(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test that queue endpoint returns queue items with correct structure."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        response = await client.get("/v1/reading/queue", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Check response structure
+        assert "items" in data
+        assert "pagination" in data
+
+        # Default filter is unread, so should have 4 items
+        assert len(data["items"]) == 4
+
+        # Check pagination structure
+        pagination = data["pagination"]
+        assert pagination["page"] == 1
+        assert pagination["per_page"] == 20
+        assert pagination["total_items"] == 4
+        assert pagination["total_pages"] == 1
+
+    async def test_queue_item_response_schema(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test that each queue item has all required fields."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        response = await client.get("/v1/reading/queue", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        required_fields = [
+            "queue_id",
+            "chunk_id",
+            "title",
+            "preview",
+            "babok_section",
+            "ka_name",
+            "ka_id",
+            "priority",
+            "status",
+            "word_count",
+            "estimated_read_minutes",
+            "was_incorrect",
+            "added_at",
+        ]
+
+        for item in data["items"]:
+            for field in required_fields:
+                assert field in item, f"Missing required field: {field}"
+
+    async def test_queue_filter_by_status_unread(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test filtering by status=unread (default)."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        response = await client.get("/v1/reading/queue?status=unread", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should return only unread items (4)
+        assert len(data["items"]) == 4
+        for item in data["items"]:
+            assert item["status"] == "unread"
+
+    async def test_queue_filter_by_status_completed(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test filtering by status=completed."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        response = await client.get("/v1/reading/queue?status=completed", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should return only completed items (1)
+        assert len(data["items"]) == 1
+        assert data["items"][0]["status"] == "completed"
+
+    async def test_queue_filter_by_status_all(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test filtering by status=all returns all items."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        response = await client.get("/v1/reading/queue?status=all", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should return all items (5)
+        assert len(data["items"]) == 5
+
+    async def test_queue_filter_by_ka_id(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test filtering by knowledge area ID."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        response = await client.get("/v1/reading/queue?ka_id=strategy", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should return only strategy KA items (3 unread)
+        assert len(data["items"]) == 3
+        for item in data["items"]:
+            assert item["ka_id"] == "strategy"
+
+    async def test_queue_filter_by_priority(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test filtering by priority."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        response = await client.get("/v1/reading/queue?priority=High", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should return only High priority items (2)
+        assert len(data["items"]) == 2
+        for item in data["items"]:
+            assert item["priority"] == "High"
+
+    async def test_queue_sort_by_priority(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test sorting by priority (High > Medium > Low)."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        response = await client.get("/v1/reading/queue?sort_by=priority", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # First items should be High priority
+        assert data["items"][0]["priority"] == "High"
+        assert data["items"][1]["priority"] == "High"
+        # Then Medium priority
+        assert data["items"][2]["priority"] == "Medium"
+        assert data["items"][3]["priority"] == "Medium"
+
+    async def test_queue_sort_by_date(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test sorting by date (newest first)."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        response = await client.get("/v1/reading/queue?sort_by=date", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Items should be in descending order by added_at
+        dates = [item["added_at"] for item in data["items"]]
+        assert dates == sorted(dates, reverse=True)
+
+    async def test_queue_pagination(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test pagination works correctly."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        # Get first page with 2 items per page
+        response = await client.get("/v1/reading/queue?page=1&per_page=2", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        assert len(data["items"]) == 2
+        assert data["pagination"]["page"] == 1
+        assert data["pagination"]["per_page"] == 2
+        assert data["pagination"]["total_items"] == 4
+        assert data["pagination"]["total_pages"] == 2
+
+        # Get second page
+        response2 = await client.get("/v1/reading/queue?page=2&per_page=2", headers=headers)
+        data2 = response2.json()
+
+        assert len(data2["items"]) == 2
+        assert data2["pagination"]["page"] == 2
+
+        # Ensure no duplicate items between pages
+        page1_ids = {item["queue_id"] for item in data["items"]}
+        page2_ids = {item["queue_id"] for item in data2["items"]}
+        assert page1_ids.isdisjoint(page2_ids)
+
+    async def test_queue_empty_returns_empty_array(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+    ):
+        """Test that empty queue returns empty array with pagination metadata."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        response = await client.get("/v1/reading/queue", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["items"] == []
+        assert data["pagination"]["total_items"] == 0
+        assert data["pagination"]["total_pages"] == 0
+
+    async def test_queue_includes_question_preview(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test that items with triggered question include question preview."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        response = await client.get("/v1/reading/queue", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Find item with question preview
+        items_with_preview = [item for item in data["items"] if item.get("question_preview")]
+        assert len(items_with_preview) >= 1
+        assert "Test question" in items_with_preview[0]["question_preview"]
+
+    async def test_queue_ka_name_resolution(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test that ka_name is resolved from course knowledge_areas."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        response = await client.get("/v1/reading/queue", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Check KA names are resolved
+        for item in data["items"]:
+            if item["ka_id"] == "strategy":
+                assert item["ka_name"] == "Strategy Analysis"
+            elif item["ka_id"] == "elicitation":
+                assert item["ka_name"] == "Elicitation and Collaboration"
+
+    async def test_queue_per_page_max_limit(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test that per_page values over 100 are rejected by schema validation."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        # Request more than 100 per page - should be rejected by schema
+        response = await client.get("/v1/reading/queue?per_page=200", headers=headers)
+
+        # Schema validation rejects values > 100
+        assert response.status_code == 422
+
+        # Valid request with max per_page=100 should succeed
+        response = await client.get("/v1/reading/queue?per_page=100", headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["pagination"]["per_page"] == 100
+
+
+# =============================================================================
+# Story 5.8: Reading Detail and Engagement API Tests
+# =============================================================================
+
+
+@pytest.mark.asyncio
+class TestReadingDetailAPI:
+    """Tests for GET /v1/reading/queue/{queue_id} endpoint. Story 5.8."""
+
+    async def test_detail_requires_authentication(self, client, queue_test_items):
+        """Test that detail endpoint requires authentication."""
+        queue_id = str(queue_test_items[0].id)
+        response = await client.get(f"/v1/reading/queue/{queue_id}")
+        assert response.status_code == 401
+
+    async def test_detail_returns_full_content(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+        queue_test_chunks,
+    ):
+        """Test that detail endpoint returns full content and engagement fields."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+        queue_id = str(queue_test_items[0].id)
+
+        response = await client.get(f"/v1/reading/queue/{queue_id}", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Check required fields
+        assert "queue_id" in data
+        assert "chunk_id" in data
+        assert "title" in data
+        assert "text_content" in data
+        assert "babok_section" in data
+        assert "ka_name" in data
+        assert "priority" in data
+        assert "status" in data
+        assert "word_count" in data
+        assert "estimated_read_minutes" in data
+        assert "times_opened" in data
+        assert "total_reading_time_seconds" in data
+        assert "question_context" in data
+        assert "added_at" in data
+
+        # Check question_context nested fields
+        assert "question_preview" in data["question_context"]
+        assert "was_incorrect" in data["question_context"]
+
+    async def test_detail_increments_times_opened(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test that viewing detail increments times_opened."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+        queue_id = str(queue_test_items[0].id)
+
+        # First view
+        response1 = await client.get(f"/v1/reading/queue/{queue_id}", headers=headers)
+        assert response1.status_code == 200
+        times_opened_1 = response1.json()["times_opened"]
+
+        # Second view
+        response2 = await client.get(f"/v1/reading/queue/{queue_id}", headers=headers)
+        assert response2.status_code == 200
+        times_opened_2 = response2.json()["times_opened"]
+
+        # times_opened should have increased
+        assert times_opened_2 > times_opened_1
+
+    async def test_detail_sets_first_opened_at(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test that first_opened_at is set on first view."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+        queue_id = str(queue_test_items[1].id)  # Use different item
+
+        response = await client.get(f"/v1/reading/queue/{queue_id}", headers=headers)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # first_opened_at should be set now
+        assert data["first_opened_at"] is not None
+
+    async def test_detail_not_found_returns_404(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+    ):
+        """Test that non-existent queue item returns 404."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+        fake_id = str(uuid4())
+
+        response = await client.get(f"/v1/reading/queue/{fake_id}", headers=headers)
+
+        assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+class TestReadingEngagementAPI:
+    """Tests for PUT /v1/reading/queue/{queue_id}/engagement endpoint. Story 5.8."""
+
+    async def test_engagement_requires_authentication(self, client, queue_test_items):
+        """Test that engagement endpoint requires authentication."""
+        queue_id = str(queue_test_items[0].id)
+        response = await client.put(
+            f"/v1/reading/queue/{queue_id}/engagement",
+            json={"time_spent_seconds": 60},
+        )
+        assert response.status_code == 401
+
+    async def test_engagement_updates_time(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test that engagement endpoint adds time to total."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+        queue_id = str(queue_test_items[0].id)
+
+        # First update
+        response = await client.put(
+            f"/v1/reading/queue/{queue_id}/engagement",
+            headers=headers,
+            json={"time_spent_seconds": 60},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_reading_time_seconds"] >= 60
+
+        # Second update
+        response2 = await client.put(
+            f"/v1/reading/queue/{queue_id}/engagement",
+            headers=headers,
+            json={"time_spent_seconds": 30},
+        )
+
+        assert response2.status_code == 200
+        data2 = response2.json()
+        assert data2["total_reading_time_seconds"] >= 90
+
+    async def test_engagement_caps_time_at_30_min(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test that time values over 30 minutes are rejected by schema validation."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+        queue_id = str(queue_test_items[1].id)
+
+        # Try to add 2 hours - should be rejected by schema
+        response = await client.put(
+            f"/v1/reading/queue/{queue_id}/engagement",
+            headers=headers,
+            json={"time_spent_seconds": 7200},  # 2 hours
+        )
+
+        # Schema validation rejects values > 1800 (30 min)
+        assert response.status_code == 422
+
+        # Valid request with max 30 minutes should succeed
+        response = await client.put(
+            f"/v1/reading/queue/{queue_id}/engagement",
+            headers=headers,
+            json={"time_spent_seconds": 1800},  # 30 min exactly
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_reading_time_seconds"] == 1800
+
+    async def test_engagement_not_found_returns_404(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+    ):
+        """Test that non-existent queue item returns 404."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+        fake_id = str(uuid4())
+
+        response = await client.put(
+            f"/v1/reading/queue/{fake_id}/engagement",
+            headers=headers,
+            json={"time_spent_seconds": 60},
+        )
+
+        assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+class TestReadingStatusAPI:
+    """Tests for PUT /v1/reading/queue/{queue_id}/status endpoint. Story 5.8."""
+
+    async def test_status_requires_authentication(self, client, queue_test_items):
+        """Test that status endpoint requires authentication."""
+        queue_id = str(queue_test_items[0].id)
+        response = await client.put(
+            f"/v1/reading/queue/{queue_id}/status",
+            json={"status": "completed"},
+        )
+        assert response.status_code == 401
+
+    async def test_status_mark_completed(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test marking item as completed."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+        queue_id = str(queue_test_items[0].id)
+
+        response = await client.put(
+            f"/v1/reading/queue/{queue_id}/status",
+            headers=headers,
+            json={"status": "completed"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "completed"
+        assert data["completed_at"] is not None
+        assert data["dismissed_at"] is None
+
+    async def test_status_mark_dismissed(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test marking item as dismissed."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+        queue_id = str(queue_test_items[1].id)
+
+        response = await client.put(
+            f"/v1/reading/queue/{queue_id}/status",
+            headers=headers,
+            json={"status": "dismissed"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "dismissed"
+        assert data["dismissed_at"] is not None
+        assert data["completed_at"] is None
+
+    async def test_status_not_found_returns_404(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+    ):
+        """Test that non-existent queue item returns 404."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+        fake_id = str(uuid4())
+
+        response = await client.put(
+            f"/v1/reading/queue/{fake_id}/status",
+            headers=headers,
+            json={"status": "completed"},
+        )
+
+        assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+class TestReadingBatchDismissAPI:
+    """Tests for POST /v1/reading/queue/batch-dismiss endpoint. Story 5.8."""
+
+    async def test_batch_dismiss_requires_authentication(self, client):
+        """Test that batch dismiss endpoint requires authentication."""
+        response = await client.post(
+            "/v1/reading/queue/batch-dismiss",
+            json={"queue_ids": [str(uuid4())]},
+        )
+        assert response.status_code == 401
+
+    async def test_batch_dismiss_multiple_items(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test batch dismissing multiple items."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        # Get IDs of unread items
+        unread_ids = [
+            str(item.id)
+            for item in queue_test_items
+            if item.status == "unread"
+        ][:2]  # Dismiss first 2
+
+        response = await client.post(
+            "/v1/reading/queue/batch-dismiss",
+            headers=headers,
+            json={"queue_ids": unread_ids},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["dismissed_count"] == 2
+        assert "remaining_unread_count" in data
+
+    async def test_batch_dismiss_ignores_invalid_ids(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test that batch dismiss silently ignores invalid/non-existent IDs."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        # Mix valid and invalid IDs
+        valid_id = str(queue_test_items[0].id)
+        invalid_id = str(uuid4())
+
+        response = await client.post(
+            "/v1/reading/queue/batch-dismiss",
+            headers=headers,
+            json={"queue_ids": [valid_id, invalid_id]},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        # Should only dismiss the valid one
+        assert data["dismissed_count"] >= 0
+
+    async def test_batch_dismiss_returns_remaining_count(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+    ):
+        """Test that remaining_unread_count is returned."""
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        # Get first unread item ID
+        unread_id = str(queue_test_items[0].id)
+
+        response = await client.post(
+            "/v1/reading/queue/batch-dismiss",
+            headers=headers,
+            json={"queue_ids": [unread_id]},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "remaining_unread_count" in data
+        assert isinstance(data["remaining_unread_count"], int)
+        assert data["remaining_unread_count"] >= 0

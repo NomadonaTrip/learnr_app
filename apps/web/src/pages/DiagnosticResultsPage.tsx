@@ -8,6 +8,7 @@ import {
   DetailsAccordion,
 } from '../components/diagnostic-results'
 import { ResetDiagnosticButton } from '../components/diagnostic/ResetDiagnosticButton'
+import { Navigation } from '../components/layout/Navigation'
 
 /**
  * Diagnostic Results Page.
@@ -43,9 +44,9 @@ export function DiagnosticResultsPage() {
     navigate('/quiz')
   }, [navigate])
 
-  const handleViewStudyPlan = useCallback(() => {
-    // Navigate to study plan page (placeholder path)
-    navigate('/study-plan')
+  const handleViewReadingLibrary = useCallback(() => {
+    // Navigate to reading library page
+    navigate('/reading-library')
   }, [navigate])
 
   // Loading state
@@ -115,6 +116,8 @@ export function DiagnosticResultsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Navigation with Reading Library link */}
+      <Navigation enablePolling={false} />
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Course header */}
         {course && (
@@ -142,7 +145,7 @@ export function DiagnosticResultsPage() {
         <RecommendationsSection
           recommendations={data.recommendations}
           onStartQuiz={handleStartQuiz}
-          onViewStudyPlan={handleViewStudyPlan}
+          onViewReadingLibrary={handleViewReadingLibrary}
         />
 
         {/* Details Accordion - Collapsed by default */}

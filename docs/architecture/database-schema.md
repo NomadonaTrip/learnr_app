@@ -350,6 +350,8 @@ CREATE TABLE reading_queue (
     times_opened INTEGER NOT NULL DEFAULT 0,
     total_reading_time_seconds INTEGER NOT NULL DEFAULT 0,
     completed_at TIMESTAMP,
+    first_opened_at TIMESTAMP,      -- Set on first view of queue item (Story 5.8)
+    dismissed_at TIMESTAMP,         -- Set when user dismisses item (Story 5.8)
     UNIQUE (enrollment_id, chunk_id),  -- Changed from (user_id, chunk_id)
     CHECK (priority IN ('High', 'Medium', 'Low')),
     CHECK (status IN ('unread', 'reading', 'completed', 'dismissed'))

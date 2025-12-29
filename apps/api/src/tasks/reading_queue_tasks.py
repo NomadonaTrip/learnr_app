@@ -10,7 +10,8 @@ import asyncio
 import time
 
 import structlog
-from celery import shared_task
+
+from src.celery_app import celery_app
 
 logger = structlog.get_logger(__name__)
 
@@ -18,7 +19,7 @@ logger = structlog.get_logger(__name__)
 TASK_DURATION_WARNING_MS = 200
 
 
-@shared_task(
+@celery_app.task(
     bind=True,
     name="src.tasks.reading_queue_tasks.add_reading_to_queue",
     max_retries=3,

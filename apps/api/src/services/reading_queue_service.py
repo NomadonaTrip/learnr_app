@@ -140,6 +140,8 @@ class ReadingQueueService:
                 "reading_queue_no_chunks_found",
                 question_id=str(question_id),
                 query_text=query_text[:100],
+                course_id=str(enrollment.course_id),
+                knowledge_area_id=question.knowledge_area_id,
             )
             return 0
 
@@ -432,6 +434,9 @@ async def populate_reading_queue_async(
     """
     Async function to populate reading queue, used by Celery task.
 
+    Creates a fresh database engine for each task to avoid event loop issues
+    in Celery fork workers.
+
     Args:
         user_id: User UUID string
         enrollment_id: Enrollment UUID string
@@ -443,31 +448,51 @@ async def populate_reading_queue_async(
     Returns:
         Dict with chunks_added and priority
     """
-    from src.db.session import AsyncSessionLocal
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-    async with AsyncSessionLocal() as session:
-        try:
-            service = ReadingQueueService(session)
-            chunks_added = await service.populate_reading_queue(
-                user_id=UUID(user_id),
-                enrollment_id=UUID(enrollment_id),
-                question_id=UUID(question_id),
-                session_id=UUID(session_id),
-                is_correct=is_correct,
-                difficulty=difficulty,
-            )
-            await session.commit()
+    from src.config import settings
 
-            return {
-                "chunks_added": chunks_added,
-                "status": "success",
-            }
-        except Exception as e:
-            await session.rollback()
-            logger.error(
-                "reading_queue_task_failed",
-                user_id=user_id,
-                question_id=question_id,
-                error=str(e),
-            )
-            raise
+    # Create fresh engine for this task (avoids event loop issues in Celery fork workers)
+    task_engine = create_async_engine(
+        settings.DATABASE_URL,
+        echo=False,
+        pool_size=1,
+        max_overflow=0,
+        pool_pre_ping=True,
+    )
+    TaskSession = async_sessionmaker(
+        task_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+    try:
+        async with TaskSession() as session:
+            try:
+                service = ReadingQueueService(session)
+                chunks_added = await service.populate_reading_queue(
+                    user_id=UUID(user_id),
+                    enrollment_id=UUID(enrollment_id),
+                    question_id=UUID(question_id),
+                    session_id=UUID(session_id),
+                    is_correct=is_correct,
+                    difficulty=difficulty,
+                )
+                await session.commit()
+
+                return {
+                    "chunks_added": chunks_added,
+                    "status": "success",
+                }
+            except Exception as e:
+                await session.rollback()
+                logger.error(
+                    "reading_queue_task_failed",
+                    user_id=user_id,
+                    question_id=question_id,
+                    error=str(e),
+                )
+                raise
+    finally:
+        # Clean up engine to avoid connection leaks
+        await task_engine.dispose()

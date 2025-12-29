@@ -1,2 +1,6 @@
 export { CheckIcon } from './CheckIcon'
+export { CheckCircleIcon } from './CheckCircleIcon'
+export { InformationCircleIcon } from './InformationCircleIcon'
+export { XCircleIcon } from './XCircleIcon'
 export { XIcon } from './XIcon'
+export { XMarkIcon } from './XMarkIcon'

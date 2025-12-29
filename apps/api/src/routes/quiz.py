@@ -11,6 +11,7 @@ from uuid import UUID
 
 import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_db
@@ -106,6 +107,37 @@ async def start_quiz_session(
             session_data=request,
         )
         await db.commit()
+    except IntegrityError:
+        # Race condition: unique constraint violation means another session was created
+        # Rollback and retry - the retry will find the existing session
+        await db.rollback()
+        logger.info(
+            "quiz_session_race_condition_retry",
+            user_id=str(current_user.id),
+        )
+        try:
+            session, is_resumed = await session_service.start_session(
+                user_id=current_user.id,
+                enrollment_id=enrollment.id,
+                session_data=request,
+            )
+            await db.commit()
+        except Exception as retry_error:
+            await db.rollback()
+            logger.error(
+                "Failed to start quiz session after retry",
+                error=str(retry_error),
+                user_id=str(current_user.id),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={
+                    "error": {
+                        "code": "SESSION_START_FAILED",
+                        "message": "Failed to start quiz session",
+                    }
+                },
+            ) from retry_error
     except Exception as e:
         await db.rollback()
         logger.error(
