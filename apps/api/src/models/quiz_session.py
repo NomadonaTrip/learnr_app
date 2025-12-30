@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Integer, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
 
@@ -66,6 +66,9 @@ class QuizSession(Base):
     )
     knowledge_area_filter = Column(String(50), nullable=True)
 
+    # Target concept IDs for focused_concept sessions (JSONB array of UUID strings)
+    target_concept_ids = Column(JSONB, nullable=True, default=[])
+
     # Session target (fixed-length sessions for habit-forming consistency)
     question_target = Column(Integer, nullable=False, default=10)
 
@@ -99,7 +102,7 @@ class QuizSession(Base):
     # Table constraints
     __table_args__ = (
         CheckConstraint(
-            "session_type IN ('diagnostic', 'adaptive', 'focused', 'review')",
+            "session_type IN ('diagnostic', 'adaptive', 'focused', 'focused_ka', 'focused_concept', 'review')",
             name="check_quiz_session_type"
         ),
         CheckConstraint(

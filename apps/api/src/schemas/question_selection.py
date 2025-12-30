@@ -76,6 +76,19 @@ class QuestionSelectionResponse(BaseModel):
         le=1.0,
         description="Session progress as fraction (0.0-1.0), e.g., 0.667 for 8/12",
     )
+    # Story 4.8: Focused session metadata
+    focus_expanded: bool = Field(
+        default=False,
+        description="True if focused session exhausted and expanded to wider selection",
+    )
+    focus_target_type: str | None = Field(
+        default=None,
+        description="Type of focus target: 'ka' for knowledge area, 'concept' for concepts",
+    )
+    focus_target_id: str | None = Field(
+        default=None,
+        description="ID of focus target (knowledge_area_id or comma-separated concept IDs)",
+    )
 
 
 class NoQuestionsAvailableResponse(BaseModel):

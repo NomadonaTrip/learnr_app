@@ -315,12 +315,14 @@ describe('Quiz Session Integration', () => {
       })
       fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
 
-      // Should show correct feedback
+      // Should show explanation (feedback indicator)
       await waitFor(() => {
-        expect(screen.getByText('Correct!')).toBeInTheDocument()
+        expect(screen.getByText('Explanation')).toBeInTheDocument()
       })
 
-      expect(screen.getByRole('alert')).toHaveClass('bg-green-50')
+      // Correct answer should be styled with green
+      const correctOption = screen.getByRole('radio', { name: /option a.*correct answer/i })
+      expect(correctOption).toHaveClass('bg-green-50')
     })
 
     it('shows incorrect feedback after wrong answer submission', async () => {
@@ -341,12 +343,18 @@ describe('Quiz Session Integration', () => {
       })
       fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
 
-      // Should show incorrect feedback with correct answer
+      // Should show explanation (feedback indicator)
       await waitFor(() => {
-        expect(screen.getByText(/incorrect.*correct answer is B/i)).toBeInTheDocument()
+        expect(screen.getByText('Explanation')).toBeInTheDocument()
       })
 
-      expect(screen.getByRole('alert')).toHaveClass('bg-orange-50')
+      // User's incorrect selection should be styled with red
+      const incorrectOption = screen.getByRole('radio', { name: /option c.*incorrect selection/i })
+      expect(incorrectOption).toHaveClass('bg-red-50')
+
+      // Correct answer (B) should be styled with green
+      const correctOption = screen.getByRole('radio', { name: /option b.*correct answer/i })
+      expect(correctOption).toHaveClass('bg-green-50')
     })
 
     it('proceeds to next question after clicking Next Question button', async () => {
@@ -367,17 +375,17 @@ describe('Quiz Session Integration', () => {
       })
       fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
 
-      // Wait for feedback
+      // Wait for feedback (explanation appears)
       await waitFor(() => {
-        expect(screen.getByText('Correct!')).toBeInTheDocument()
+        expect(screen.getByText('Explanation')).toBeInTheDocument()
       })
 
       // Click Next Question
       fireEvent.click(screen.getByRole('button', { name: /next question/i }))
 
-      // Feedback should be cleared and question should reload
+      // Explanation should be cleared and question should reload
       await waitFor(() => {
-        expect(screen.queryByText('Correct!')).not.toBeInTheDocument()
+        expect(screen.queryByText('Explanation')).not.toBeInTheDocument()
       })
     })
 
@@ -403,9 +411,9 @@ describe('Quiz Session Integration', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
 
-      // After submission, feedback should appear and submit button should be gone
+      // After submission, explanation should appear and submit button should be gone
       await waitFor(() => {
-        expect(screen.getByText('Correct!')).toBeInTheDocument()
+        expect(screen.getByText('Explanation')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /submit answer/i })).not.toBeInTheDocument()
       })
     })

@@ -49,6 +49,32 @@ export function DiagnosticResultsPage() {
     navigate('/reading-library')
   }, [navigate])
 
+  // Story 4.8: Focused practice handlers
+  const handleFocusKA = useCallback((kaId: string, kaName: string) => {
+    // DEBUG: Log Focus KA button click
+    const targetUrl = `/quiz?focus=ka&target=${encodeURIComponent(kaId)}&name=${encodeURIComponent(kaName)}`
+    console.log('[DEBUG] Focus KA button clicked', {
+      kaId,
+      kaName,
+      targetUrl,
+      timestamp: new Date().toISOString(),
+    })
+    // Navigate to quiz with focused KA mode
+    navigate(targetUrl)
+  }, [navigate])
+
+  const handlePracticeConcepts = useCallback((conceptIds: string[]) => {
+    // DEBUG: Log Practice button click
+    const targetUrl = `/quiz?focus=concept&targets=${conceptIds.map(id => encodeURIComponent(id)).join(',')}`
+    console.log('[DEBUG] Practice button clicked', {
+      conceptIds,
+      targetUrl,
+      timestamp: new Date().toISOString(),
+    })
+    // Navigate to quiz with focused concept mode
+    navigate(targetUrl)
+  }, [navigate])
+
   // Loading state
   if (isLoading) {
     return (
@@ -155,6 +181,8 @@ export function DiagnosticResultsPage() {
           uncertainCount={data.uncertain}
           confidenceLevel={data.confidence_level}
           message={data.recommendations.message}
+          onFocusClick={handleFocusKA}
+          onConceptPracticeClick={handlePracticeConcepts}
         />
 
         {/* Feedback Survey */}

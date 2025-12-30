@@ -160,7 +160,8 @@ class QuestionSelector:
         available_questions: list[Question],
         strategy: str = "max_info_gain",
         knowledge_area_filter: str | None = None,
-    ) -> tuple[Question, float]:
+        target_concept_ids: list[UUID] | None = None,
+    ) -> tuple[Question | None, float, dict]:
         """
         Select the next question for a quiz session.
 
@@ -171,12 +172,16 @@ class QuestionSelector:
             available_questions: List of questions to consider
             strategy: Selection strategy (max_info_gain, max_uncertainty, prerequisite_first)
             knowledge_area_filter: Optional knowledge area ID to filter questions
+            target_concept_ids: Optional list of concept UUIDs to filter questions (for focused_concept sessions)
 
         Returns:
-            Tuple of (selected_question, estimated_info_gain)
+            Tuple of (selected_question, estimated_info_gain, metadata)
+            - selected_question: Question or None if exhausted
+            - estimated_info_gain: Expected info gain (0.0 if exhausted)
+            - metadata: Dict with filtered_count, exhausted, suggest_different_focus flags
 
         Raises:
-            ValueError: If no eligible questions are available
+            ValueError: If no eligible questions are available (only for non-focused sessions)
         """
         start_time = time.perf_counter()
 
@@ -186,20 +191,29 @@ class QuestionSelector:
             session_id=session_id,
             questions=available_questions,
             knowledge_area_filter=knowledge_area_filter,
+            target_concept_ids=target_concept_ids,
         )
 
+        # Build metadata for return
+        metadata: dict = {
+            "filtered_count": len(candidates),
+            "exhausted": False,
+            "suggest_different_focus": False,
+        }
+
         if not candidates:
-            # Try expanding if focused session exhausted questions
-            if knowledge_area_filter:
+            # Check if this is a focused session that exhausted questions
+            if target_concept_ids or knowledge_area_filter:
                 logger.warning(
                     "question_selection_exhausted",
                     session_id=str(session_id),
                     knowledge_area_filter=knowledge_area_filter,
+                    target_concept_count=len(target_concept_ids) if target_concept_ids else 0,
                     reason="no_candidates_after_filtering",
                 )
-                raise ValueError(
-                    f"No questions available for knowledge area: {knowledge_area_filter}"
-                )
+                metadata["exhausted"] = True
+                metadata["suggest_different_focus"] = True
+                return None, 0.0, metadata
             raise ValueError("No eligible questions available for selection")
 
         # Select based on strategy
@@ -242,10 +256,11 @@ class QuestionSelector:
             info_gain=round(info_gain, 4),
             concepts_tested=[str(c) for c in concept_ids],
             candidates_count=len(candidates),
+            target_concept_filter=bool(target_concept_ids),
             selection_duration_ms=round(duration_ms, 2),
         )
 
-        return question, info_gain
+        return question, info_gain, metadata
 
     async def _filter_questions(
         self,
@@ -253,12 +268,14 @@ class QuestionSelector:
         session_id: UUID,
         questions: list[Question],
         knowledge_area_filter: str | None = None,
+        target_concept_ids: list[UUID] | None = None,
     ) -> list[Question]:
         """
         Apply all filtering constraints to questions.
 
         Filters:
         - Knowledge area filter (if provided)
+        - Target concept filter (if provided, for focused_concept sessions)
         - Recency filter (exclude questions answered in last N days)
         - Session filter (exclude questions already in current session)
 
@@ -267,6 +284,7 @@ class QuestionSelector:
             session_id: Session UUID
             questions: Questions to filter
             knowledge_area_filter: Optional knowledge area ID
+            target_concept_ids: Optional list of concept UUIDs for focused_concept sessions
 
         Returns:
             Filtered list of questions
@@ -274,6 +292,13 @@ class QuestionSelector:
         # Apply knowledge area filter first (most restrictive, cheapest)
         if knowledge_area_filter:
             questions = self._filter_by_knowledge_area(questions, knowledge_area_filter)
+
+        if not questions:
+            return []
+
+        # Apply target concept filter for focused_concept sessions
+        if target_concept_ids:
+            questions = self._filter_by_target_concepts(questions, target_concept_ids)
 
         if not questions:
             return []
@@ -305,7 +330,41 @@ class QuestionSelector:
         Returns:
             Questions matching the knowledge area
         """
-        return [q for q in questions if q.knowledge_area_id == knowledge_area_filter]
+        filtered = [q for q in questions if q.knowledge_area_id == knowledge_area_filter]
+
+        # DEBUG: Log filtering results
+        logger.info(
+            "DEBUG: _filter_by_knowledge_area",
+            knowledge_area_filter=knowledge_area_filter,
+            total_questions=len(questions),
+            filtered_count=len(filtered),
+            sample_ka_ids=[q.knowledge_area_id for q in questions[:5]] if questions else [],
+        )
+
+        return filtered
+
+    def _filter_by_target_concepts(
+        self,
+        questions: list[Question],
+        target_concept_ids: list[UUID],
+    ) -> list[Question]:
+        """
+        Filter questions to those testing any of the target concepts.
+
+        Used for focused_concept sessions to limit questions to specific concepts.
+
+        Args:
+            questions: Questions to filter
+            target_concept_ids: List of concept UUIDs to match
+
+        Returns:
+            Questions that test at least one of the target concepts
+        """
+        target_set = set(target_concept_ids)
+        return [
+            q for q in questions
+            if any(qc.concept_id in target_set for qc in q.question_concepts)
+        ]
 
     async def _get_recent_question_ids(
         self,

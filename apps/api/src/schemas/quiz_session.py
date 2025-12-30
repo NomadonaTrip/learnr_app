@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class QuizSessionType(str, Enum):
@@ -14,7 +14,9 @@ class QuizSessionType(str, Enum):
 
     DIAGNOSTIC = "diagnostic"
     ADAPTIVE = "adaptive"
-    FOCUSED = "focused"
+    FOCUSED = "focused"  # Generic focused (existing, kept for backward compatibility)
+    FOCUSED_KA = "focused_ka"  # Focused on knowledge area
+    FOCUSED_CONCEPT = "focused_concept"  # Focused on specific concepts
     REVIEW = "review"
 
 
@@ -49,8 +51,23 @@ class QuizSessionCreate(BaseModel):
     )
     knowledge_area_filter: str | None = Field(
         default=None,
-        description="Optional knowledge area to focus on (for focused sessions)"
+        description="Optional knowledge area to focus on (for focused/focused_ka sessions)"
     )
+    target_concept_ids: list[UUID] | None = Field(
+        default=None,
+        description="Target concept IDs for focused_concept sessions"
+    )
+
+    @model_validator(mode="after")
+    def validate_focused_targets(self) -> "QuizSessionCreate":
+        """Validate that focused session types have required target fields."""
+        if self.session_type == QuizSessionType.FOCUSED_KA:
+            if not self.knowledge_area_filter:
+                raise ValueError("knowledge_area_filter required for focused_ka sessions")
+        if self.session_type == QuizSessionType.FOCUSED_CONCEPT:
+            if not self.target_concept_ids or len(self.target_concept_ids) == 0:
+                raise ValueError("target_concept_ids required for focused_concept sessions")
+        return self
 
 
 class QuizSessionResponse(BaseModel):
@@ -86,6 +103,37 @@ class QuizSessionStartResponse(BaseModel):
     version: int = Field(..., description="Session version for optimistic locking")
     # first_question will be populated by Story 4.2 (placeholder for now)
     first_question: dict | None = Field(None, description="First question (populated in Story 4.2)")
+    # Story 4.8: Focus context for focused sessions
+    focus_target_type: str | None = Field(
+        None, description="Type of focus: 'ka' for knowledge area, 'concept' for concepts"
+    )
+    focus_target_id: str | None = Field(
+        None, description="Focus target ID (knowledge_area_id or comma-separated concept IDs)"
+    )
+
+
+class FocusedKASessionCreate(BaseModel):
+    """Request schema for starting a knowledge area focused session."""
+
+    knowledge_area_id: str = Field(..., description="Knowledge area ID to focus on")
+    question_strategy: QuestionStrategy = Field(
+        default=QuestionStrategy.MAX_INFO_GAIN,
+        description="Strategy for question selection"
+    )
+
+
+class FocusedConceptSessionCreate(BaseModel):
+    """Request schema for starting a concept focused session."""
+
+    concept_ids: list[UUID] = Field(
+        ...,
+        min_length=1,
+        description="Concept IDs to focus on (1 or more)"
+    )
+    question_strategy: QuestionStrategy = Field(
+        default=QuestionStrategy.MAX_INFO_GAIN,
+        description="Strategy for question selection"
+    )
 
 
 class QuizSessionEndRequest(BaseModel):
@@ -97,6 +145,22 @@ class QuizSessionEndRequest(BaseModel):
     )
 
 
+class TargetProgress(BaseModel):
+    """Progress metrics for focused session target (KA or concepts)."""
+
+    focus_type: str = Field(..., description="Type of focus: 'ka' or 'concept'")
+    target_name: str = Field(..., description="Name of target KA or concept(s)")
+    questions_in_focus_count: int = Field(
+        ..., description="Number of questions that tested target focus"
+    )
+    session_improvement: float = Field(
+        ..., description="Mastery improvement during session (delta)"
+    )
+    current_mastery: float = Field(
+        ..., ge=0.0, le=1.0, description="Current average mastery for target (0-1)"
+    )
+
+
 class QuizSessionEndResponse(BaseModel):
     """Response schema for ending a quiz session."""
 
@@ -105,6 +169,10 @@ class QuizSessionEndResponse(BaseModel):
     total_questions: int = Field(..., description="Total questions answered in session")
     correct_count: int = Field(..., description="Number of correct answers")
     accuracy: float = Field(..., description="Final session accuracy percentage (0-100)")
+    # Story 4.8: Focused session target progress
+    target_progress: TargetProgress | None = Field(
+        None, description="Progress metrics for focused session target (if applicable)"
+    )
 
 
 class QuizSessionPauseResponse(BaseModel):

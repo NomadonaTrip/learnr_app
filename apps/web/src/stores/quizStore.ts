@@ -5,6 +5,7 @@ import type {
   SelectedQuestion,
   AnswerResponse,
   SessionSummary,
+  TargetProgress,
 } from '../services/quizService'
 
 /**
@@ -19,18 +20,31 @@ export type QuizSessionStatus =
   | 'error'
 
 /**
+ * Focus context for focused sessions.
+ * Story 4.8: Focused Practice Mode.
+ */
+export interface FocusContext {
+  focusType: 'ka' | 'concept'
+  focusTargetId: string
+  focusTargetName?: string
+}
+
+/**
  * Session data for setting the store state.
  */
 export interface SessionData {
   sessionId: string
   sessionType: SessionType
   questionStrategy: QuestionStrategy
+  questionTarget: number
   status: string
   isResumed: boolean
   totalQuestions: number
   correctCount: number
   version: number
   startedAt: string
+  // Story 4.8: Focus context for focused sessions
+  focusContext?: FocusContext | null
 }
 
 interface QuizState {
@@ -50,6 +64,10 @@ interface QuizState {
   // Story 4.7: Progress tracking state
   currentQuestionNumber: number
   questionTarget: number
+
+  // Story 4.8: Focus context for focused sessions
+  focusContext: FocusContext | null
+  targetProgress: TargetProgress | null
 
   // Question state
   currentQuestion: SelectedQuestion | null
@@ -87,6 +105,10 @@ interface QuizState {
   setProgress: (currentQuestionNumber: number, questionTarget: number) => void
   setSessionSummary: (summary: SessionSummary | null) => void
 
+  // Story 4.8: Focus actions
+  setFocusContext: (context: FocusContext | null) => void
+  setTargetProgress: (progress: TargetProgress | null) => void
+
   // Feedback actions
   setFeedback: (result: AnswerResponse) => void
   setSubmitting: (isSubmitting: boolean) => void
@@ -115,6 +137,10 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
   currentQuestionNumber: 1,
   questionTarget: 10,
 
+  // Story 4.8: Focus context for focused sessions
+  focusContext: null,
+  targetProgress: null,
+
   // Question state
   currentQuestion: null,
   questionsRemaining: 0,
@@ -142,6 +168,7 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       sessionId: session.sessionId,
       sessionType: session.sessionType,
       questionStrategy: session.questionStrategy,
+      questionTarget: session.questionTarget,
       status: session.status === 'paused' ? 'paused' : 'active',
       isResumed: session.isResumed,
       totalQuestions: session.totalQuestions,
@@ -150,6 +177,10 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       startedAt: session.startedAt,
       endedAt: null,
       error: null,
+      // Story 4.8: Set focus context if provided
+      focusContext: session.focusContext || null,
+      // Reset target progress when starting new session
+      targetProgress: null,
     })
   },
 
@@ -214,6 +245,9 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       showFeedback: false,
       // Story 4.7: Reset session summary
       sessionSummary: null,
+      // Story 4.8: Reset focus context and target progress
+      focusContext: null,
+      targetProgress: null,
     })
   },
 
@@ -282,5 +316,15 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
   // Story 4.7: Action to set session summary
   setSessionSummary: (summary) => {
     set({ sessionSummary: summary })
+  },
+
+  // Story 4.8: Action to set focus context
+  setFocusContext: (context) => {
+    set({ focusContext: context })
+  },
+
+  // Story 4.8: Action to set target progress
+  setTargetProgress: (progress) => {
+    set({ targetProgress: progress })
   },
 }))

@@ -13,7 +13,12 @@ from src.exceptions import BeliefInitializationError
 from src.models.user import User
 from src.repositories.belief_repository import BeliefRepository
 from src.repositories.concept_repository import ConceptRepository
-from src.schemas.belief_state import BeliefInitializationStatus, InitializationResult
+from src.schemas.belief_state import (
+    BeliefInitializationStatus,
+    GapConcept,
+    InitializationResult,
+    KAGapsResponse,
+)
 from src.services.belief_initialization_service import BeliefInitializationService
 
 router = APIRouter(prefix="/beliefs", tags=["Beliefs"])
@@ -130,3 +135,50 @@ async def get_belief_summary(
         "user_id": str(current_user.id),
         **summary
     }
+
+
+@router.get(
+    "/knowledge-areas/{ka_id}/gaps",
+    response_model=KAGapsResponse,
+    summary="Get gap concepts for a knowledge area",
+    description=(
+        "Returns gap concepts filtered by knowledge area. "
+        "Gaps are concepts with mastery < 0.4, sorted by severity (worst first)."
+    ),
+    responses={
+        200: {"description": "Gap concepts retrieved successfully"},
+        401: {"description": "Authentication required"},
+    }
+)
+async def get_ka_gaps(
+    ka_id: str,
+    current_user: User = Depends(get_current_user),
+    belief_repo: BeliefRepository = Depends(get_belief_repository),
+) -> KAGapsResponse:
+    """
+    Get gap concepts for a specific knowledge area.
+
+    Returns concepts where the user's mastery is below the gap threshold (0.4),
+    sorted by gap severity (worst first). Used for focused practice mode
+    to identify concepts needing attention within a knowledge area.
+    """
+    gaps_data = await belief_repo.get_gap_concepts_by_knowledge_area(
+        user_id=current_user.id,
+        knowledge_area_id=ka_id,
+    )
+
+    gaps = [
+        GapConcept(
+            concept_id=g["concept_id"],
+            concept_name=g["concept_name"],
+            mastery=g["mastery"],
+            gap_severity=g["gap_severity"],
+        )
+        for g in gaps_data
+    ]
+
+    return KAGapsResponse(
+        knowledge_area_id=ka_id,
+        gap_count=len(gaps),
+        gaps=gaps,
+    )

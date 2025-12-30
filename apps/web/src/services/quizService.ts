@@ -2,8 +2,9 @@ import api from './api'
 
 /**
  * Quiz session type determines question selection strategy.
+ * Story 4.8: Added focused_ka and focused_concept types.
  */
-export type SessionType = 'diagnostic' | 'adaptive' | 'focused' | 'review'
+export type SessionType = 'diagnostic' | 'adaptive' | 'focused' | 'focused_ka' | 'focused_concept' | 'review'
 
 /**
  * Question selection strategy for the session.
@@ -25,11 +26,13 @@ export interface SessionConfig {
 
 /**
  * Response from starting a quiz session.
+ * Story 4.8: Added focus context fields for focused sessions.
  */
 export interface SessionStartResponse {
   session_id: string
   session_type: SessionType
   question_strategy: QuestionStrategy
+  question_target: number
   is_resumed: boolean
   status: string
   started_at: string
@@ -37,6 +40,27 @@ export interface SessionStartResponse {
   total_questions: number
   correct_count: number
   first_question: null // Placeholder for Story 4.2
+  // Story 4.8: Focus context for focused sessions
+  focus_target_type: 'ka' | 'concept' | null
+  focus_target_id: string | null
+}
+
+/**
+ * Request for starting a focused KA session.
+ * Story 4.8: Focused Practice Mode.
+ */
+export interface FocusedKASessionRequest {
+  knowledge_area_id: string
+  question_strategy?: QuestionStrategy
+}
+
+/**
+ * Request for starting a focused concept session.
+ * Story 4.8: Focused Practice Mode.
+ */
+export interface FocusedConceptSessionRequest {
+  concept_ids: string[]
+  question_strategy?: QuestionStrategy
 }
 
 /**
@@ -77,7 +101,20 @@ export interface SessionResumeResponse {
 }
 
 /**
+ * Target progress for focused sessions.
+ * Story 4.8: Focused Practice Mode.
+ */
+export interface TargetProgress {
+  focus_type: 'ka' | 'concept'
+  target_name: string
+  questions_in_focus_count: number
+  session_improvement: number
+  current_mastery: number
+}
+
+/**
  * Response from ending a session.
+ * Story 4.8: Added target_progress for focused sessions.
  */
 export interface SessionEndResponse {
   session_id: string
@@ -85,6 +122,8 @@ export interface SessionEndResponse {
   total_questions: number
   correct_count: number
   accuracy: number | null
+  // Story 4.8: Target progress for focused sessions
+  target_progress: TargetProgress | null
 }
 
 /**
@@ -197,6 +236,38 @@ export const quizService = {
     const response = await api.post<SessionStartResponse>(
       '/quiz/session/start',
       config || {}
+    )
+    return response.data
+  },
+
+  /**
+   * Start a focused knowledge area session.
+   * Story 4.8: Focused Practice Mode.
+   * @param request - Knowledge area ID and optional strategy
+   * @returns Session start response with focus context
+   * @throws AxiosError with status 401 if not authenticated
+   * @throws AxiosError with status 400 if no enrollment or invalid KA
+   */
+  async startFocusedKASession(request: FocusedKASessionRequest): Promise<SessionStartResponse> {
+    const response = await api.post<SessionStartResponse>(
+      '/quiz/session/start-focused-ka',
+      request
+    )
+    return response.data
+  },
+
+  /**
+   * Start a focused concept session.
+   * Story 4.8: Focused Practice Mode.
+   * @param request - Concept IDs and optional strategy
+   * @returns Session start response with focus context
+   * @throws AxiosError with status 401 if not authenticated
+   * @throws AxiosError with status 400 if no enrollment or invalid concepts
+   */
+  async startFocusedConceptSession(request: FocusedConceptSessionRequest): Promise<SessionStartResponse> {
+    const response = await api.post<SessionStartResponse>(
+      '/quiz/session/start-focused-concept',
+      request
     )
     return response.data
   },

@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     READING_PRIORITY_LOW_THRESHOLD: float = 0.8  # Competency threshold for low priority
     READING_PRIORITY_HIGH_THRESHOLD: float = 0.6  # Competency threshold for high priority
     READING_HARD_DIFFICULTY_THRESHOLD: float = 0.7  # IRT difficulty threshold for "hard" questions
+    READING_QUEUE_SYNC_MODE: bool = True  # Run reading queue tasks synchronously (no Celery required)
 
     class Config:
         env_file = ".env"

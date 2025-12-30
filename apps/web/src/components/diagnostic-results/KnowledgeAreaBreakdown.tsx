@@ -3,13 +3,15 @@ import type { KnowledgeAreaResult } from '../../types/diagnostic'
 
 interface KnowledgeAreaBreakdownProps {
   areas: KnowledgeAreaResult[]
+  onFocusClick?: (kaId: string, kaName: string) => void
 }
 
 /**
  * Displays per-knowledge area breakdown with mastery bars.
  * Shows concepts touched and estimated mastery for each KA.
+ * Includes "Focus" button for KAs below mastery threshold (Story 4.8).
  */
-export function KnowledgeAreaBreakdown({ areas }: KnowledgeAreaBreakdownProps) {
+export function KnowledgeAreaBreakdown({ areas, onFocusClick }: KnowledgeAreaBreakdownProps) {
   if (areas.length === 0) {
     return null
   }
@@ -37,13 +39,31 @@ export function KnowledgeAreaBreakdown({ areas }: KnowledgeAreaBreakdownProps) {
             return 'bg-red-500'
           }
 
+          // Show Focus button for KAs below mastery (< 80%)
+          const showFocusButton = onFocusClick && area.estimated_mastery < 0.8
+
           return (
             <div key={area.ka_id} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-medium text-gray-900">{area.ka}</h3>
-                <span className="text-sm text-gray-500">
-                  {area.touched} / {area.concepts} concepts
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-500">
+                    {area.touched} / {area.concepts} concepts
+                  </span>
+                  {showFocusButton && (
+                    <button
+                      onClick={() => onFocusClick(area.ka_id, area.ka)}
+                      className={clsx(
+                        'px-3 py-1 text-xs font-medium rounded-full',
+                        'bg-indigo-100 text-indigo-700 hover:bg-indigo-200',
+                        'transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
+                      )}
+                      aria-label={`Start focused practice for ${area.ka}`}
+                    >
+                      Focus
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Mastery bar */}

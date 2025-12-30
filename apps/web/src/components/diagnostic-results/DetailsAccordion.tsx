@@ -14,6 +14,10 @@ interface DetailsAccordionProps {
   uncertainCount: number
   confidenceLevel: ConfidenceLevel
   message: string
+  /** Story 4.8: Callback for Focus button on KA breakdown */
+  onFocusClick?: (kaId: string, kaName: string) => void
+  /** Story 4.8: Callback for Practice button on gap concepts */
+  onConceptPracticeClick?: (conceptIds: string[]) => void
 }
 
 /**
@@ -27,6 +31,8 @@ export function DetailsAccordion({
   uncertainCount,
   confidenceLevel,
   message,
+  onFocusClick,
+  onConceptPracticeClick,
 }: DetailsAccordionProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -108,10 +114,10 @@ export function DetailsAccordion({
       >
         <div className="pt-6 space-y-6">
           {/* Knowledge Area Breakdown */}
-          <KnowledgeAreaBreakdown areas={areas} />
+          <KnowledgeAreaBreakdown areas={areas} onFocusClick={onFocusClick} />
 
           {/* Top Gaps */}
-          <GapHighlights gaps={gaps} />
+          <GapHighlights gaps={gaps} onConceptPracticeClick={onConceptPracticeClick} />
 
           {/* Uncertainty Callout */}
           <UncertaintyCallout

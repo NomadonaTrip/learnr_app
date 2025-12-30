@@ -323,20 +323,44 @@ class QuizAnswerService:
             session_completed=session_completed,
         )
 
-        # 12. Story 5.5: Dispatch reading queue population task (async, non-blocking)
+        # 12. Story 5.5: Dispatch reading queue population task
         try:
-            from src.tasks.reading_queue_tasks import add_reading_to_queue
+            from src.config import settings
 
-            add_reading_to_queue.delay(
-                str(user_id),
-                str(session.enrollment_id),
-                str(question_id),
-                str(session_id),
-                is_correct,
-                question.difficulty,
-            )
+            if settings.READING_QUEUE_SYNC_MODE:
+                # Sync mode: Run directly without Celery (for development/testing)
+                from src.services.reading_queue_service import ReadingQueueService
+
+                # Get db session from repository (QuizAnswerService doesn't have direct db access)
+                reading_queue_service = ReadingQueueService(self.response_repo.db)
+                chunks_added = await reading_queue_service.populate_reading_queue(
+                    user_id=user_id,
+                    enrollment_id=session.enrollment_id,
+                    question_id=question_id,
+                    session_id=session_id,
+                    is_correct=is_correct,
+                    difficulty=question.difficulty,
+                )
+                logger.info(
+                    "reading_queue_sync_completed",
+                    session_id=str(session_id),
+                    question_id=str(question_id),
+                    chunks_added=chunks_added,
+                )
+            else:
+                # Async mode: Dispatch to Celery worker
+                from src.tasks.reading_queue_tasks import add_reading_to_queue
+
+                add_reading_to_queue.delay(
+                    str(user_id),
+                    str(session.enrollment_id),
+                    str(question_id),
+                    str(session_id),
+                    is_correct,
+                    question.difficulty,
+                )
         except Exception as e:
-            # Log but don't fail the answer submission if task dispatch fails
+            # Log but don't fail the answer submission if reading queue fails
             logger.warning(
                 "reading_queue_dispatch_failed",
                 session_id=str(session_id),

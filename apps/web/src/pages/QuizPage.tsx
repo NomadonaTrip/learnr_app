@@ -1,7 +1,10 @@
+import { useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuizSession } from '../hooks/useQuizSession'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import type { SelectedQuestion, AnswerResponse } from '../services/quizService'
 import { InlineExplanation } from '../components/quiz/InlineExplanation'
+import { FocusContextBanner } from '../components/quiz/FocusContextBanner'
 import { CheckIcon, XIcon } from '../components/shared/icons'
 import { Navigation } from '../components/layout/Navigation'
 // Note: FeedbackOverlay retained in codebase for session summary overlay (future use)
@@ -15,6 +18,8 @@ function formatSessionType(type: string | null): string {
     diagnostic: 'Diagnostic',
     adaptive: 'Adaptive',
     focused: 'Focused',
+    focused_ka: 'Focused KA',
+    focused_concept: 'Focused Concept',
     review: 'Review',
   }
   return typeMap[type] || type
@@ -383,6 +388,13 @@ function QuestionCard({
   )
 }
 
+// Story 4.8: Focus context type for display
+interface FocusContextDisplay {
+  focusType: 'ka' | 'concept'
+  focusTargetId: string
+  focusTargetName?: string
+}
+
 /**
  * Active session state component.
  */
@@ -406,6 +418,7 @@ function ActiveState({
   feedbackResult,
   showFeedback,
   onNextQuestion,
+  focusContext,
 }: {
   sessionType: string | null
   questionStrategy: string | null
@@ -426,6 +439,7 @@ function ActiveState({
   feedbackResult: AnswerResponse | null
   showFeedback: boolean
   onNextQuestion: () => void
+  focusContext?: FocusContextDisplay | null
 }) {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -434,6 +448,14 @@ function ActiveState({
 
       <div className="py-8 px-4">
         <div className="max-w-2xl mx-auto space-y-6">
+          {/* Story 4.8: Focus Context Banner */}
+          {focusContext && (
+            <FocusContextBanner
+              focusType={focusContext.focusType}
+              targetName={focusContext.focusTargetName || focusContext.focusTargetId}
+            />
+          )}
+
           {/* Session Info */}
           <SessionInfoCard
           sessionType={sessionType}
@@ -717,8 +739,21 @@ function EndedState({
  * - Displays session info and question placeholder
  * - Supports pause/resume/end session actions
  * - Handles loading, error, and completion states
+ * - Story 4.8: Supports focused sessions via URL query parameters
  */
 export function QuizPage() {
+  const [searchParams] = useSearchParams()
+  const focusInitializedRef = useRef(false)
+
+  // Parse focus parameters from URL
+  const focusType = searchParams.get('focus') // 'ka' or 'concept'
+  const focusTarget = searchParams.get('target') // KA ID for focused_ka
+  const focusTargets = searchParams.get('targets') // Comma-separated concept IDs for focused_concept
+  const focusName = searchParams.get('name') // Optional target name for display
+
+  // Determine if this is a focused session from URL params
+  const hasFocusParams = Boolean((focusType === 'ka' && focusTarget) || (focusType === 'concept' && focusTargets))
+
   const {
     sessionType,
     questionStrategy,
@@ -739,6 +774,10 @@ export function QuizPage() {
     isResuming,
     isEnding,
     isFetchingQuestion,
+    // Story 4.8: Focus context and actions
+    focusContext,
+    startFocusedKA,
+    startFocusedConcept,
     pause,
     resume,
     end,
@@ -748,7 +787,43 @@ export function QuizPage() {
     selectAnswer,
     submitAnswer,
     proceedToNextQuestion,
-  } = useQuizSession()
+  } = useQuizSession({ skipAutoStart: hasFocusParams })
+
+  // Story 4.8: Start focused session based on URL parameters
+  useEffect(() => {
+    // DEBUG: Log URL parameters on mount
+    console.log('[DEBUG] QuizPage focus params', {
+      focusType,
+      focusTarget,
+      focusTargets,
+      focusName,
+      status,
+      focusInitialized: focusInitializedRef.current,
+      timestamp: new Date().toISOString(),
+    })
+
+    if (focusInitializedRef.current) {
+      console.log('[DEBUG] QuizPage: Already initialized, skipping')
+      return
+    }
+    if (status !== 'idle') {
+      console.log('[DEBUG] QuizPage: Status not idle, skipping', { status })
+      return
+    }
+
+    if (focusType === 'ka' && focusTarget) {
+      console.log('[DEBUG] QuizPage: Starting focused KA session', { focusTarget, focusName })
+      focusInitializedRef.current = true
+      startFocusedKA(focusTarget, focusName || undefined)
+    } else if (focusType === 'concept' && focusTargets) {
+      const conceptIds = focusTargets.split(',').map(id => decodeURIComponent(id))
+      console.log('[DEBUG] QuizPage: Starting focused concept session', { conceptIds })
+      focusInitializedRef.current = true
+      startFocusedConcept(conceptIds)
+    } else {
+      console.log('[DEBUG] QuizPage: No focus params or already handled')
+    }
+  }, [focusType, focusTarget, focusTargets, focusName, status, startFocusedKA, startFocusedConcept])
 
   // Loading state
   if (isLoading || status === 'loading') {
@@ -818,6 +893,7 @@ export function QuizPage() {
       feedbackResult={feedbackResult}
       showFeedback={showFeedback}
       onNextQuestion={proceedToNextQuestion}
+      focusContext={focusContext}
     />
   )
 }

@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { quizService, SessionConfig, NextQuestionRequest, AnswerSubmissionRequest } from '../services/quizService'
-import { useQuizStore, QuizSessionStatus } from '../stores/quizStore'
+import {
+  quizService,
+  SessionConfig,
+  NextQuestionRequest,
+  AnswerSubmissionRequest,
+  FocusedKASessionRequest,
+  FocusedConceptSessionRequest,
+} from '../services/quizService'
+import { useQuizStore, QuizSessionStatus, FocusContext } from '../stores/quizStore'
 import { AxiosError } from 'axios'
 
 /**
@@ -45,13 +52,25 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
+ * Options for useQuizSession hook.
+ */
+interface UseQuizSessionOptions {
+  config?: SessionConfig
+  /** Skip auto-starting session on mount. Use for focused sessions started via URL params. */
+  skipAutoStart?: boolean
+}
+
+/**
  * Hook for managing quiz session lifecycle.
  * Handles starting, pausing, resuming, and ending quiz sessions.
  *
- * @param config - Optional session configuration (session_type, question_strategy, etc.)
+ * @param options - Optional session configuration and behavior options
  * @returns Session state and control functions
  */
-export function useQuizSession(config?: SessionConfig) {
+export function useQuizSession(options?: UseQuizSessionOptions | SessionConfig) {
+  // Handle both old signature (config only) and new signature (options object)
+  const config = options && 'session_type' in options ? options : (options as UseQuizSessionOptions)?.config
+  const skipAutoStart = options && 'skipAutoStart' in options ? (options as UseQuizSessionOptions).skipAutoStart : false
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const isInitializedRef = useRef(false)
@@ -82,6 +101,9 @@ export function useQuizSession(config?: SessionConfig) {
     currentQuestionNumber,
     questionTarget,
     sessionSummary,
+    // Story 4.8: Focus context
+    focusContext,
+    targetProgress,
     setSession,
     setStatus,
     setPaused,
@@ -96,7 +118,20 @@ export function useQuizSession(config?: SessionConfig) {
     setSubmitting,
     clearFeedback,
     setSessionSummary,
+    setTargetProgress,
   } = useQuizStore()
+
+  // Helper to build focus context from API response
+  const buildFocusContext = (
+    focusTargetType: 'ka' | 'concept' | null,
+    focusTargetId: string | null
+  ): FocusContext | null => {
+    if (!focusTargetType || !focusTargetId) return null
+    return {
+      focusType: focusTargetType,
+      focusTargetId: focusTargetId,
+    }
+  }
 
   // Start session mutation
   const startMutation = useMutation({
@@ -111,15 +146,96 @@ export function useQuizSession(config?: SessionConfig) {
         sessionId: data.session_id,
         sessionType: data.session_type,
         questionStrategy: data.question_strategy,
+        questionTarget: data.question_target,
         status: data.status,
         isResumed: data.is_resumed,
         totalQuestions: data.total_questions,
         correctCount: data.correct_count,
         version: data.version,
         startedAt: data.started_at,
+        focusContext: buildFocusContext(data.focus_target_type, data.focus_target_id),
       })
     },
     onError: (error) => {
+      setError(getErrorMessage(error))
+      setStatus('error')
+    },
+  })
+
+  // Story 4.8: Start focused KA session mutation
+  const startFocusedKAMutation = useMutation({
+    mutationFn: (request: FocusedKASessionRequest) =>
+      quizService.startFocusedKASession(request),
+    onMutate: () => {
+      setStatus('loading')
+      setError(null)
+    },
+    onSuccess: (data) => {
+      setSession({
+        sessionId: data.session_id,
+        sessionType: data.session_type,
+        questionStrategy: data.question_strategy,
+        questionTarget: data.question_target,
+        status: data.status,
+        isResumed: data.is_resumed,
+        totalQuestions: data.total_questions,
+        correctCount: data.correct_count,
+        version: data.version,
+        startedAt: data.started_at,
+        focusContext: buildFocusContext(data.focus_target_type, data.focus_target_id),
+      })
+    },
+    onError: (error) => {
+      setError(getErrorMessage(error))
+      setStatus('error')
+    },
+  })
+
+  // Story 4.8: Start focused concept session mutation
+  const startFocusedConceptMutation = useMutation({
+    mutationFn: (request: FocusedConceptSessionRequest) => {
+      console.log('[DEBUG] useQuizSession: Calling startFocusedConceptSession API', {
+        request,
+        timestamp: new Date().toISOString(),
+      })
+      return quizService.startFocusedConceptSession(request)
+    },
+    onMutate: (variables) => {
+      console.log('[DEBUG] useQuizSession: Focused concept mutation starting', {
+        variables,
+        timestamp: new Date().toISOString(),
+      })
+      setStatus('loading')
+      setError(null)
+    },
+    onSuccess: (data) => {
+      console.log('[DEBUG] useQuizSession: Focused concept session created', {
+        sessionId: data.session_id,
+        sessionType: data.session_type,
+        focusTargetType: data.focus_target_type,
+        focusTargetId: data.focus_target_id,
+        timestamp: new Date().toISOString(),
+      })
+      setSession({
+        sessionId: data.session_id,
+        sessionType: data.session_type,
+        questionStrategy: data.question_strategy,
+        questionTarget: data.question_target,
+        status: data.status,
+        isResumed: data.is_resumed,
+        totalQuestions: data.total_questions,
+        correctCount: data.correct_count,
+        version: data.version,
+        startedAt: data.started_at,
+        focusContext: buildFocusContext(data.focus_target_type, data.focus_target_id),
+      })
+    },
+    onError: (error) => {
+      console.error('[DEBUG] useQuizSession: Focused concept session FAILED', {
+        error,
+        message: getErrorMessage(error),
+        timestamp: new Date().toISOString(),
+      })
       setError(getErrorMessage(error))
       setStatus('error')
     },
@@ -160,6 +276,10 @@ export function useQuizSession(config?: SessionConfig) {
         totalQuestions: data.total_questions,
         correctCount: data.correct_count,
       })
+      // Story 4.8: Capture target progress for focused sessions
+      if (data.target_progress) {
+        setTargetProgress(data.target_progress)
+      }
       // Invalidate diagnostic results cache so updated belief states are reflected
       queryClient.invalidateQueries({ queryKey: ['diagnostic', 'results'] })
     },
@@ -266,13 +386,13 @@ export function useQuizSession(config?: SessionConfig) {
     },
   })
 
-  // Start session on mount
+  // Start session on mount (unless skipAutoStart is set for focused sessions)
   useEffect(() => {
-    if (!isInitializedRef.current && status === 'idle') {
+    if (!skipAutoStart && !isInitializedRef.current && status === 'idle') {
       isInitializedRef.current = true
       startMutation.mutate(config)
     }
-  }, [config, status, startMutation])
+  }, [config, status, startMutation, skipAutoStart])
 
   // Fetch first question when session becomes active
   useEffect(() => {
@@ -315,6 +435,24 @@ export function useQuizSession(config?: SessionConfig) {
     clearSession()
     startMutation.mutate(config)
   }, [config, clearSession, startMutation])
+
+  // Story 4.8: Start a focused KA session
+  const startFocusedKA = useCallback((knowledgeAreaId: string, targetName?: string) => {
+    isInitializedRef.current = true // Mark as initialized to prevent auto-start
+    clearSession()
+    startFocusedKAMutation.mutate({ knowledge_area_id: knowledgeAreaId })
+  }, [clearSession, startFocusedKAMutation])
+
+  // Story 4.8: Start a focused concept session
+  const startFocusedConcept = useCallback((conceptIds: string[]) => {
+    console.log('[DEBUG] useQuizSession: startFocusedConcept called', {
+      conceptIds,
+      timestamp: new Date().toISOString(),
+    })
+    isInitializedRef.current = true // Mark as initialized to prevent auto-start
+    clearSession()
+    startFocusedConceptMutation.mutate({ concept_ids: conceptIds })
+  }, [clearSession, startFocusedConceptMutation])
 
   // Return to dashboard
   const returnToDashboard = useCallback(() => {
@@ -368,6 +506,10 @@ export function useQuizSession(config?: SessionConfig) {
   const isFetchingQuestion = fetchQuestionMutation.isPending || isLoadingQuestion
   const isActionPending = isPausing || isResuming || isEnding
 
+  // Story 4.8: Computed loading states for focused sessions
+  const isStartingFocusedKA = startFocusedKAMutation.isPending
+  const isStartingFocusedConcept = startFocusedConceptMutation.isPending
+
   return {
     // Session state
     sessionId,
@@ -388,6 +530,10 @@ export function useQuizSession(config?: SessionConfig) {
     questionTarget,
     sessionSummary,
 
+    // Story 4.8: Focus context and target progress
+    focusContext,
+    targetProgress,
+
     // Question state
     currentQuestion,
     questionsRemaining,
@@ -405,6 +551,9 @@ export function useQuizSession(config?: SessionConfig) {
     isEnding,
     isFetchingQuestion,
     isActionPending,
+    // Story 4.8: Focused session loading states
+    isStartingFocusedKA,
+    isStartingFocusedConcept,
 
     // Actions
     pause,
@@ -417,5 +566,8 @@ export function useQuizSession(config?: SessionConfig) {
     selectAnswer,
     submitAnswer,
     proceedToNextQuestion,
+    // Story 4.8: Focused session actions
+    startFocusedKA,
+    startFocusedConcept,
   }
 }

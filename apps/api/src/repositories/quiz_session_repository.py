@@ -28,6 +28,7 @@ class QuizSessionRepository:
         session_type: str = "adaptive",
         question_strategy: str = "max_info_gain",
         knowledge_area_filter: str | None = None,
+        target_concept_ids: list[str] | None = None,
         question_target: int = 10,
     ) -> QuizSession:
         """
@@ -36,9 +37,10 @@ class QuizSessionRepository:
         Args:
             user_id: User UUID
             enrollment_id: Enrollment UUID
-            session_type: Type of session (diagnostic, adaptive, focused, review)
+            session_type: Type of session (diagnostic, adaptive, focused, focused_ka, focused_concept, review)
             question_strategy: Question selection strategy
-            knowledge_area_filter: Optional knowledge area filter for focused sessions
+            knowledge_area_filter: Optional knowledge area filter for focused/focused_ka sessions
+            target_concept_ids: Optional list of concept UUID strings for focused_concept sessions
             question_target: Target number of questions (default 10 for habit-forming consistency)
 
         Returns:
@@ -50,6 +52,7 @@ class QuizSessionRepository:
             session_type=session_type,
             question_strategy=question_strategy,
             knowledge_area_filter=knowledge_area_filter,
+            target_concept_ids=target_concept_ids or [],
             question_target=question_target,
         )
         self.session.add(quiz_session)
