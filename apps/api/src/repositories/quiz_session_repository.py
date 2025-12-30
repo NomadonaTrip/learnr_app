@@ -268,6 +268,43 @@ class QuizSessionRepository:
 
         return session
 
+    async def force_end_active_sessions(
+        self,
+        user_id: UUID,
+    ) -> int:
+        """
+        Force-end all active sessions for a user.
+
+        Used to recover from orphaned active sessions that weren't properly ended.
+        This is a fallback mechanism to handle race conditions or incomplete
+        session terminations.
+
+        Args:
+            user_id: User UUID
+
+        Returns:
+            Number of sessions ended
+        """
+        result = await self.session.execute(
+            update(QuizSession)
+            .where(QuizSession.user_id == user_id)
+            .where(QuizSession.ended_at.is_(None))
+            .values(ended_at=func.now())
+            .returning(QuizSession.id)
+        )
+        ended_ids = result.scalars().all()
+        await self.session.flush()
+
+        if ended_ids:
+            logger.warning(
+                "quiz_sessions_force_ended",
+                user_id=str(user_id),
+                session_ids=[str(sid) for sid in ended_ids],
+                count=len(ended_ids),
+            )
+
+        return len(ended_ids)
+
     async def get_stale_sessions(
         self,
         timeout_hours: int = 2,

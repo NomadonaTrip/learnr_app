@@ -70,6 +70,7 @@ class ReadingQueueRepository:
             triggered_by_question_id=queue_item.triggered_by_question_id,
             triggered_by_concept_id=queue_item.triggered_by_concept_id,
             priority=queue_item.priority.value if isinstance(queue_item.priority, ReadingPriority) else queue_item.priority,
+            status="unread",  # Explicitly set status since raw insert doesn't use Python defaults
         )
 
         # On conflict (enrollment_id, chunk_id), update priority only if new is higher

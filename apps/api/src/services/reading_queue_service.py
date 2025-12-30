@@ -170,6 +170,12 @@ class ReadingQueueService:
                     error=str(e),
                 )
 
+        # Commit the reading queue items to ensure they're persisted
+        # This is necessary because the reading queue population happens
+        # after the main quiz answer logic, and we want to ensure items
+        # are saved even if there's an issue with the outer transaction
+        await self.session.commit()
+
         logger.info(
             "reading_queue_populated",
             user_id=str(user_id),

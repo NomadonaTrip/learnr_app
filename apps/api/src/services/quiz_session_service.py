@@ -122,15 +122,42 @@ class QuizSessionService:
         if session_data.target_concept_ids:
             target_concept_ids = [str(cid) for cid in session_data.target_concept_ids]
 
-        # Create new session
-        session = await self.session_repo.create_session(
-            user_id=user_id,
-            enrollment_id=enrollment_id,
-            session_type=session_data.session_type.value,
-            question_strategy=session_data.question_strategy.value,
-            knowledge_area_filter=session_data.knowledge_area_filter,
-            target_concept_ids=target_concept_ids,
-        )
+        # Create new session with conflict handling
+        # This handles race conditions and orphaned active sessions
+        try:
+            session = await self.session_repo.create_session(
+                user_id=user_id,
+                enrollment_id=enrollment_id,
+                session_type=session_data.session_type.value,
+                question_strategy=session_data.question_strategy.value,
+                knowledge_area_filter=session_data.knowledge_area_filter,
+                target_concept_ids=target_concept_ids,
+            )
+        except Exception as e:
+            # Check if this is a unique constraint violation on active sessions
+            if "idx_quiz_sessions_user_active_unique" in str(e):
+                logger.warning(
+                    "quiz_session_conflict_detected",
+                    user_id=str(user_id),
+                    error=str(e),
+                )
+                # Force-end any orphaned active sessions and retry
+                await self.session_repo.force_end_active_sessions(user_id)
+                session = await self.session_repo.create_session(
+                    user_id=user_id,
+                    enrollment_id=enrollment_id,
+                    session_type=session_data.session_type.value,
+                    question_strategy=session_data.question_strategy.value,
+                    knowledge_area_filter=session_data.knowledge_area_filter,
+                    target_concept_ids=target_concept_ids,
+                )
+                logger.info(
+                    "quiz_session_created_after_conflict_resolution",
+                    user_id=str(user_id),
+                    session_id=str(session.id),
+                )
+            else:
+                raise
 
         # Log session creation with focus details if applicable
         focus_type = None
