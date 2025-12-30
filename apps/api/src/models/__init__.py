@@ -16,6 +16,8 @@ from .quiz_response import QuizResponse
 from .quiz_session import QuizSession
 from .reading_chunk import ReadingChunk
 from .reading_queue import ReadingQueue
+from .review_response import ReviewResponse
+from .review_session import ReviewSession
 from .user import User
 
 __all__ = [
@@ -34,4 +36,6 @@ __all__ = [
     "ReadingQueue",
     "BeliefState",
     "DiagnosticSession",
+    "ReviewSession",
+    "ReviewResponse",
 ]

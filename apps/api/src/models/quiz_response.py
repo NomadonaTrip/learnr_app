@@ -28,6 +28,7 @@ from ..db.session import Base
 if TYPE_CHECKING:
     from .question import Question
     from .quiz_session import QuizSession
+    from .review_response import ReviewResponse
     from .user import User
 
 
@@ -92,6 +93,11 @@ class QuizResponse(Base):
     user: Mapped["User"] = relationship("User", back_populates="quiz_responses")
     session: Mapped["QuizSession"] = relationship("QuizSession", back_populates="responses")
     question: Mapped["Question"] = relationship("Question", back_populates="quiz_responses")
+    review_response: Mapped["ReviewResponse"] = relationship(
+        "ReviewResponse",
+        back_populates="original_response",
+        uselist=False
+    )
 
     # Table constraints and indexes
     __table_args__ = (

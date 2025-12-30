@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from .course import Course
     from .question_concept import QuestionConcept
     from .quiz_response import QuizResponse
+    from .review_response import ReviewResponse
 
 
 class Question(Base):
@@ -109,6 +110,11 @@ class Question(Base):
     # Responses to this question
     quiz_responses: Mapped[list["QuizResponse"]] = relationship(
         "QuizResponse",
+        back_populates="question",
+        cascade="all, delete-orphan"
+    )
+    review_responses: Mapped[list["ReviewResponse"]] = relationship(
+        "ReviewResponse",
         back_populates="question",
         cascade="all, delete-orphan"
     )

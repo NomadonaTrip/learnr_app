@@ -12,6 +12,7 @@ from . import (
     questions,
     quiz,
     reading,
+    review,
     users,
 )
 
@@ -27,5 +28,6 @@ __all__ = [
     "questions",
     "quiz",
     "reading",
+    "review",
     "users",
 ]

@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuizSession } from '../hooks/useQuizSession'
+import { useReview } from '../hooks/useReview'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import type { SelectedQuestion, AnswerResponse } from '../services/quizService'
 import { InlineExplanation } from '../components/quiz/InlineExplanation'
 import { FocusContextBanner } from '../components/quiz/FocusContextBanner'
 import { CheckIcon, XIcon } from '../components/shared/icons'
 import { Navigation } from '../components/layout/Navigation'
+import { ReviewPrompt, ReviewQuestion, ReviewFeedback, ReviewSummary } from '../components/review'
 // Note: FeedbackOverlay retained in codebase for session summary overlay (future use)
 
 /**
@@ -635,21 +637,156 @@ function PausedState({
 }
 
 /**
- * Ended session state component.
+ * Ended session state component with review integration.
+ * Story 4.9: Post-Session Review Mode
  */
 function EndedState({
+  sessionId,
   totalQuestions,
   correctCount,
   accuracy,
   onStartNew,
   onReturn,
 }: {
+  sessionId: string | null
   totalQuestions: number
   correctCount: number
   accuracy: number | null
   onStartNew: () => void
   onReturn: () => void
 }) {
+  const navigate = useNavigate()
+  const incorrectCount = totalQuestions - correctCount
+
+  // Story 4.9: Review hook integration
+  const {
+    status: reviewStatus,
+    totalToReview,
+    currentQuestion: reviewQuestion,
+    selectedAnswer: reviewSelectedAnswer,
+    feedbackResult: reviewFeedback,
+    showFeedback: reviewShowFeedback,
+    isSubmitting: reviewIsSubmitting,
+    summary: reviewSummary,
+    isStartingReview,
+    isFetchingQuestion: reviewIsFetchingQuestion,
+    isSkipping,
+    checkAvailability,
+    startReview,
+    skipReview,
+    selectAnswer: reviewSelectAnswer,
+    submitAnswer: reviewSubmitAnswer,
+    proceedToNextQuestion: reviewProceedToNext,
+  } = useReview({ originalSessionId: sessionId || undefined })
+
+  // Check for review availability when component mounts (if there are incorrect answers)
+  useEffect(() => {
+    if (sessionId && incorrectCount > 0 && reviewStatus === 'idle') {
+      checkAvailability(sessionId)
+    }
+  }, [sessionId, incorrectCount, reviewStatus, checkAvailability])
+
+  // Show review prompt state
+  if (reviewStatus === 'prompt' && totalToReview > 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <ReviewPrompt
+          incorrectCount={totalToReview}
+          onStartReview={startReview}
+          onSkipReview={skipReview}
+          isStarting={isStartingReview}
+          isSkipping={isSkipping}
+        />
+      </div>
+    )
+  }
+
+  // Show active review state
+  if (reviewStatus === 'active' || reviewStatus === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* Review header */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-semibold text-gray-900">Review Session</h1>
+            <button
+              onClick={skipReview}
+              disabled={isSkipping}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Exit Review
+            </button>
+          </div>
+
+          {/* Question loading */}
+          {reviewIsFetchingQuestion ? (
+            <div
+              className="bg-white rounded-[14px] shadow-sm border border-gray-200 p-8"
+              role="status"
+              aria-label="Loading question"
+            >
+              <div className="animate-pulse space-y-4">
+                <div className="h-6 bg-gray-200 rounded w-3/4" />
+                <div className="h-4 bg-gray-200 rounded w-1/2" />
+                <div className="space-y-3 mt-6">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-12 bg-gray-200 rounded" />
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : reviewQuestion ? (
+            <>
+              <ReviewQuestion
+                question={reviewQuestion}
+                selectedAnswer={reviewSelectedAnswer}
+                onSelectAnswer={reviewSelectAnswer}
+                showFeedback={reviewShowFeedback}
+                feedbackResult={reviewFeedback}
+              />
+
+              {/* Submit button (shown when answer selected, before feedback) */}
+              {reviewSelectedAnswer && !reviewShowFeedback && (
+                <div className="flex justify-center">
+                  <button
+                    onClick={reviewSubmitAnswer}
+                    disabled={reviewIsSubmitting}
+                    className="px-8 py-3 bg-primary-600 text-white rounded-[14px] font-medium hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {reviewIsSubmitting ? 'Submitting...' : 'Submit Answer'}
+                  </button>
+                </div>
+              )}
+
+              {/* Feedback after submission */}
+              {reviewShowFeedback && reviewFeedback && (
+                <ReviewFeedback
+                  feedbackResult={reviewFeedback}
+                  onNextQuestion={reviewProceedToNext}
+                  isLastQuestion={reviewQuestion.review_number === reviewQuestion.total_to_review}
+                />
+              )}
+            </>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
+  // Show review summary state
+  if (reviewStatus === 'completed' && reviewSummary) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <ReviewSummary
+          summary={reviewSummary}
+          onReturnToDashboard={() => navigate('/diagnostic/results')}
+          onStartNewQuiz={onStartNew}
+        />
+      </div>
+    )
+  }
+
+  // Default: Show standard ended state (no incorrect answers or review skipped)
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
@@ -701,11 +838,6 @@ function EndedState({
             </div>
           </div>
 
-          {/* Placeholder for detailed results */}
-          <p className="text-sm text-gray-400 text-center mb-6">
-            Detailed results and review will be available in a future update.
-          </p>
-
           {/* Action buttons */}
           <div
             className="flex flex-col sm:flex-row gap-3 justify-center"
@@ -755,6 +887,7 @@ export function QuizPage() {
   const hasFocusParams = Boolean((focusType === 'ka' && focusTarget) || (focusType === 'concept' && focusTargets))
 
   const {
+    sessionId,
     sessionType,
     questionStrategy,
     status,
@@ -845,6 +978,7 @@ export function QuizPage() {
   if (status === 'ended') {
     return (
       <EndedState
+        sessionId={sessionId}
         totalQuestions={totalQuestions}
         correctCount={correctCount}
         accuracy={accuracy}

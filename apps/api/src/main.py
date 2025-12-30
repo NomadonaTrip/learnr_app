@@ -52,6 +52,7 @@ from src.routes import (
     questions,
     quiz,
     reading,
+    review,
     users,
 )
 from src.utils.rate_limiter import limiter
@@ -242,6 +243,7 @@ app.include_router(beliefs.router, prefix="/v1")
 app.include_router(coverage.router, prefix="/v1")
 app.include_router(diagnostic.router, prefix="/v1")
 app.include_router(quiz.router, prefix="/v1")
+app.include_router(review.router, prefix="/v1")
 app.include_router(prerequisites.router, prefix="/v1")
 
 

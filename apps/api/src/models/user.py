@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from .quiz_response import QuizResponse
     from .quiz_session import QuizSession
     from .reading_queue import ReadingQueue
+    from .review_response import ReviewResponse
+    from .review_session import ReviewSession
 
 
 class User(Base):
@@ -102,6 +104,16 @@ class User(Base):
     )
     reading_queue_items: Mapped[list["ReadingQueue"]] = relationship(
         "ReadingQueue",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    review_sessions: Mapped[list["ReviewSession"]] = relationship(
+        "ReviewSession",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    review_responses: Mapped[list["ReviewResponse"]] = relationship(
+        "ReviewResponse",
         back_populates="user",
         cascade="all, delete-orphan"
     )
