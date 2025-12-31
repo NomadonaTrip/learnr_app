@@ -119,7 +119,7 @@
 **FR6.5:** Users can pause/exit quiz session anytime (progress saved)
 **FR6.6:** Users can resume paused sessions from where they left off
 **FR6.7:** System tracks session metadata (start time, duration, questions answered)
-**FR6.8:** Quiz sessions are fixed-length (10-15 questions, randomly determined at session start); sessions auto-complete when target reached; users can end early if desired
+**FR6.8:** Quiz sessions are fixed-length (10 questions by default, configurable via `question_target`); sessions auto-complete when target reached; users can end early if desired
 
 ### FR7: Question Presentation & Answer Submission
 

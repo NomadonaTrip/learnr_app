@@ -545,7 +545,7 @@ class TestSelectNextQuestion:
         mock_result.all.return_value = []
         mock_db.execute.return_value = mock_result
 
-        question, info_gain = await question_selector.select_next_question(
+        question, info_gain, _ = await question_selector.select_next_question(
             user_id=user_id,
             session_id=session_id,
             beliefs=beliefs,
@@ -598,7 +598,7 @@ class TestSelectNextQuestion:
 
         # Should still return a question even when info gain is below threshold
         # The fallback to uncertainty strategy handles this
-        question, gain = await question_selector.select_next_question(
+        question, gain, _ = await question_selector.select_next_question(
             user_id=user_id,
             session_id=session_id,
             beliefs=beliefs,
@@ -627,7 +627,7 @@ class TestSelectNextQuestion:
         mock_result.all.return_value = []
         mock_db.execute.return_value = mock_result
 
-        question, _ = await question_selector.select_next_question(
+        question, _, _ = await question_selector.select_next_question(
             user_id=user_id,
             session_id=session_id,
             beliefs=beliefs,
@@ -637,3 +637,202 @@ class TestSelectNextQuestion:
         )
 
         assert question.knowledge_area_id == "elicitation"
+
+    @pytest.mark.asyncio
+    async def test_filters_by_target_concepts(self, question_selector, mock_db):
+        """Should filter questions to only those covering target concepts."""
+        user_id = uuid4()
+        session_id = uuid4()
+        target_cid = uuid4()
+        other_cid = uuid4()
+
+        q_target = create_mock_question(concept_ids=[target_cid])
+        q_other = create_mock_question(concept_ids=[other_cid])
+        questions = [q_target, q_other]
+
+        beliefs = {
+            target_cid: create_mock_belief(target_cid),
+            other_cid: create_mock_belief(other_cid),
+        }
+
+        # Mock empty filter results (for recency/session filtering)
+        mock_result = MagicMock()
+        mock_result.all.return_value = []
+        mock_db.execute.return_value = mock_result
+
+        question, _, metadata = await question_selector.select_next_question(
+            user_id=user_id,
+            session_id=session_id,
+            beliefs=beliefs,
+            available_questions=questions,
+            strategy="max_info_gain",
+            target_concept_ids=[target_cid],
+        )
+
+        assert question is not None
+        # Check that the selected question covers the target concept
+        question_concept_ids = [qc.concept_id for qc in question.question_concepts]
+        assert target_cid in question_concept_ids
+        # Should have only 1 candidate after filtering (only q_target matches)
+        assert metadata["filtered_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_filters_by_multiple_target_concepts(self, question_selector, mock_db):
+        """Should filter to questions covering any of the target concepts."""
+        user_id = uuid4()
+        session_id = uuid4()
+        target_cid1 = uuid4()
+        target_cid2 = uuid4()
+        other_cid = uuid4()
+
+        q_target1 = create_mock_question(concept_ids=[target_cid1])
+        q_target2 = create_mock_question(concept_ids=[target_cid2])
+        q_other = create_mock_question(concept_ids=[other_cid])
+        questions = [q_other, q_target1, q_target2]  # Other first to test filtering
+
+        beliefs = {
+            target_cid1: create_mock_belief(target_cid1),
+            target_cid2: create_mock_belief(target_cid2),
+            other_cid: create_mock_belief(other_cid),
+        }
+
+        # Mock empty filter results
+        mock_result = MagicMock()
+        mock_result.all.return_value = []
+        mock_db.execute.return_value = mock_result
+
+        question, _, metadata = await question_selector.select_next_question(
+            user_id=user_id,
+            session_id=session_id,
+            beliefs=beliefs,
+            available_questions=questions,
+            strategy="max_info_gain",
+            target_concept_ids=[target_cid1, target_cid2],
+        )
+
+        assert question is not None
+        # Question should cover at least one target concept
+        question_concept_ids = [qc.concept_id for qc in question.question_concepts]
+        assert any(cid in question_concept_ids for cid in [target_cid1, target_cid2])
+        assert other_cid not in question_concept_ids
+        # Should have 2 candidates after filtering (q_target1 and q_target2)
+        assert metadata["filtered_count"] == 2
+
+    @pytest.mark.asyncio
+    async def test_combines_ka_filter_and_concept_filter(self, question_selector, mock_db):
+        """Should apply both KA filter and concept filter together."""
+        user_id = uuid4()
+        session_id = uuid4()
+        target_cid = uuid4()
+        other_cid = uuid4()
+
+        # 4 questions: combinations of KA and concept
+        q_ka_target = create_mock_question(
+            concept_ids=[target_cid], knowledge_area_id="elicitation"
+        )
+        q_ka_other = create_mock_question(
+            concept_ids=[other_cid], knowledge_area_id="elicitation"
+        )
+        q_other_ka_target = create_mock_question(
+            concept_ids=[target_cid], knowledge_area_id="planning"
+        )
+        q_other_ka_other = create_mock_question(
+            concept_ids=[other_cid], knowledge_area_id="planning"
+        )
+        questions = [q_ka_target, q_ka_other, q_other_ka_target, q_other_ka_other]
+
+        beliefs = {
+            target_cid: create_mock_belief(target_cid),
+            other_cid: create_mock_belief(other_cid),
+        }
+
+        # Mock empty filter results
+        mock_result = MagicMock()
+        mock_result.all.return_value = []
+        mock_db.execute.return_value = mock_result
+
+        question, _, metadata = await question_selector.select_next_question(
+            user_id=user_id,
+            session_id=session_id,
+            beliefs=beliefs,
+            available_questions=questions,
+            strategy="max_info_gain",
+            knowledge_area_filter="elicitation",
+            target_concept_ids=[target_cid],
+        )
+
+        assert question is not None
+        assert question.knowledge_area_id == "elicitation"
+        question_concept_ids = [qc.concept_id for qc in question.question_concepts]
+        assert target_cid in question_concept_ids
+        # Only 1 question matches both filters (q_ka_target)
+        assert metadata["filtered_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_no_target_questions_available(
+        self, question_selector, mock_db
+    ):
+        """Should return None when no questions match target concepts."""
+        user_id = uuid4()
+        session_id = uuid4()
+        target_cid = uuid4()
+        other_cid = uuid4()
+
+        # Only questions with other concept, none with target
+        q_other = create_mock_question(concept_ids=[other_cid])
+        questions = [q_other]
+
+        beliefs = {
+            target_cid: create_mock_belief(target_cid),
+            other_cid: create_mock_belief(other_cid),
+        }
+
+        # Mock empty filter results
+        mock_result = MagicMock()
+        mock_result.all.return_value = []
+        mock_db.execute.return_value = mock_result
+
+        question, _, metadata = await question_selector.select_next_question(
+            user_id=user_id,
+            session_id=session_id,
+            beliefs=beliefs,
+            available_questions=questions,
+            strategy="max_info_gain",
+            target_concept_ids=[target_cid],
+        )
+
+        assert question is None
+        assert metadata["exhausted"] is True
+        assert metadata["suggest_different_focus"] is True
+        assert metadata["filtered_count"] == 0
+
+    @pytest.mark.asyncio
+    async def test_empty_target_concepts_means_no_filter(self, question_selector, mock_db):
+        """Empty target_concept_ids list should not filter questions."""
+        user_id = uuid4()
+        session_id = uuid4()
+        cid = uuid4()
+
+        q = create_mock_question(concept_ids=[cid])
+        questions = [q]
+
+        beliefs = {cid: create_mock_belief(cid)}
+
+        # Mock empty filter results
+        mock_result = MagicMock()
+        mock_result.all.return_value = []
+        mock_db.execute.return_value = mock_result
+
+        question, _, metadata = await question_selector.select_next_question(
+            user_id=user_id,
+            session_id=session_id,
+            beliefs=beliefs,
+            available_questions=questions,
+            strategy="max_info_gain",
+            target_concept_ids=[],
+        )
+
+        assert question is not None
+        # Question was returned, not exhausted
+        assert metadata["exhausted"] is False
+        assert metadata["filtered_count"] == 1

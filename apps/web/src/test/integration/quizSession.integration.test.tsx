@@ -315,12 +315,14 @@ describe('Quiz Session Integration', () => {
       })
       fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
 
-      // Should show correct feedback
+      // Should show explanation (feedback indicator)
       await waitFor(() => {
-        expect(screen.getByText('Correct!')).toBeInTheDocument()
+        expect(screen.getByText('Explanation')).toBeInTheDocument()
       })
 
-      expect(screen.getByRole('alert')).toHaveClass('bg-green-50')
+      // Correct answer should be styled with green
+      const correctOption = screen.getByRole('radio', { name: /option a.*correct answer/i })
+      expect(correctOption).toHaveClass('bg-green-50')
     })
 
     it('shows incorrect feedback after wrong answer submission', async () => {
@@ -341,12 +343,18 @@ describe('Quiz Session Integration', () => {
       })
       fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
 
-      // Should show incorrect feedback with correct answer
+      // Should show explanation (feedback indicator)
       await waitFor(() => {
-        expect(screen.getByText(/incorrect.*correct answer is B/i)).toBeInTheDocument()
+        expect(screen.getByText('Explanation')).toBeInTheDocument()
       })
 
-      expect(screen.getByRole('alert')).toHaveClass('bg-orange-50')
+      // User's incorrect selection should be styled with red
+      const incorrectOption = screen.getByRole('radio', { name: /option c.*incorrect selection/i })
+      expect(incorrectOption).toHaveClass('bg-red-50')
+
+      // Correct answer (B) should be styled with green
+      const correctOption = screen.getByRole('radio', { name: /option b.*correct answer/i })
+      expect(correctOption).toHaveClass('bg-green-50')
     })
 
     it('proceeds to next question after clicking Next Question button', async () => {
@@ -367,17 +375,17 @@ describe('Quiz Session Integration', () => {
       })
       fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
 
-      // Wait for feedback
+      // Wait for feedback (explanation appears)
       await waitFor(() => {
-        expect(screen.getByText('Correct!')).toBeInTheDocument()
+        expect(screen.getByText('Explanation')).toBeInTheDocument()
       })
 
       // Click Next Question
       fireEvent.click(screen.getByRole('button', { name: /next question/i }))
 
-      // Feedback should be cleared and question should reload
+      // Explanation should be cleared and question should reload
       await waitFor(() => {
-        expect(screen.queryByText('Correct!')).not.toBeInTheDocument()
+        expect(screen.queryByText('Explanation')).not.toBeInTheDocument()
       })
     })
 
@@ -403,10 +411,150 @@ describe('Quiz Session Integration', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
 
-      // After submission, feedback should appear and submit button should be gone
+      // After submission, explanation should appear and submit button should be gone
       await waitFor(() => {
-        expect(screen.getByText('Correct!')).toBeInTheDocument()
+        expect(screen.getByText('Explanation')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /submit answer/i })).not.toBeInTheDocument()
+      })
+    })
+  })
+
+  /**
+   * Story 4.7: Auto-Completion Flow Integration Tests
+   */
+  describe('Auto-Completion Flow (Story 4.7)', () => {
+    it('session auto-completes when reaching question target', async () => {
+      // Set up handler that returns session_completed: true
+      server.use(
+        http.post('*/quiz/session/start', () => {
+          return HttpResponse.json({
+            session_id: 'session-uuid-123',
+            session_type: 'adaptive',
+            question_strategy: 'max_info_gain',
+            is_resumed: false,
+            status: 'active',
+            started_at: '2025-12-17T10:00:00Z',
+            version: 1,
+            total_questions: 11,
+            correct_count: 8,
+            first_question: null,
+            question_target: 12,
+          })
+        }),
+        http.post('*/quiz/next-question', () => {
+          return HttpResponse.json({
+            session_id: 'session-uuid-123',
+            question: {
+              question_id: 'q-12',
+              question_text: 'Last question of the session?',
+              options: { A: 'Option A', B: 'Option B', C: 'Option C', D: 'Option D' },
+              knowledge_area_id: 'ba-planning',
+              knowledge_area_name: 'Planning',
+              difficulty: 0.5,
+              estimated_info_gain: 0.3,
+              concepts_tested: ['Concept 1'],
+            },
+            questions_remaining: 0,
+            current_question_number: 12,
+            question_target: 12,
+            progress_percentage: 0.917,
+          })
+        }),
+        http.post('*/quiz/answer', () => {
+          return HttpResponse.json({
+            is_correct: true,
+            correct_answer: 'A',
+            explanation: 'Final explanation.',
+            concepts_updated: [],
+            session_stats: {
+              questions_answered: 12,
+              accuracy: 0.75,
+              total_info_gain: 18.0,
+              coverage_progress: 0.8,
+              session_version: 13,
+            },
+            session_completed: true,
+            session_summary: {
+              questions_answered: 12,
+              question_target: 12,
+              correct_count: 9,
+              accuracy: 75.0,
+              concepts_strengthened: 8,
+              quizzes_completed_total: 5,
+              session_duration_seconds: 480,
+            },
+          })
+        })
+      )
+
+      renderWithRouter('/quiz', [{ path: '/quiz', element: <QuizPage /> }])
+
+      // Wait for question to load
+      await waitFor(() => {
+        expect(screen.getByText('Last question of the session?')).toBeInTheDocument()
+      })
+
+      // Answer and submit
+      fireEvent.click(screen.getByRole('radio', { name: /option a/i }))
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /submit answer/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
+
+      // Verify session ended state is shown (session summary replaces feedback)
+      await waitFor(() => {
+        // The store should transition to ended state when session_completed is true
+        const state = useQuizStore.getState()
+        expect(state.sessionSummary).not.toBeNull()
+        expect(state.status).toBe('ended')
+      })
+    })
+
+    it('progress indicator shows correct question number', async () => {
+      server.use(
+        http.post('*/quiz/session/start', () => {
+          return HttpResponse.json({
+            session_id: 'session-uuid-123',
+            session_type: 'adaptive',
+            question_strategy: 'max_info_gain',
+            is_resumed: false,
+            status: 'active',
+            started_at: '2025-12-17T10:00:00Z',
+            version: 1,
+            total_questions: 7,
+            correct_count: 5,
+            first_question: null,
+            question_target: 12,
+          })
+        }),
+        http.post('*/quiz/next-question', () => {
+          return HttpResponse.json({
+            session_id: 'session-uuid-123',
+            question: {
+              question_id: 'q-8',
+              question_text: 'Question eight?',
+              options: { A: 'A', B: 'B', C: 'C', D: 'D' },
+              knowledge_area_id: 'ba-planning',
+              knowledge_area_name: 'Planning',
+              difficulty: 0.5,
+              estimated_info_gain: 0.3,
+              concepts_tested: [],
+            },
+            questions_remaining: 50,
+            current_question_number: 8,
+            question_target: 12,
+            progress_percentage: 0.583,
+          })
+        })
+      )
+
+      renderWithRouter('/quiz', [{ path: '/quiz', element: <QuizPage /> }])
+
+      // Verify store receives progress data
+      await waitFor(() => {
+        const state = useQuizStore.getState()
+        expect(state.currentQuestionNumber).toBe(8)
+        expect(state.questionTarget).toBe(12)
       })
     })
   })

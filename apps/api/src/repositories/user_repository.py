@@ -79,3 +79,52 @@ class UserRepository:
             select(User).where(User.id == user_id)
         )
         return result.scalar_one_or_none()
+
+    async def get_by_id_for_update(self, user_id: UUID) -> User | None:
+        """
+        Get user by ID with row lock for concurrent access safety.
+
+        Args:
+            user_id: User UUID
+
+        Returns:
+            User model if found, None otherwise
+        """
+        result = await self.session.execute(
+            select(User).where(User.id == user_id).with_for_update()
+        )
+        return result.scalar_one_or_none()
+
+    async def increment_quiz_stats(
+        self,
+        user_id: UUID,
+        questions_answered: int,
+        duration_seconds: int,
+    ) -> User:
+        """
+        Atomically increment user's quiz completion statistics.
+        Story 4.7: Fixed-Length Session Auto-Completion
+
+        Args:
+            user_id: User UUID
+            questions_answered: Number of questions answered in the session
+            duration_seconds: Session duration in seconds
+
+        Returns:
+            Updated User model
+
+        Raises:
+            ValueError: If user not found
+        """
+        user = await self.get_by_id_for_update(user_id)
+        if not user:
+            raise ValueError(f"User {user_id} not found")
+
+        user.quizzes_completed += 1
+        user.total_questions_answered += questions_answered
+        user.total_time_spent_seconds += duration_seconds
+
+        await self.session.flush()
+        await self.session.refresh(user)
+
+        return user

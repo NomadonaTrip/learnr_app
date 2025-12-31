@@ -1,6 +1,7 @@
 """
 QuizAnswerService for processing answer submissions and providing feedback.
 Story 4.3: Answer Submission and Immediate Feedback
+Story 4.7: Fixed-Length Session Auto-Completion
 """
 from datetime import UTC, datetime
 from typing import Any
@@ -11,10 +12,18 @@ import structlog
 from src.exceptions import AlreadyAnsweredError, InvalidQuestionError, InvalidSessionError
 from src.models.question import Question
 from src.models.quiz_response import QuizResponse
+from src.models.quiz_session import QuizSession
+from src.models.user import User
 from src.repositories.question_repository import QuestionRepository
 from src.repositories.quiz_session_repository import QuizSessionRepository
 from src.repositories.response_repository import ResponseRepository
-from src.schemas.quiz import AnswerResponse, ConceptMasteryUpdate, SessionStats
+from src.repositories.user_repository import UserRepository
+from src.schemas.quiz import (
+    AnswerResponse,
+    ConceptMasteryUpdate,
+    SessionStats,
+    SessionSummaryResponse,
+)
 from src.services.belief_updater import BeliefUpdater
 
 logger = structlog.get_logger(__name__)
@@ -29,6 +38,7 @@ class QuizAnswerService:
     - Response recording with idempotency
     - Session statistics updates
     - Feedback generation (explanation, concepts updated)
+    - Session auto-completion (Story 4.7)
     """
 
     def __init__(
@@ -36,6 +46,7 @@ class QuizAnswerService:
         response_repo: ResponseRepository,
         question_repo: QuestionRepository,
         session_repo: QuizSessionRepository,
+        user_repo: UserRepository,
         belief_updater: BeliefUpdater,
     ):
         """
@@ -45,11 +56,13 @@ class QuizAnswerService:
             response_repo: Repository for response operations
             question_repo: Repository for question lookups
             session_repo: Repository for session operations
+            user_repo: Repository for user operations (Story 4.7)
             belief_updater: Service for updating Bayesian belief states
         """
         self.response_repo = response_repo
         self.question_repo = question_repo
         self.session_repo = session_repo
+        self.user_repo = user_repo
         self.belief_updater = belief_updater
 
     async def submit_answer(
@@ -238,7 +251,66 @@ class QuizAnswerService:
             session_id, is_correct
         )
 
-        # 10. Log and return
+        # 10. Story 4.7: Check for auto-completion
+        session_completed = False
+        session_summary = None
+        user = None
+
+        if session.total_questions >= session.question_target:
+            # Auto-complete the session
+            session = await self.session_repo.mark_ended(session_id)
+            session_completed = True
+
+            # Calculate session duration
+            started_at = session.started_at
+            ended_at = session.ended_at
+            if started_at.tzinfo is None:
+                started_at = started_at.replace(tzinfo=UTC)
+            if ended_at.tzinfo is None:
+                ended_at = ended_at.replace(tzinfo=UTC)
+            duration_seconds = int((ended_at - started_at).total_seconds())
+
+            # Update user stats
+            user = await self.user_repo.increment_quiz_stats(
+                user_id=user_id,
+                questions_answered=session.total_questions,
+                duration_seconds=duration_seconds,
+            )
+
+            # Count concepts strengthened (unique concepts updated during session)
+            concepts_strengthened = await self._count_session_concepts_strengthened(
+                session_id
+            )
+
+            # Build session summary
+            accuracy_pct = (
+                (session.correct_count / session.total_questions * 100)
+                if session.total_questions > 0
+                else 0.0
+            )
+            session_summary = SessionSummaryResponse(
+                questions_answered=session.total_questions,
+                question_target=session.question_target,
+                correct_count=session.correct_count,
+                accuracy=round(accuracy_pct, 1),
+                concepts_strengthened=concepts_strengthened,
+                quizzes_completed_total=user.quizzes_completed,
+                session_duration_seconds=duration_seconds,
+            )
+
+            # Log session completion (Story 4.7, AC 9)
+            logger.info(
+                "quiz_session_completed",
+                user_id=str(user_id),
+                session_id=str(session_id),
+                questions_answered=session.total_questions,
+                question_target=session.question_target,
+                accuracy=round(accuracy_pct, 1),
+                duration_seconds=duration_seconds,
+                early_exit=False,
+            )
+
+        # 11. Log and return
         elapsed_ms = (datetime.now(UTC) - start_time).total_seconds() * 1000
         logger.info(
             "quiz_answer_submitted",
@@ -248,9 +320,57 @@ class QuizAnswerService:
             time_taken_ms=time_taken_ms,
             processing_ms=round(elapsed_ms, 2),
             request_id=str(request_id) if request_id else None,
+            session_completed=session_completed,
         )
 
-        return self._build_response(response, question, session), False
+        # 12. Story 5.5: Dispatch reading queue population task
+        try:
+            from src.config import settings
+
+            if settings.READING_QUEUE_SYNC_MODE:
+                # Sync mode: Run directly without Celery (for development/testing)
+                from src.services.reading_queue_service import ReadingQueueService
+
+                # Get db session from repository (QuizAnswerService doesn't have direct db access)
+                reading_queue_service = ReadingQueueService(self.response_repo.db)
+                chunks_added = await reading_queue_service.populate_reading_queue(
+                    user_id=user_id,
+                    enrollment_id=session.enrollment_id,
+                    question_id=question_id,
+                    session_id=session_id,
+                    is_correct=is_correct,
+                    difficulty=question.difficulty,
+                )
+                logger.info(
+                    "reading_queue_sync_completed",
+                    session_id=str(session_id),
+                    question_id=str(question_id),
+                    chunks_added=chunks_added,
+                )
+            else:
+                # Async mode: Dispatch to Celery worker
+                from src.tasks.reading_queue_tasks import add_reading_to_queue
+
+                add_reading_to_queue.delay(
+                    str(user_id),
+                    str(session.enrollment_id),
+                    str(question_id),
+                    str(session_id),
+                    is_correct,
+                    question.difficulty,
+                )
+        except Exception as e:
+            # Log but don't fail the answer submission if reading queue fails
+            logger.warning(
+                "reading_queue_dispatch_failed",
+                session_id=str(session_id),
+                question_id=str(question_id),
+                error=str(e),
+            )
+
+        return self._build_response(
+            response, question, session, session_completed, session_summary
+        ), False
 
     def _calculate_time_taken(
         self,
@@ -290,11 +410,38 @@ class QuizAnswerService:
 
         return None
 
+    async def _count_session_concepts_strengthened(
+        self,
+        session_id: UUID,
+    ) -> int:
+        """
+        Count unique concepts that had belief updates during the session.
+        Story 4.7: Used for session summary.
+
+        Args:
+            session_id: Session UUID
+
+        Returns:
+            Count of unique concepts strengthened
+        """
+        responses = await self.response_repo.get_by_session_id(session_id)
+        unique_concepts: set[str] = set()
+
+        for resp in responses:
+            if resp.belief_updates:
+                for update in resp.belief_updates:
+                    if "concept_id" in update:
+                        unique_concepts.add(update["concept_id"])
+
+        return len(unique_concepts)
+
     def _build_response(
         self,
         response: QuizResponse,
         question: Question,
-        session,
+        session: QuizSession,
+        session_completed: bool = False,
+        session_summary: SessionSummaryResponse | None = None,
     ) -> AnswerResponse:
         """
         Build the answer response with feedback.
@@ -303,6 +450,8 @@ class QuizAnswerService:
             response: The quiz response record
             question: The question that was answered
             session: The quiz session
+            session_completed: Whether session auto-completed (Story 4.7)
+            session_summary: Session summary if completed (Story 4.7)
 
         Returns:
             AnswerResponse with all feedback fields
@@ -342,4 +491,6 @@ class QuizAnswerService:
             explanation=question.explanation or "",
             concepts_updated=concepts_updated,
             session_stats=session_stats,
+            session_completed=session_completed,
+            session_summary=session_summary,
         )

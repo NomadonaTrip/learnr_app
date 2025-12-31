@@ -35,6 +35,7 @@ def create_mock_session(
     session_type="adaptive",
     question_strategy="max_info_gain",
     knowledge_area_filter=None,
+    question_target=10,
     started_at=None,
     ended_at=None,
     total_questions=0,
@@ -51,6 +52,7 @@ def create_mock_session(
     session.session_type = session_type
     session.question_strategy = question_strategy
     session.knowledge_area_filter = knowledge_area_filter
+    session.question_target = question_target
     session.started_at = started_at or datetime.now(UTC)
     session.ended_at = ended_at
     session.total_questions = total_questions
@@ -116,6 +118,7 @@ class TestSessionStart:
             session_type="adaptive",
             question_strategy="max_info_gain",
             knowledge_area_filter=None,
+            target_concept_ids=None,
         )
 
     @pytest.mark.asyncio
@@ -220,7 +223,79 @@ class TestSessionStart:
             session_type="focused",
             question_strategy="balanced",
             knowledge_area_filter="ba-planning",
+            target_concept_ids=None,
         )
+
+    @pytest.mark.asyncio
+    async def test_creates_focused_ka_session(
+        self,
+        session_service,
+        mock_session_repo,
+    ):
+        """Story 4.8: Verify focused_ka session creation."""
+        user_id = uuid4()
+        enrollment_id = uuid4()
+
+        mock_session_repo.get_active_session.return_value = None
+
+        new_session = create_mock_session(
+            user_id=user_id,
+            enrollment_id=enrollment_id,
+            session_type="focused_ka",
+            knowledge_area_filter="ka-requirements",
+        )
+        mock_session_repo.create_session.return_value = new_session
+
+        session_data = QuizSessionCreate(
+            session_type=QuizSessionType.FOCUSED_KA,
+            knowledge_area_filter="ka-requirements",
+        )
+        session, is_resumed = await session_service.start_session(
+            user_id=user_id,
+            enrollment_id=enrollment_id,
+            session_data=session_data,
+        )
+
+        assert session == new_session
+        assert is_resumed is False
+        assert mock_session_repo.create_session.called
+
+    @pytest.mark.asyncio
+    async def test_creates_focused_concept_session(
+        self,
+        session_service,
+        mock_session_repo,
+    ):
+        """Story 4.8: Verify focused_concept session creation with target concepts."""
+        user_id = uuid4()
+        enrollment_id = uuid4()
+        concept_id_1 = uuid4()
+        concept_id_2 = uuid4()
+
+        mock_session_repo.get_active_session.return_value = None
+
+        new_session = create_mock_session(
+            user_id=user_id,
+            enrollment_id=enrollment_id,
+            session_type="focused_concept",
+        )
+        # Add target_concept_ids attribute
+        new_session.target_concept_ids = [str(concept_id_1), str(concept_id_2)]
+        mock_session_repo.create_session.return_value = new_session
+
+        session_data = QuizSessionCreate(
+            session_type=QuizSessionType.FOCUSED_CONCEPT,
+            target_concept_ids=[concept_id_1, concept_id_2],
+        )
+        session, is_resumed = await session_service.start_session(
+            user_id=user_id,
+            enrollment_id=enrollment_id,
+            session_data=session_data,
+        )
+
+        assert session == new_session
+        assert is_resumed is False
+        assert mock_session_repo.create_session.called
 
 
 # ============================================================================

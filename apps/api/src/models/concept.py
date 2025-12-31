@@ -15,6 +15,7 @@ from ..db.session import Base
 if TYPE_CHECKING:
     from .belief_state import BeliefState
     from .concept_prerequisite import ConceptPrerequisite
+    from .concept_unlock_event import ConceptUnlockEvent
     from .course import Course
     from .question_concept import QuestionConcept
 
@@ -96,6 +97,14 @@ class Concept(Base):
     # User belief states for this concept
     belief_states: Mapped[list["BeliefState"]] = relationship(
         "BeliefState",
+        back_populates="concept",
+        cascade="all, delete-orphan"
+    )
+
+    # Unlock events for this concept
+    unlock_events: Mapped[list["ConceptUnlockEvent"]] = relationship(
+        "ConceptUnlockEvent",
+        foreign_keys="ConceptUnlockEvent.concept_id",
         back_populates="concept",
         cascade="all, delete-orphan"
     )

@@ -15,6 +15,7 @@ Usage:
 import argparse
 import asyncio
 import logging
+import os
 import sys
 import time
 from dataclasses import dataclass
@@ -25,6 +26,10 @@ from uuid import UUID
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root / "apps" / "api"))
+
+# Load environment variables from apps/api/.env
+from dotenv import load_dotenv
+load_dotenv(project_root / "apps" / "api" / ".env")
 
 from sqlalchemy import select  # noqa: E402
 from sqlalchemy.orm import selectinload  # noqa: E402

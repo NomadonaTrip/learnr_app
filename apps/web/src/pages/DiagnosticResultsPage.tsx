@@ -8,6 +8,7 @@ import {
   DetailsAccordion,
 } from '../components/diagnostic-results'
 import { ResetDiagnosticButton } from '../components/diagnostic/ResetDiagnosticButton'
+import { Navigation } from '../components/layout/Navigation'
 
 /**
  * Diagnostic Results Page.
@@ -43,9 +44,35 @@ export function DiagnosticResultsPage() {
     navigate('/quiz')
   }, [navigate])
 
-  const handleViewStudyPlan = useCallback(() => {
-    // Navigate to study plan page (placeholder path)
-    navigate('/study-plan')
+  const handleViewReadingLibrary = useCallback(() => {
+    // Navigate to reading library page
+    navigate('/reading-library')
+  }, [navigate])
+
+  // Story 4.8: Focused practice handlers
+  const handleFocusKA = useCallback((kaId: string, kaName: string) => {
+    // DEBUG: Log Focus KA button click
+    const targetUrl = `/quiz?focus=ka&target=${encodeURIComponent(kaId)}&name=${encodeURIComponent(kaName)}`
+    console.log('[DEBUG] Focus KA button clicked', {
+      kaId,
+      kaName,
+      targetUrl,
+      timestamp: new Date().toISOString(),
+    })
+    // Navigate to quiz with focused KA mode
+    navigate(targetUrl)
+  }, [navigate])
+
+  const handlePracticeConcepts = useCallback((conceptIds: string[]) => {
+    // DEBUG: Log Practice button click
+    const targetUrl = `/quiz?focus=concept&targets=${conceptIds.map(id => encodeURIComponent(id)).join(',')}`
+    console.log('[DEBUG] Practice button clicked', {
+      conceptIds,
+      targetUrl,
+      timestamp: new Date().toISOString(),
+    })
+    // Navigate to quiz with focused concept mode
+    navigate(targetUrl)
   }, [navigate])
 
   // Loading state
@@ -115,6 +142,8 @@ export function DiagnosticResultsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Navigation with Reading Library link */}
+      <Navigation enablePolling={false} />
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Course header */}
         {course && (
@@ -126,6 +155,9 @@ export function DiagnosticResultsPage() {
         {/* Hero Section - Overall stats */}
         <ResultsHeroSection
           score={data.score}
+          overallCompetence={data.overall_competence}
+          conceptsAssessed={data.concepts_assessed}
+          hasCompletedAdaptiveQuiz={data.has_completed_adaptive_quiz}
           totalConcepts={data.total_concepts}
           conceptsTouched={data.concepts_touched}
           coveragePercentage={data.coverage_percentage}
@@ -139,7 +171,7 @@ export function DiagnosticResultsPage() {
         <RecommendationsSection
           recommendations={data.recommendations}
           onStartQuiz={handleStartQuiz}
-          onViewStudyPlan={handleViewStudyPlan}
+          onViewReadingLibrary={handleViewReadingLibrary}
         />
 
         {/* Details Accordion - Collapsed by default */}
@@ -149,6 +181,8 @@ export function DiagnosticResultsPage() {
           uncertainCount={data.uncertain}
           confidenceLevel={data.confidence_level}
           message={data.recommendations.message}
+          onFocusClick={handleFocusKA}
+          onConceptPracticeClick={handlePracticeConcepts}
         />
 
         {/* Feedback Survey */}

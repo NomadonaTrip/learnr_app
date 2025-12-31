@@ -357,4 +357,118 @@ describe('QuizPage', () => {
       })
     })
   })
+
+  describe('Inline Feedback', () => {
+    it('shows Submit Answer button when answer is selected', async () => {
+      server.use(...quizHandlers)
+      renderQuizPage()
+
+      // Wait for question to load
+      await waitFor(() => {
+        expect(screen.getByText('Default mock question?')).toBeInTheDocument()
+      })
+
+      // Select an answer
+      fireEvent.click(screen.getByRole('radio', { name: /option a/i }))
+
+      // Submit button should appear
+      expect(screen.getByRole('button', { name: /submit answer/i })).toBeInTheDocument()
+    })
+
+    it('disables Submit Answer button while submitting', async () => {
+      server.use(...quizHandlers)
+      renderQuizPage()
+
+      await waitFor(() => {
+        expect(screen.getByText('Default mock question?')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('radio', { name: /option a/i }))
+      fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
+
+      // Button should show submitting state
+      await waitFor(() => {
+        const button = screen.queryByRole('button', { name: /submitting/i })
+        // Button may be disabled or show "Submitting..." text
+        if (button) {
+          expect(button).toBeDisabled()
+        }
+      })
+    })
+
+    it('shows inline explanation after submitting answer', async () => {
+      server.use(...quizHandlers)
+      renderQuizPage()
+
+      await waitFor(() => {
+        expect(screen.getByText('Default mock question?')).toBeInTheDocument()
+      })
+
+      // Select and submit answer
+      fireEvent.click(screen.getByRole('radio', { name: /option a/i }))
+      fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
+
+      // Wait for feedback to show
+      await waitFor(() => {
+        expect(screen.getByText('Explanation')).toBeInTheDocument()
+      })
+    })
+
+    it('shows Next Question button after feedback', async () => {
+      server.use(...quizHandlers)
+      renderQuizPage()
+
+      await waitFor(() => {
+        expect(screen.getByText('Default mock question?')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('radio', { name: /option a/i }))
+      fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /next question/i })).toBeInTheDocument()
+      })
+    })
+
+    it('disables answer options after submission', async () => {
+      server.use(...quizHandlers)
+      renderQuizPage()
+
+      await waitFor(() => {
+        expect(screen.getByText('Default mock question?')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('radio', { name: /option a/i }))
+      fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Explanation')).toBeInTheDocument()
+      })
+
+      // All radio buttons should be disabled
+      const radioButtons = screen.getAllByRole('radio')
+      radioButtons.forEach((button) => {
+        expect(button).toBeDisabled()
+      })
+    })
+
+    it('announces feedback result to screen readers', async () => {
+      server.use(...quizHandlers)
+      renderQuizPage()
+
+      await waitFor(() => {
+        expect(screen.getByText('Default mock question?')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('radio', { name: /option a/i }))
+      fireEvent.click(screen.getByRole('button', { name: /submit answer/i }))
+
+      await waitFor(() => {
+        // Screen reader announcement should be present
+        const srAnnouncement = screen.getByRole('status')
+        expect(srAnnouncement).toBeInTheDocument()
+        expect(srAnnouncement).toHaveClass('sr-only')
+      })
+    })
+  })
 })

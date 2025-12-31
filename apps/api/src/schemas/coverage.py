@@ -28,6 +28,10 @@ class ConceptStatus(BaseModel):
         le=1,
         description="Confidence level ((alpha + beta) / (alpha + beta + 2))"
     )
+    is_locked: bool = Field(
+        default=False,
+        description="Whether concept is locked due to unmastered prerequisites"
+    )
 
 
 class KnowledgeAreaCoverage(BaseModel):
@@ -40,6 +44,16 @@ class KnowledgeAreaCoverage(BaseModel):
     gap_count: int = Field(..., ge=0, description="Concepts with gap status")
     borderline_count: int = Field(..., ge=0, description="Concepts with borderline status")
     uncertain_count: int = Field(..., ge=0, description="Concepts with uncertain status")
+    locked_count: int = Field(
+        default=0,
+        ge=0,
+        description="Concepts locked due to unmastered prerequisites"
+    )
+    unlocked_count: int = Field(
+        default=0,
+        ge=0,
+        description="Concepts unlocked (prerequisites mastered or no prerequisites)"
+    )
     readiness_score: float = Field(
         ...,
         ge=0,
@@ -56,6 +70,16 @@ class CoverageSummary(BaseModel):
     gaps: int = Field(..., ge=0, description="Count of gap concepts")
     borderline: int = Field(..., ge=0, description="Count of borderline concepts")
     uncertain: int = Field(..., ge=0, description="Count of uncertain concepts")
+    locked_concepts: int = Field(
+        default=0,
+        ge=0,
+        description="Count of concepts locked due to unmastered prerequisites"
+    )
+    unlocked_concepts: int = Field(
+        default=0,
+        ge=0,
+        description="Count of unlocked concepts (prerequisites mastered)"
+    )
     coverage_percentage: float = Field(
         ...,
         ge=0,

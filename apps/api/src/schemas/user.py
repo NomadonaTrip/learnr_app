@@ -146,6 +146,7 @@ class UserResponse(BaseModel):
     """
     Schema for user data returned to frontend.
     Excludes password_hash for security.
+    Story 4.7: Added quiz statistics fields.
     """
     id: UUID
     email: str
@@ -158,6 +159,10 @@ class UserResponse(BaseModel):
     is_admin: bool
     dark_mode: str
     created_at: datetime
+    # Story 4.7: Quiz statistics
+    quizzes_completed: int = 0
+    total_questions_answered: int = 0
+    total_time_spent_seconds: int = 0
 
     class Config:
         """Pydantic config to enable SQLAlchemy model compatibility."""
@@ -174,6 +179,9 @@ class UserResponse(BaseModel):
                 "referral_source": "Search",
                 "is_admin": False,
                 "dark_mode": "auto",
-                "created_at": "2025-11-21T10:30:00Z"
+                "created_at": "2025-11-21T10:30:00Z",
+                "quizzes_completed": 5,
+                "total_questions_answered": 50,
+                "total_time_spent_seconds": 3600
             }
         }

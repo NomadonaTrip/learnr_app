@@ -8,9 +8,11 @@ from . import (
     coverage,
     diagnostic,
     health,
+    prerequisites,
     questions,
     quiz,
     reading,
+    review,
     users,
 )
 
@@ -22,8 +24,10 @@ __all__ = [
     "coverage",
     "diagnostic",
     "health",
+    "prerequisites",
     "questions",
     "quiz",
     "reading",
+    "review",
     "users",
 ]

@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     DB_POOL_TIMEOUT: int = 30
     DB_ECHO: bool = False  # Set True for SQL query logging
 
-    # Redis
-    REDIS_URL: str = "redis://:learnr123@localhost:6379/0"  # Default for local Docker Redis
+    # Redis (using 127.0.0.1 for WSL2/Docker Desktop compatibility)
+    REDIS_URL: str = "redis://:learnr123@127.0.0.1:6379/0"  # Default for local Docker Redis
     REDIS_PASSWORD: str | None = "learnr123"  # Password for local Docker Redis
 
     # Qdrant Vector Database
@@ -62,6 +62,15 @@ class Settings(BaseSettings):
 
     # Logging
     LOG_LEVEL: str = "INFO"
+
+    # Reading Queue Settings (Story 5.5)
+    READING_CHUNKS_INCORRECT: int = 3  # Number of chunks for incorrect answers
+    READING_CHUNKS_HARD_CORRECT: int = 1  # Number of chunks for correct hard answers
+    READING_HARD_CORRECT_ENABLED: bool = True  # Toggle for hard question reinforcement
+    READING_PRIORITY_LOW_THRESHOLD: float = 0.8  # Competency threshold for low priority
+    READING_PRIORITY_HIGH_THRESHOLD: float = 0.6  # Competency threshold for high priority
+    READING_HARD_DIFFICULTY_THRESHOLD: float = 0.7  # IRT difficulty threshold for "hard" questions
+    READING_QUEUE_SYNC_MODE: bool = True  # Run reading queue tasks synchronously (no Celery required)
 
     class Config:
         env_file = ".env"

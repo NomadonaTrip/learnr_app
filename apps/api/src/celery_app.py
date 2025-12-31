@@ -11,11 +11,20 @@ celery_app = Celery(
     "learnr",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["src.tasks.session_cleanup"],
+    include=[
+        "src.tasks.session_cleanup",
+        "src.tasks.reading_queue_tasks",  # Story 5.5
+    ],
 )
 
 # Celery configuration
 celery_app.conf.update(
+    # Broker connection settings (critical for Celery 6.x+)
+    broker_connection_retry_on_startup=True,
+    broker_connection_retry=True,
+    broker_connection_max_retries=3,
+    broker_connection_timeout=10,
+
     # Task settings
     task_serializer="json",
     accept_content=["json"],

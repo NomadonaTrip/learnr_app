@@ -5,11 +5,13 @@ Implements session lifecycle: create, get, pause, resume, end.
 Also includes question selection and answer submission endpoints.
 
 Story 4.3: Answer Submission and Immediate Feedback
+Story 4.7: Fixed-Length Session Auto-Completion
 """
 from uuid import UUID
 
 import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_db
@@ -34,6 +36,8 @@ from src.schemas.question_selection import (
 )
 from src.schemas.quiz import AnswerResponse, AnswerSubmission
 from src.schemas.quiz_session import (
+    FocusedConceptSessionCreate,
+    FocusedKASessionCreate,
     QuestionStrategy,
     QuizSessionCreate,
     QuizSessionEndRequest,
@@ -44,10 +48,12 @@ from src.schemas.quiz_session import (
     QuizSessionStartResponse,
     QuizSessionStatus,
     QuizSessionType,
+    TargetProgress,
 )
 from src.services.question_selector import QuestionSelector
 from src.services.quiz_answer_service import QuizAnswerService
 from src.services.quiz_session_service import QuizSessionService
+from src.services.target_progress_service import TargetProgressService
 
 logger = structlog.get_logger(__name__)
 
@@ -103,8 +109,53 @@ async def start_quiz_session(
             user_id=current_user.id,
             enrollment_id=enrollment.id,
             session_data=request,
+            course_id=enrollment.course_id,
         )
         await db.commit()
+    except IntegrityError:
+        # Race condition: unique constraint violation means another session was created
+        # Rollback and retry - the retry will find the existing session
+        await db.rollback()
+        logger.info(
+            "quiz_session_race_condition_retry",
+            user_id=str(current_user.id),
+        )
+        try:
+            session, is_resumed = await session_service.start_session(
+                user_id=current_user.id,
+                enrollment_id=enrollment.id,
+                session_data=request,
+                course_id=enrollment.course_id,
+            )
+            await db.commit()
+        except Exception as retry_error:
+            await db.rollback()
+            logger.error(
+                "Failed to start quiz session after retry",
+                error=str(retry_error),
+                user_id=str(current_user.id),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={
+                    "error": {
+                        "code": "SESSION_START_FAILED",
+                        "message": "Failed to start quiz session",
+                    }
+                },
+            ) from retry_error
+    except ValueError as e:
+        await db.rollback()
+        error_msg = str(e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": {
+                    "code": "INVALID_FOCUS_TARGET",
+                    "message": error_msg,
+                }
+            },
+        ) from e
     except Exception as e:
         await db.rollback()
         logger.error(
@@ -122,15 +173,249 @@ async def start_quiz_session(
             },
         ) from e
 
+    # Determine focus context for response
+    focus_target_type = None
+    focus_target_id = None
+    if session.session_type == "focused_ka" and session.knowledge_area_filter:
+        focus_target_type = "ka"
+        focus_target_id = session.knowledge_area_filter
+    elif session.session_type == "focused_concept" and session.target_concept_ids:
+        focus_target_type = "concept"
+        focus_target_id = ",".join(str(cid) for cid in session.target_concept_ids)
+
     return QuizSessionStartResponse(
         session_id=session.id,
         session_type=QuizSessionType(session.session_type),
         question_strategy=QuestionStrategy(session.question_strategy),
+        question_target=session.question_target,
         started_at=session.started_at,
         is_resumed=is_resumed,
         status=QuizSessionStatus(session.status),
         version=session.version,
         first_question=None,  # Placeholder for Story 4.2
+        focus_target_type=focus_target_type,
+        focus_target_id=focus_target_id,
+    )
+
+
+@router.post(
+    "/session/start-focused-ka",
+    response_model=QuizSessionStartResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Start a knowledge area focused practice session",
+    description=(
+        "Starts a focused practice session targeting a specific knowledge area. "
+        "Questions will be filtered to only include those from the specified KA."
+    ),
+    responses={
+        201: {"description": "New focused KA session created"},
+        200: {"description": "Existing session resumed (is_resumed=true)"},
+        400: {"description": "Invalid knowledge area ID"},
+        401: {"description": "Authentication required"},
+        404: {"description": "No active enrollment found"},
+    },
+)
+async def start_focused_ka_session(
+    request: FocusedKASessionCreate,
+    current_user: User = Depends(get_current_user),
+    enrollment: Enrollment = Depends(get_active_enrollment),
+    session_service: QuizSessionService = Depends(get_quiz_session_service),
+    db: AsyncSession = Depends(get_db),
+) -> QuizSessionStartResponse:
+    """
+    Start a knowledge area focused practice session.
+
+    Creates a session that filters questions to the specified knowledge area.
+    Uses the max_info_gain strategy by default within the KA scope.
+    """
+    # DEBUG: Log incoming request
+    logger.info(
+        "DEBUG: start_focused_ka_session called",
+        user_id=str(current_user.id),
+        enrollment_id=str(enrollment.id),
+        knowledge_area_id=request.knowledge_area_id,
+        question_strategy=request.question_strategy,
+    )
+
+    # Convert to standard QuizSessionCreate
+    session_data = QuizSessionCreate(
+        session_type=QuizSessionType.FOCUSED_KA,
+        question_strategy=request.question_strategy,
+        knowledge_area_filter=request.knowledge_area_id,
+    )
+
+    try:
+        session, is_resumed = await session_service.start_session(
+            user_id=current_user.id,
+            enrollment_id=enrollment.id,
+            session_data=session_data,
+            course_id=enrollment.course_id,
+        )
+        await db.commit()
+
+        # DEBUG: Log successful session creation
+        logger.info(
+            "DEBUG: focused_ka session created successfully",
+            session_id=str(session.id),
+            session_type=session.session_type,
+            knowledge_area_filter=session.knowledge_area_filter,
+            is_resumed=is_resumed,
+        )
+    except ValueError as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": {
+                    "code": "INVALID_KNOWLEDGE_AREA",
+                    "message": str(e),
+                }
+            },
+        ) from e
+    except Exception as e:
+        await db.rollback()
+        logger.error(
+            "Failed to start focused KA session",
+            error=str(e),
+            user_id=str(current_user.id),
+            knowledge_area_id=request.knowledge_area_id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": {
+                    "code": "SESSION_START_FAILED",
+                    "message": "Failed to start focused session",
+                }
+            },
+        ) from e
+
+    return QuizSessionStartResponse(
+        session_id=session.id,
+        session_type=QuizSessionType(session.session_type),
+        question_strategy=QuestionStrategy(session.question_strategy),
+        question_target=session.question_target,
+        started_at=session.started_at,
+        is_resumed=is_resumed,
+        status=QuizSessionStatus(session.status),
+        version=session.version,
+        first_question=None,
+        focus_target_type="ka",
+        focus_target_id=request.knowledge_area_id,
+    )
+
+
+@router.post(
+    "/session/start-focused-concept",
+    response_model=QuizSessionStartResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Start a concept focused practice session",
+    description=(
+        "Starts a focused practice session targeting specific concepts. "
+        "Questions will be filtered to those testing the specified concepts."
+    ),
+    responses={
+        201: {"description": "New focused concept session created"},
+        200: {"description": "Existing session resumed (is_resumed=true)"},
+        400: {"description": "Invalid concept IDs"},
+        401: {"description": "Authentication required"},
+        404: {"description": "No active enrollment found"},
+    },
+)
+async def start_focused_concept_session(
+    request: FocusedConceptSessionCreate,
+    current_user: User = Depends(get_current_user),
+    enrollment: Enrollment = Depends(get_active_enrollment),
+    session_service: QuizSessionService = Depends(get_quiz_session_service),
+    db: AsyncSession = Depends(get_db),
+) -> QuizSessionStartResponse:
+    """
+    Start a concept focused practice session.
+
+    Creates a session that filters questions to those testing the specified concepts.
+    Supports multi-select: can target 1 or more concepts simultaneously.
+    """
+    # DEBUG: Log incoming request
+    logger.info(
+        "DEBUG: start_focused_concept_session called",
+        user_id=str(current_user.id),
+        enrollment_id=str(enrollment.id),
+        concept_ids=request.concept_ids,
+        question_strategy=request.question_strategy,
+    )
+
+    # Convert to standard QuizSessionCreate
+    session_data = QuizSessionCreate(
+        session_type=QuizSessionType.FOCUSED_CONCEPT,
+        question_strategy=request.question_strategy,
+        target_concept_ids=request.concept_ids,
+    )
+
+    try:
+        session, is_resumed = await session_service.start_session(
+            user_id=current_user.id,
+            enrollment_id=enrollment.id,
+            session_data=session_data,
+            course_id=enrollment.course_id,
+        )
+        await db.commit()
+
+        # DEBUG: Log successful session creation
+        logger.info(
+            "DEBUG: focused_concept session created successfully",
+            session_id=str(session.id),
+            session_type=session.session_type,
+            target_concept_ids=session.target_concept_ids,
+            is_resumed=is_resumed,
+        )
+    except ValueError as e:
+        await db.rollback()
+        # DEBUG: Log validation error
+        logger.warning(
+            "DEBUG: focused_concept session validation failed",
+            user_id=str(current_user.id),
+            concept_ids=request.concept_ids,
+            error=str(e),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": {
+                    "code": "INVALID_CONCEPT_IDS",
+                    "message": str(e),
+                }
+            },
+        ) from e
+    except Exception as e:
+        await db.rollback()
+        logger.error(
+            "Failed to start focused concept session",
+            error=str(e),
+            user_id=str(current_user.id),
+            concept_count=len(request.concept_ids),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": {
+                    "code": "SESSION_START_FAILED",
+                    "message": "Failed to start focused session",
+                }
+            },
+        ) from e
+
+    return QuizSessionStartResponse(
+        session_id=session.id,
+        session_type=QuizSessionType(session.session_type),
+        question_strategy=QuestionStrategy(session.question_strategy),
+        question_target=session.question_target,
+        started_at=session.started_at,
+        is_resumed=is_resumed,
+        status=QuizSessionStatus(session.status),
+        version=session.version,
+        first_question=None,
+        focus_target_type="concept",
+        focus_target_id=",".join(str(cid) for cid in request.concept_ids),
     )
 
 
@@ -199,6 +484,7 @@ async def get_quiz_session(
         session_type=QuizSessionType(session.session_type),
         question_strategy=QuestionStrategy(session.question_strategy),
         knowledge_area_filter=session.knowledge_area_filter,
+        question_target=session.question_target,
         status=QuizSessionStatus(session.status),
         started_at=session.started_at,
         ended_at=session.ended_at,
@@ -424,12 +710,22 @@ async def end_quiz_session(
             detail={"error": {"code": "SESSION_END_FAILED", "message": error_msg}},
         ) from e
 
+    # Calculate target progress for focused sessions
+    target_progress: TargetProgress | None = None
+    if session.session_type in ("focused_ka", "focused_concept"):
+        target_progress_service = TargetProgressService(db)
+        target_progress = await target_progress_service.calculate_target_progress(
+            session=session,
+            user_id=current_user.id,
+        )
+
     return QuizSessionEndResponse(
         session_id=session.id,
         ended_at=session.ended_at,
         total_questions=session.total_questions,
         correct_count=session.correct_count,
         accuracy=session.accuracy,
+        target_progress=target_progress,
     )
 
 
@@ -542,16 +838,60 @@ async def get_next_question(
     # Get knowledge area filter from session
     knowledge_area_filter = session.knowledge_area_filter
 
-    # Select next question
+    # Get target concept IDs for focused_concept sessions
+    target_concept_ids = None
+    if session.target_concept_ids:
+        from uuid import UUID as UUIDType
+        target_concept_ids = [UUIDType(cid) for cid in session.target_concept_ids]
+
+    # Determine focus target type for response metadata
+    focus_target_type = None
+    focus_target_id = None
+    if session.session_type == "focused_ka" and knowledge_area_filter:
+        focus_target_type = "ka"
+        focus_target_id = knowledge_area_filter
+    elif session.session_type == "focused_concept" and target_concept_ids:
+        focus_target_type = "concept"
+        focus_target_id = ",".join(str(cid) for cid in target_concept_ids)
+
+    # Select next question with focused filters
+    focus_expanded = False
     try:
-        question, info_gain = await question_selector.select_next_question(
+        question, info_gain, metadata = await question_selector.select_next_question(
             user_id=current_user.id,
             session_id=session.id,
             beliefs=beliefs,
             available_questions=available_questions,
             strategy=strategy,
             knowledge_area_filter=knowledge_area_filter,
+            target_concept_ids=target_concept_ids,
         )
+
+        # Handle focused session exhaustion - fallback to wider selection
+        if question is None and metadata.get("exhausted"):
+            logger.info(
+                "focused_session_expanded",
+                session_id=str(session.id),
+                focus_type=focus_target_type,
+                target_id=focus_target_id,
+                reason="focused_pool_exhausted",
+            )
+            focus_expanded = True
+
+            # Retry without focused filters
+            question, info_gain, metadata = await question_selector.select_next_question(
+                user_id=current_user.id,
+                session_id=session.id,
+                beliefs=beliefs,
+                available_questions=available_questions,
+                strategy=strategy,
+                knowledge_area_filter=None,
+                target_concept_ids=None,
+            )
+
+            if question is None:
+                raise ValueError("No questions available after expanding focus")
+
     except ValueError as e:
         error_msg = str(e)
         raise HTTPException(
@@ -570,9 +910,8 @@ async def get_next_question(
         if qc.concept:
             concept_names.append(qc.concept.name)
 
-    # Calculate questions remaining (estimate)
-    # Filter out already-answered questions from total
-    questions_remaining = len(available_questions) - session.total_questions
+    # Calculate questions remaining based on session target (Story 4.7)
+    questions_remaining = session.question_target - session.total_questions
 
     # Build response (without correct_answer or explanation)
     selected_question = SelectedQuestion(
@@ -586,18 +925,36 @@ async def get_next_question(
         concepts_tested=concept_names,
     )
 
+    # Story 4.7: Progress indicator fields
+    # Current question number is next question (1-indexed)
+    current_question_number = session.total_questions + 1
+    question_target = session.question_target
+    progress_percentage = (
+        session.total_questions / question_target
+        if question_target > 0
+        else 0.0
+    )
+
     logger.info(
         "next_question_served",
         session_id=str(session.id),
         question_id=str(question.id),
         info_gain=round(info_gain, 4),
         strategy=strategy,
+        progress=f"{current_question_number}/{question_target}",
+        focus_expanded=focus_expanded,
     )
 
     return QuestionSelectionResponse(
         session_id=session.id,
         question=selected_question,
         questions_remaining=max(0, questions_remaining),
+        current_question_number=current_question_number,
+        question_target=question_target,
+        progress_percentage=round(progress_percentage, 3),
+        focus_expanded=focus_expanded,
+        focus_target_type=focus_target_type,
+        focus_target_id=focus_target_id,
     )
 
 

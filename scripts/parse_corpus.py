@@ -26,6 +26,10 @@ import tiktoken
 project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root / "apps" / "api"))
 
+# Load environment variables from apps/api/.env
+from dotenv import load_dotenv
+load_dotenv(project_root / "apps" / "api" / ".env")
+
 from src.config import settings
 from src.db.session import AsyncSessionLocal
 from src.models.concept import Concept

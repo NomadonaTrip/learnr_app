@@ -1,5 +1,12 @@
 import { create } from 'zustand'
-import type { SessionType, QuestionStrategy, SelectedQuestion, AnswerResponse } from '../services/quizService'
+import type {
+  SessionType,
+  QuestionStrategy,
+  SelectedQuestion,
+  AnswerResponse,
+  SessionSummary,
+  TargetProgress,
+} from '../services/quizService'
 
 /**
  * Quiz session status.
@@ -13,18 +20,31 @@ export type QuizSessionStatus =
   | 'error'
 
 /**
+ * Focus context for focused sessions.
+ * Story 4.8: Focused Practice Mode.
+ */
+export interface FocusContext {
+  focusType: 'ka' | 'concept'
+  focusTargetId: string
+  focusTargetName?: string
+}
+
+/**
  * Session data for setting the store state.
  */
 export interface SessionData {
   sessionId: string
   sessionType: SessionType
   questionStrategy: QuestionStrategy
+  questionTarget: number
   status: string
   isResumed: boolean
   totalQuestions: number
   correctCount: number
   version: number
   startedAt: string
+  // Story 4.8: Focus context for focused sessions
+  focusContext?: FocusContext | null
 }
 
 interface QuizState {
@@ -41,6 +61,14 @@ interface QuizState {
   endedAt: string | null
   error: string | null
 
+  // Story 4.7: Progress tracking state
+  currentQuestionNumber: number
+  questionTarget: number
+
+  // Story 4.8: Focus context for focused sessions
+  focusContext: FocusContext | null
+  targetProgress: TargetProgress | null
+
   // Question state
   currentQuestion: SelectedQuestion | null
   questionsRemaining: number
@@ -51,6 +79,9 @@ interface QuizState {
   feedbackResult: AnswerResponse | null
   isSubmitting: boolean
   showFeedback: boolean
+
+  // Story 4.7: Session summary state
+  sessionSummary: SessionSummary | null
 
   // Computed: accuracy percentage
   accuracy: () => number | null
@@ -65,10 +96,18 @@ interface QuizState {
   clearSession: () => void
 
   // Question actions
-  setQuestion: (question: SelectedQuestion, questionsRemaining: number) => void
+  setQuestion: (question: SelectedQuestion, questionsRemaining: number, currentQuestionNumber?: number, questionTarget?: number) => void
   setLoadingQuestion: (isLoading: boolean) => void
   setSelectedAnswer: (answer: string | null) => void
   clearQuestion: () => void
+
+  // Story 4.7: Progress actions
+  setProgress: (currentQuestionNumber: number, questionTarget: number) => void
+  setSessionSummary: (summary: SessionSummary | null) => void
+
+  // Story 4.8: Focus actions
+  setFocusContext: (context: FocusContext | null) => void
+  setTargetProgress: (progress: TargetProgress | null) => void
 
   // Feedback actions
   setFeedback: (result: AnswerResponse) => void
@@ -94,6 +133,14 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
   endedAt: null,
   error: null,
 
+  // Story 4.7: Progress tracking state
+  currentQuestionNumber: 1,
+  questionTarget: 10,
+
+  // Story 4.8: Focus context for focused sessions
+  focusContext: null,
+  targetProgress: null,
+
   // Question state
   currentQuestion: null,
   questionsRemaining: 0,
@@ -104,6 +151,9 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
   feedbackResult: null,
   isSubmitting: false,
   showFeedback: false,
+
+  // Story 4.7: Session summary state
+  sessionSummary: null,
 
   // Computed: accuracy percentage (null if no questions answered)
   accuracy: () => {
@@ -118,6 +168,7 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       sessionId: session.sessionId,
       sessionType: session.sessionType,
       questionStrategy: session.questionStrategy,
+      questionTarget: session.questionTarget,
       status: session.status === 'paused' ? 'paused' : 'active',
       isResumed: session.isResumed,
       totalQuestions: session.totalQuestions,
@@ -126,6 +177,10 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       startedAt: session.startedAt,
       endedAt: null,
       error: null,
+      // Story 4.8: Set focus context if provided
+      focusContext: session.focusContext || null,
+      // Reset target progress when starting new session
+      targetProgress: null,
     })
   },
 
@@ -178,6 +233,9 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       startedAt: null,
       endedAt: null,
       error: null,
+      // Story 4.7: Reset progress tracking
+      currentQuestionNumber: 1,
+      questionTarget: 10,
       currentQuestion: null,
       questionsRemaining: 0,
       isLoadingQuestion: false,
@@ -185,11 +243,16 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       feedbackResult: null,
       isSubmitting: false,
       showFeedback: false,
+      // Story 4.7: Reset session summary
+      sessionSummary: null,
+      // Story 4.8: Reset focus context and target progress
+      focusContext: null,
+      targetProgress: null,
     })
   },
 
-  // Action: set current question
-  setQuestion: (question, questionsRemaining) => {
+  // Action: set current question (Story 4.7: added progress parameters)
+  setQuestion: (question, questionsRemaining, currentQuestionNumber, questionTarget) => {
     set({
       currentQuestion: question,
       questionsRemaining,
@@ -198,6 +261,9 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       feedbackResult: null,
       isSubmitting: false,
       showFeedback: false,
+      // Story 4.7: Update progress if provided
+      ...(currentQuestionNumber !== undefined && { currentQuestionNumber }),
+      ...(questionTarget !== undefined && { questionTarget }),
     })
   },
 
@@ -240,5 +306,25 @@ export const useQuizStore = create<QuizState>()((set, get) => ({
       showFeedback: false,
       selectedAnswer: null,
     })
+  },
+
+  // Story 4.7: Action to set progress
+  setProgress: (currentQuestionNumber, questionTarget) => {
+    set({ currentQuestionNumber, questionTarget })
+  },
+
+  // Story 4.7: Action to set session summary
+  setSessionSummary: (summary) => {
+    set({ sessionSummary: summary })
+  },
+
+  // Story 4.8: Action to set focus context
+  setFocusContext: (context) => {
+    set({ focusContext: context })
+  },
+
+  // Story 4.8: Action to set target progress
+  setTargetProgress: (progress) => {
+    set({ targetProgress: progress })
   },
 }))

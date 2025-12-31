@@ -322,10 +322,18 @@ def get_concept_repository(
     return ConceptRepository(db)
 
 
+def get_user_repository(
+    db: AsyncSession = Depends(get_db),
+) -> UserRepository:
+    """Dependency for UserRepository."""
+    return UserRepository(db)
+
+
 def get_quiz_answer_service(
     response_repo: ResponseRepository = Depends(get_response_repository),
     question_repo: QuestionRepository = Depends(get_question_repository),
     session_repo: QuizSessionRepository = Depends(get_quiz_session_repository),
+    user_repo: UserRepository = Depends(get_user_repository),
     belief_repo: BeliefRepository = Depends(get_belief_repository),
     concept_repo: ConceptRepository = Depends(get_concept_repository),
 ) -> QuizAnswerService:
@@ -334,6 +342,7 @@ def get_quiz_answer_service(
 
     Provides the answer submission service with all required repositories
     and the belief updater for Bayesian knowledge tracing.
+    Story 4.7: Added user_repo for quiz completion stats.
     """
     belief_updater = BeliefUpdater(
         belief_repository=belief_repo,
@@ -346,6 +355,7 @@ def get_quiz_answer_service(
         response_repo=response_repo,
         question_repo=question_repo,
         session_repo=session_repo,
+        user_repo=user_repo,
         belief_updater=belief_updater,
     )
 

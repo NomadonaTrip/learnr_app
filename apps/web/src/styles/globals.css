@@ -79,6 +79,15 @@ body {
     animation: fadeUp 0.5s ease-out forwards;
   }
 
+  /* Quiz feedback animations - 400ms total sequence */
+  .animate-fade-slide-in {
+    animation: fadeSlideIn 0.2s ease-out forwards;
+  }
+
+  .animate-icon-appear {
+    animation: iconAppear 0.15s ease-out 0.1s both;
+  }
+
   .hover-lift {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
@@ -127,6 +136,29 @@ body {
       transform: translateY(0);
     }
   }
+
+  /* Quiz inline feedback animations */
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes iconAppear {
+    from {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 }
 
 /* Respect reduced motion preference */
@@ -137,7 +169,9 @@ body {
 
   .animate-fade-in,
   .animate-spring-in,
-  .animate-fade-up {
+  .animate-fade-up,
+  .animate-fade-slide-in,
+  .animate-icon-appear {
     animation: none;
     opacity: 1;
     transform: none;

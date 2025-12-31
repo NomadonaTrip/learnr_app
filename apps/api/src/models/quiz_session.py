@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Integer, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
 
@@ -16,6 +16,7 @@ from ..db.session import Base
 if TYPE_CHECKING:
     from .enrollment import Enrollment
     from .quiz_response import QuizResponse
+    from .review_session import ReviewSession
     from .user import User
 
 
@@ -66,6 +67,12 @@ class QuizSession(Base):
     )
     knowledge_area_filter = Column(String(50), nullable=True)
 
+    # Target concept IDs for focused_concept sessions (JSONB array of UUID strings)
+    target_concept_ids = Column(JSONB, nullable=True, default=[])
+
+    # Session target (fixed-length sessions for habit-forming consistency)
+    question_target = Column(Integer, nullable=False, default=10)
+
     # Progress tracking
     total_questions = Column(Integer, nullable=False, default=0)
     correct_count = Column(Integer, nullable=False, default=0)
@@ -92,16 +99,25 @@ class QuizSession(Base):
         back_populates="session",
         cascade="all, delete-orphan"
     )
+    review_sessions: Mapped[list["ReviewSession"]] = relationship(
+        "ReviewSession",
+        back_populates="original_session",
+        cascade="all, delete-orphan"
+    )
 
     # Table constraints
     __table_args__ = (
         CheckConstraint(
-            "session_type IN ('diagnostic', 'adaptive', 'focused', 'review')",
+            "session_type IN ('diagnostic', 'adaptive', 'focused', 'focused_ka', 'focused_concept', 'review')",
             name="check_quiz_session_type"
         ),
         CheckConstraint(
             "question_strategy IN ('max_info_gain', 'max_uncertainty', 'prerequisite_first', 'balanced')",
             name="check_quiz_question_strategy"
+        ),
+        CheckConstraint(
+            "question_target BETWEEN 10 AND 15",
+            name="check_quiz_session_question_target"
         ),
     )
 

@@ -90,8 +90,25 @@ class DiagnosticResultsResponse(BaseModel):
         None, description="Session status (completed, in_progress, etc.)"
     )
 
-    # Diagnostic score
+    # Diagnostic score (snapshot from original diagnostic)
     score: DiagnosticScore = Field(..., description="Diagnostic test score summary")
+
+    # Overall competence (replaces diagnostic score after first adaptive quiz)
+    overall_competence: float | None = Field(
+        None,
+        ge=0.0,
+        le=100.0,
+        description="Average mastery across assessed concepts as percentage (0-100). Only includes concepts with response_count > 0."
+    )
+    concepts_assessed: int = Field(
+        0,
+        ge=0,
+        description="Number of concepts that have been assessed (response_count > 0). Used to calculate overall_competence."
+    )
+    has_completed_adaptive_quiz: bool = Field(
+        False,
+        description="Whether user has completed at least one adaptive quiz session"
+    )
 
     total_concepts: int = Field(..., ge=0, description="Total concepts in course")
     concepts_touched: int = Field(

@@ -14,10 +14,14 @@ from ..db.session import Base
 
 if TYPE_CHECKING:
     from .belief_state import BeliefState
+    from .concept_unlock_event import ConceptUnlockEvent
     from .diagnostic_session import DiagnosticSession
     from .enrollment import Enrollment
     from .quiz_response import QuizResponse
     from .quiz_session import QuizSession
+    from .reading_queue import ReadingQueue
+    from .review_response import ReviewResponse
+    from .review_session import ReviewSession
 
 
 class User(Base):
@@ -47,6 +51,11 @@ class User(Base):
     # System fields
     is_admin = Column(Boolean, nullable=False, default=False)
     dark_mode = Column(String(10), nullable=False, default='auto')
+
+    # Lifetime quiz statistics (Story 4.7)
+    quizzes_completed = Column(Integer, nullable=False, default=0)
+    total_questions_answered = Column(Integer, nullable=False, default=0)
+    total_time_spent_seconds = Column(Integer, nullable=False, default=0)
 
     # Timestamps
     created_at = Column(
@@ -88,6 +97,26 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+    unlock_events: Mapped[list["ConceptUnlockEvent"]] = relationship(
+        "ConceptUnlockEvent",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    reading_queue_items: Mapped[list["ReadingQueue"]] = relationship(
+        "ReadingQueue",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    review_sessions: Mapped[list["ReviewSession"]] = relationship(
+        "ReviewSession",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    review_responses: Mapped[list["ReviewResponse"]] = relationship(
+        "ReviewResponse",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
     # Table constraints
     __table_args__ = (
@@ -106,6 +135,19 @@ class User(Base):
         CheckConstraint(
             "dark_mode IN ('light', 'dark', 'auto')",
             name='check_dark_mode'
+        ),
+        # Quiz stats constraints (Story 4.7)
+        CheckConstraint(
+            'quizzes_completed >= 0',
+            name='check_quizzes_completed_non_negative'
+        ),
+        CheckConstraint(
+            'total_questions_answered >= 0',
+            name='check_total_questions_answered_non_negative'
+        ),
+        CheckConstraint(
+            'total_time_spent_seconds >= 0',
+            name='check_total_time_spent_seconds_non_negative'
         ),
     )
 

@@ -76,6 +76,7 @@ def create_mock_quiz_session(
     session_type="adaptive",
     question_strategy="max_info_gain",
     knowledge_area_filter=None,
+    question_target=10,
     is_paused=False,
     ended_at=None,
     total_questions=0,
@@ -90,6 +91,7 @@ def create_mock_quiz_session(
     session.session_type = session_type
     session.question_strategy = question_strategy
     session.knowledge_area_filter = knowledge_area_filter
+    session.question_target = question_target
     session.started_at = datetime.now(UTC)
     session.ended_at = ended_at
     session.total_questions = total_questions
@@ -606,3 +608,103 @@ class TestSchemaValidation:
             )
 
             assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+# ============================================================================
+# Question Target Tests (Story 4.1 Tasks 18-23)
+# ============================================================================
+
+
+class TestQuestionTarget:
+    """Test question_target field in quiz session responses."""
+
+    @pytest.mark.asyncio
+    async def test_start_session_returns_question_target(self):
+        """Verify start endpoint returns question_target in response."""
+        user = create_mock_user()
+        enrollment = create_mock_enrollment(user_id=user.id)
+        new_session = create_mock_quiz_session(
+            user_id=user.id,
+            enrollment_id=enrollment.id,
+            question_target=10,
+        )
+
+        mock_service = AsyncMock()
+        mock_service.start_session.return_value = (new_session, False)
+
+        mock_db = AsyncMock()
+
+        app = create_test_app_with_mocks(
+            mock_user=user,
+            mock_enrollment=enrollment,
+            mock_session_service=mock_service,
+            mock_db_session=mock_db,
+        )
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/v1/quiz/session/start")
+
+            assert response.status_code == status.HTTP_201_CREATED
+            data = response.json()
+            assert "question_target" in data
+            assert data["question_target"] == 10
+
+    @pytest.mark.asyncio
+    async def test_get_session_returns_question_target(self):
+        """Verify get session endpoint returns question_target."""
+        user = create_mock_user()
+        session_id = uuid4()
+        session = create_mock_quiz_session(
+            session_id=session_id,
+            user_id=user.id,
+            question_target=10,
+        )
+
+        mock_service = AsyncMock()
+        mock_service.get_session.return_value = session
+
+        app = create_test_app_with_mocks(
+            mock_user=user,
+            mock_session_service=mock_service,
+        )
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get(f"/v1/quiz/session/{session_id}")
+
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert "question_target" in data
+            assert data["question_target"] == 10
+
+    @pytest.mark.asyncio
+    async def test_question_target_default_is_10(self):
+        """Verify default question_target is 10 for habit-forming consistency."""
+        user = create_mock_user()
+        enrollment = create_mock_enrollment(user_id=user.id)
+        # Use default question_target (should be 10)
+        new_session = create_mock_quiz_session(
+            user_id=user.id,
+            enrollment_id=enrollment.id,
+        )
+
+        mock_service = AsyncMock()
+        mock_service.start_session.return_value = (new_session, False)
+
+        mock_db = AsyncMock()
+
+        app = create_test_app_with_mocks(
+            mock_user=user,
+            mock_enrollment=enrollment,
+            mock_session_service=mock_service,
+            mock_db_session=mock_db,
+        )
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/v1/quiz/session/start")
+
+            assert response.status_code == status.HTTP_201_CREATED
+            data = response.json()
+            assert data["question_target"] == 10

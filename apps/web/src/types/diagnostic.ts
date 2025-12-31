@@ -100,6 +100,12 @@ export interface DiagnosticScore {
 /** Response from GET /api/v1/diagnostic/results */
 export interface DiagnosticResultsResponse {
   score: DiagnosticScore
+  /** Overall competence as percentage (0-100), based on assessed concepts only */
+  overall_competence: number | null
+  /** Number of concepts that have been assessed (response_count > 0) */
+  concepts_assessed: number
+  /** Whether user has completed at least one adaptive quiz session */
+  has_completed_adaptive_quiz: boolean
   total_concepts: number
   concepts_touched: number
   coverage_percentage: number

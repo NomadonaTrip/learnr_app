@@ -6,6 +6,8 @@ import { LoginPage } from './pages/LoginPage'
 import { DiagnosticPage } from './pages/DiagnosticPage'
 import { DiagnosticResultsPage } from './pages/DiagnosticResultsPage'
 import { QuizPage } from './pages/QuizPage'
+import { ReadingLibraryPage } from './pages/ReadingLibraryPage'
+import { ReadingDetailPage } from './pages/ReadingDetailPage'
 import { useAuthStore } from './stores/authStore'
 
 /** Route guard that redirects to login if not authenticated */
@@ -102,6 +104,22 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <StudyPlanPlaceholder />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/reading-library',
+    element: (
+      <ProtectedRoute>
+        <ReadingLibraryPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/reading-library/:queueId',
+    element: (
+      <ProtectedRoute>
+        <ReadingDetailPage />
       </ProtectedRoute>
     ),
   },

@@ -1,6 +1,7 @@
 """
 Quiz Answer Submission Pydantic schemas for request/response validation.
 Story 4.3: Answer Submission and Immediate Feedback
+Story 4.7: Fixed-Length Session Auto-Completion
 """
 from uuid import UUID
 
@@ -70,6 +71,38 @@ class SessionStats(BaseModel):
     )
 
 
+class SessionSummaryResponse(BaseModel):
+    """
+    Session summary returned when quiz auto-completes.
+    Story 4.7: Fixed-Length Session Auto-Completion
+    """
+
+    questions_answered: int = Field(..., ge=0, description="Total questions answered (e.g., 12)")
+    question_target: int = Field(..., ge=1, description="Target questions for session (e.g., 12)")
+    correct_count: int = Field(..., ge=0, description="Number of correct answers")
+    accuracy: float = Field(
+        ...,
+        ge=0.0,
+        le=100.0,
+        description="Session accuracy as percentage (0.0-100.0)"
+    )
+    concepts_strengthened: int = Field(
+        ...,
+        ge=0,
+        description="Count of concepts with belief updates during session"
+    )
+    quizzes_completed_total: int = Field(
+        ...,
+        ge=0,
+        description="User's lifetime total of completed quizzes"
+    )
+    session_duration_seconds: int = Field(
+        ...,
+        ge=0,
+        description="Duration of the session in seconds"
+    )
+
+
 class AnswerResponse(BaseModel):
     """Response schema after submitting an answer."""
 
@@ -86,6 +119,15 @@ class AnswerResponse(BaseModel):
     session_stats: SessionStats = Field(
         ...,
         description="Current session statistics"
+    )
+    # Story 4.7: Auto-completion fields
+    session_completed: bool = Field(
+        default=False,
+        description="Whether session auto-completed (questions_answered == question_target)"
+    )
+    session_summary: SessionSummaryResponse | None = Field(
+        default=None,
+        description="Session summary when session_completed is True"
     )
 
 
@@ -108,6 +150,15 @@ class CachedAnswerResponse(BaseModel):
     session_stats: SessionStats = Field(
         ...,
         description="Current session statistics"
+    )
+    # Story 4.7: Auto-completion fields
+    session_completed: bool = Field(
+        default=False,
+        description="Whether session auto-completed (questions_answered == question_target)"
+    )
+    session_summary: SessionSummaryResponse | None = Field(
+        default=None,
+        description="Session summary when session_completed is True"
     )
     cached: bool = Field(
         default=False,

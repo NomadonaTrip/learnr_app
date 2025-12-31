@@ -16,7 +16,7 @@
    - 600-1,000 questions (500 gold standard vendor + LLM variations)
 
 4. **Question Delivery & Feedback**
-   - Adaptive quiz sessions (10-15 questions, auto-complete)
+   - Adaptive quiz sessions (10 questions default, configurable, auto-complete)
    - Immediate answer feedback (correct/incorrect)
    - Detailed explanations for every question
    - Question metadata (KA, difficulty, concept tags)

@@ -262,3 +262,29 @@ class BeliefUpdaterResponse(BaseModel):
             }
             for u in self.updates
         ]
+
+
+# ============================================================================
+# Gap Concept Schemas (Story 4.8 - Focused Practice)
+# ============================================================================
+
+
+class GapConcept(BaseModel):
+    """A concept identified as a gap in user knowledge."""
+
+    concept_id: UUID = Field(..., description="UUID of the gap concept")
+    concept_name: str = Field(..., description="Name of the concept")
+    mastery: float = Field(
+        ..., ge=0.0, le=1.0, description="Current mastery probability (0-1)"
+    )
+    gap_severity: float = Field(
+        ..., ge=0.0, le=1.0, description="Gap severity (0=mild, 1=severe)"
+    )
+
+
+class KAGapsResponse(BaseModel):
+    """Response for knowledge area gaps endpoint."""
+
+    knowledge_area_id: str = Field(..., description="Knowledge area ID")
+    gap_count: int = Field(..., description="Number of gap concepts found")
+    gaps: list[GapConcept] = Field(..., description="List of gap concepts")

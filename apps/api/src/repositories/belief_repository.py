@@ -467,6 +467,62 @@ class BeliefRepository:
             belief.last_response_at = func.now()
         await self.session.flush()
 
+    async def get_gap_concepts_by_knowledge_area(
+        self,
+        user_id: UUID,
+        knowledge_area_id: str,
+    ) -> list[dict]:
+        """
+        Get gap concepts filtered by knowledge area.
+
+        Returns concepts with status='gap' for the specified knowledge area,
+        including concept details and gap severity.
+
+        Args:
+            user_id: User UUID
+            knowledge_area_id: Knowledge area ID to filter by
+
+        Returns:
+            List of dicts with concept_id, concept_name, mastery, gap_severity
+        """
+        # Join beliefs with concepts filtered by knowledge_area_id
+        result = await self.session.execute(
+            select(
+                BeliefState.concept_id,
+                Concept.name.label("concept_name"),
+                BeliefState.alpha,
+                BeliefState.beta,
+            )
+            .join(Concept, BeliefState.concept_id == Concept.id)
+            .where(
+                and_(
+                    BeliefState.user_id == user_id,
+                    Concept.knowledge_area_id == knowledge_area_id,
+                )
+            )
+            .order_by(BeliefState.alpha / (BeliefState.alpha + BeliefState.beta))  # Sort by mastery asc
+        )
+
+        gaps = []
+        for row in result.all():
+            concept_id, concept_name, alpha, beta = row
+            mastery = alpha / (alpha + beta) if (alpha + beta) > 0 else 0.5
+
+            # Only include gaps (mastery < 0.4)
+            if mastery < 0.4:
+                # Calculate gap severity: 0.0 = mild, 1.0 = severe
+                # Based on how far below the gap threshold (0.4) the mastery is
+                gap_severity = min(1.0, (0.4 - mastery) / 0.4)
+
+                gaps.append({
+                    "concept_id": concept_id,
+                    "concept_name": concept_name,
+                    "mastery": round(mastery, 4),
+                    "gap_severity": round(gap_severity, 4),
+                })
+
+        return gaps
+
     async def reset_beliefs_for_enrollment(
         self,
         user_id: UUID,
