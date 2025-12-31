@@ -2,15 +2,22 @@
  * ReadingLibraryPage Component
  * Story 5.7: Reading Library Page with Queue Display
  * Story 5.8: Reading Item Detail View and Engagement Tracking
+ * Story 5.12: Clear Completed Reading Materials
  *
  * Main page component for browsing reading queue items.
  * Displays filterable, sortable, paginated list of reading cards.
  * Includes batch dismiss functionality for low-priority items.
+ * Supports clearing all completed items and individual item removal with undo.
  */
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useReadingQueue } from '../hooks/useReadingQueue'
+import {
+  useReadingQueue,
+  useClearCompletedMutation,
+  useRemoveItemMutation,
+  useRestoreItemMutation,
+} from '../hooks/useReadingQueue'
 import { ReadingCard } from '../components/reading/ReadingCard'
 import {
   ReadingFilterBar,
@@ -18,6 +25,8 @@ import {
   type SortOption,
   type KnowledgeArea,
 } from '../components/reading/ReadingFilterBar'
+import { ClearConfirmationModal } from '../components/reading/ClearConfirmationModal'
+import { UndoToast } from '../components/reading/UndoToast'
 import type { PriorityLevel } from '../components/common/PriorityBadge'
 import { Navigation } from '../components/layout/Navigation'
 import { Toast, type ToastVariant } from '../components/common/Toast'
@@ -97,6 +106,11 @@ interface ToastState {
   variant: ToastVariant
 }
 
+interface UndoState {
+  queueId: string
+  message: string
+}
+
 export function ReadingLibraryPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -108,6 +122,10 @@ export function ReadingLibraryPage() {
   const [page, setPage] = useState(1)
   const [toast, setToast] = useState<ToastState | null>(null)
 
+  // Clear completed modal state (Story 5.12)
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false)
+  const [undoState, setUndoState] = useState<UndoState | null>(null)
+
   // Fetch queue items
   const { items, pagination, isLoading, isError, refetch } = useReadingQueue({
     status,
@@ -116,7 +134,21 @@ export function ReadingLibraryPage() {
     page,
   })
 
-  // Batch dismiss mutation
+  // Build filters object for mutations
+  const filters = {
+    status: status ?? 'unread',
+    ka_id: kaId ?? undefined,
+    sort_by: sortBy ?? 'priority',
+    page: page ?? 1,
+    per_page: 20,
+  }
+
+  // Clear completed mutations (Story 5.12)
+  const clearCompletedMutation = useClearCompletedMutation()
+  const removeItemMutation = useRemoveItemMutation(filters)
+  const restoreItemMutation = useRestoreItemMutation()
+
+  // Batch dismiss mutation (existing)
   const batchDismissMutation = useMutation({
     mutationFn: (queueIds: string[]) => batchDismiss(queueIds),
     onSuccess: (data) => {
@@ -136,16 +168,87 @@ export function ReadingLibraryPage() {
     },
   })
 
-  // Get low priority item IDs for batch dismiss
+  // Get IDs for different operations
   const lowPriorityIds = items
     .filter((item) => item.priority === 'Low' && item.status === 'unread')
     .map((item) => item.queue_id)
+
+  const completedItems = items.filter((item) => item.status === 'completed')
+  const completedIds = completedItems.map((item) => item.queue_id)
 
   const handleBatchDismissLowPriority = useCallback(() => {
     if (lowPriorityIds.length > 0) {
       batchDismissMutation.mutate(lowPriorityIds)
     }
   }, [lowPriorityIds, batchDismissMutation])
+
+  // Clear all completed handlers (Story 5.12)
+  const handleOpenClearModal = useCallback(() => {
+    setIsClearModalOpen(true)
+  }, [])
+
+  const handleCloseClearModal = useCallback(() => {
+    setIsClearModalOpen(false)
+  }, [])
+
+  const handleConfirmClearAll = useCallback(() => {
+    if (completedIds.length === 0) return
+
+    clearCompletedMutation.mutate(completedIds, {
+      onSuccess: (data) => {
+        setIsClearModalOpen(false)
+        setToast({
+          message: `Cleared ${data.dismissed_count} items from your library`,
+          variant: 'success',
+        })
+      },
+      onError: () => {
+        setToast({
+          message: 'Failed to clear items. Please try again.',
+          variant: 'error',
+        })
+      },
+    })
+  }, [completedIds, clearCompletedMutation])
+
+  // Single item remove handler (Story 5.12)
+  const handleRemoveItem = useCallback(
+    (queueId: string) => {
+      removeItemMutation.mutate(queueId, {
+        onSuccess: () => {
+          setUndoState({
+            queueId,
+            message: 'Item removed',
+          })
+        },
+        onError: () => {
+          setToast({
+            message: 'Failed to remove item. Please try again.',
+            variant: 'error',
+          })
+        },
+      })
+    },
+    [removeItemMutation]
+  )
+
+  // Undo handler (Story 5.12)
+  const handleUndo = useCallback(() => {
+    if (!undoState) return
+
+    restoreItemMutation.mutate(undoState.queueId, {
+      onError: () => {
+        setToast({
+          message: 'Failed to restore item. Please try again.',
+          variant: 'error',
+        })
+      },
+    })
+  }, [undoState, restoreItemMutation])
+
+  const handleDismissUndo = useCallback(() => {
+    setUndoState(null)
+  }, [])
 
   // Handle filter changes
   const handleFilterChange = useCallback(
@@ -222,6 +325,9 @@ export function ReadingLibraryPage() {
             selectedKaId={kaId}
             knowledgeAreas={KNOWLEDGE_AREAS}
             onFilterChange={handleFilterChange}
+            completedCount={completedIds.length}
+            onClearAll={handleOpenClearModal}
+            isClearLoading={clearCompletedMutation.isPending}
           />
 
           {/* Content Area */}
@@ -287,6 +393,8 @@ export function ReadingLibraryPage() {
                     wasIncorrect={item.was_incorrect}
                     addedAt={item.added_at}
                     onReadNow={handleReadNow}
+                    status={item.status}
+                    onRemove={handleRemoveItem}
                   />
                 ))}
               </div>
@@ -312,6 +420,24 @@ export function ReadingLibraryPage() {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* Clear Confirmation Modal (Story 5.12) */}
+      <ClearConfirmationModal
+        isOpen={isClearModalOpen}
+        onClose={handleCloseClearModal}
+        onConfirm={handleConfirmClearAll}
+        count={completedIds.length}
+        isLoading={clearCompletedMutation.isPending}
+      />
+
+      {/* Undo Toast for single item removal (Story 5.12) */}
+      <UndoToast
+        message={undoState?.message ?? ''}
+        isVisible={!!undoState}
+        onUndo={handleUndo}
+        onDismiss={handleDismissUndo}
+        duration={5000}
+      />
     </div>
   )
 }

@@ -1,12 +1,14 @@
 /**
  * ReadingFilterBar Component
  * Story 5.7: Reading Library Page with Queue Display
+ * Story 5.12: Clear Completed Reading Materials
  *
- * Filter bar with status tabs, sort dropdown, and KA filter.
+ * Filter bar with status tabs, sort dropdown, KA filter, and clear button.
  * Uses Headless UI for accessible dropdowns.
  */
 import { Fragment } from 'react'
 import { Tab, Listbox, Transition } from '@headlessui/react'
+import { ClearCompletedButton } from './ClearCompletedButton'
 
 // Simple icon components to avoid heroicons dependency
 function ChevronUpDownIcon({ className }: { className?: string }) {
@@ -51,6 +53,12 @@ export interface FilterBarProps {
     sort?: SortOption
     kaId?: string | null
   }) => void
+  /** Number of completed items (for clear all button) */
+  completedCount?: number
+  /** Handler for clear all completed button */
+  onClearAll?: () => void
+  /** Loading state for clear all operation */
+  isClearLoading?: boolean
 }
 
 const statusTabs: { value: FilterStatus; label: string }[] = [
@@ -75,6 +83,9 @@ export function ReadingFilterBar({
   selectedKaId,
   knowledgeAreas,
   onFilterChange,
+  completedCount = 0,
+  onClearAll,
+  isClearLoading = false,
 }: FilterBarProps) {
   // Find selected index for Tab component
   const selectedTabIndex = statusTabs.findIndex((tab) => tab.value === selectedStatus)
@@ -120,8 +131,8 @@ export function ReadingFilterBar({
         </Tab.List>
       </Tab.Group>
 
-      {/* Sort and KA Filter Dropdowns */}
-      <div className="flex items-center gap-3">
+      {/* Sort, KA Filter Dropdowns, and Clear Button */}
+      <div className="flex items-center gap-3 flex-wrap">
         {/* Sort Dropdown */}
         <Listbox value={selectedSortOption} onChange={handleSortChange}>
           <div className="relative">
@@ -254,6 +265,15 @@ export function ReadingFilterBar({
             </Transition>
           </div>
         </Listbox>
+
+        {/* Clear All Completed Button - only show on Completed tab with items */}
+        {selectedStatus === 'completed' && completedCount > 0 && onClearAll && (
+          <ClearCompletedButton
+            count={completedCount}
+            onClick={onClearAll}
+            isLoading={isClearLoading}
+          />
+        )}
       </div>
     </div>
   )

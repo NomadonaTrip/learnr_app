@@ -1,12 +1,15 @@
 /**
  * ReadingCard Component
  * Story 5.7: Reading Library Page with Queue Display
+ * Story 5.12: Clear Completed Reading Materials
  *
  * Displays a reading queue item as a card with priority, title,
  * preview, context, and "Read Now" CTA button.
+ * Shows kebab menu for completed items to allow removal.
  * Accessible with keyboard navigation and screen reader support.
  */
 import { PriorityBadge, type PriorityLevel } from '../common/PriorityBadge'
+import { KebabMenu } from './KebabMenu'
 
 export interface ReadingCardProps {
   queueId: string
@@ -20,6 +23,10 @@ export interface ReadingCardProps {
   wasIncorrect?: boolean
   addedAt: string
   onReadNow: (queueId: string) => void
+  /** Current status of the item (for conditional kebab menu) */
+  status?: string
+  /** Handler for removing item from library (only for completed items) */
+  onRemove?: (queueId: string) => void
 }
 
 export function ReadingCard({
@@ -33,17 +40,26 @@ export function ReadingCard({
   questionPreview,
   wasIncorrect,
   onReadNow,
+  status,
+  onRemove,
 }: ReadingCardProps) {
   const titleId = `card-title-${queueId}`
+  const showKebabMenu = status === 'completed' && onRemove
 
   return (
     <article
       role="article"
       aria-labelledby={titleId}
       tabIndex={0}
-      className="bg-white rounded-[14px] shadow-sm p-6 hover:shadow-md transition-shadow
+      className="relative bg-white rounded-[14px] shadow-sm p-6 hover:shadow-md transition-shadow
                  focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
+      {/* Kebab menu for completed items */}
+      {showKebabMenu && (
+        <div className="absolute top-4 right-4">
+          <KebabMenu onRemove={() => onRemove(queueId)} />
+        </div>
+      )}
       <div className="flex items-start gap-4">
         <PriorityBadge priority={priority} />
         <div className="flex-1">

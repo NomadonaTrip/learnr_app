@@ -1,6 +1,7 @@
 /**
  * Reading Library Page Integration Tests
  * Story 5.7: Reading Library Page with Queue Display
+ * Story 5.12: Clear Completed Reading Materials
  *
  * Tests the integration between the ReadingLibraryPage component,
  * useReadingQueue hook, and the reading queue API.
@@ -287,6 +288,233 @@ describe('Reading Library Page Integration', () => {
         articles.forEach((article) => {
           expect(article).toHaveAttribute('tabIndex', '0')
         })
+      })
+    })
+  })
+
+  /**
+   * Story 5.12: Clear Completed Reading Materials
+   * Integration tests for batch clear and single item removal flows
+   */
+  describe('clear completed flow (Story 5.12)', () => {
+    const completedItems = [
+      {
+        queue_id: 'completed-1',
+        chunk_id: 'chunk-c1',
+        title: 'Completed Reading 1',
+        preview: 'This reading has been completed...',
+        babok_section: '2.1',
+        ka_name: 'BA Planning',
+        ka_id: 'planning',
+        relevance_score: null,
+        priority: 'Low' as const,
+        status: 'completed',
+        word_count: 400,
+        estimated_read_minutes: 2,
+        question_preview: null,
+        was_incorrect: false,
+        added_at: '2025-01-10T10:00:00Z',
+      },
+      {
+        queue_id: 'completed-2',
+        chunk_id: 'chunk-c2',
+        title: 'Completed Reading 2',
+        preview: 'Another completed reading...',
+        babok_section: '3.2',
+        ka_name: 'Strategy Analysis',
+        ka_id: 'strategy',
+        relevance_score: null,
+        priority: 'Medium' as const,
+        status: 'completed',
+        word_count: 500,
+        estimated_read_minutes: 3,
+        question_preview: null,
+        was_incorrect: false,
+        added_at: '2025-01-11T10:00:00Z',
+      },
+    ]
+
+    it('shows clear button on Completed tab when items exist', async () => {
+      setMockQueueItems(completedItems)
+      renderWithProviders()
+
+      // Click Completed tab
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Completed' })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('tab', { name: 'Completed' }))
+
+      // Wait for completed items and clear button
+      await waitFor(() => {
+        expect(screen.getByText('2.1: Completed Reading 1')).toBeInTheDocument()
+        expect(
+          screen.getByRole('button', { name: /clear all.*completed items/i })
+        ).toBeInTheDocument()
+      })
+    })
+
+    it('opens confirmation modal when clear button is clicked', async () => {
+      setMockQueueItems(completedItems)
+      renderWithProviders()
+
+      // Navigate to Completed tab
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Completed' })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('tab', { name: 'Completed' }))
+
+      // Click clear button
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: /clear all.*completed items/i })
+        ).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /clear all.*completed items/i }))
+
+      // Modal should appear
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+        expect(screen.getByText('Clear Completed Reading Materials?')).toBeInTheDocument()
+        expect(screen.getByText(/2 items/)).toBeInTheDocument()
+      })
+    })
+
+    it('clears items and shows success toast after confirmation', async () => {
+      setMockQueueItems(completedItems)
+      renderWithProviders()
+
+      // Navigate to Completed tab
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Completed' })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('tab', { name: 'Completed' }))
+
+      // Click clear button
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: /clear all.*completed items/i })
+        ).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /clear all.*completed items/i }))
+
+      // Confirm in modal
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /clear items/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /clear items/i }))
+
+      // Should show success toast
+      await waitFor(() => {
+        expect(screen.getByText(/cleared.*items from your library/i)).toBeInTheDocument()
+      })
+    })
+
+    it('closes modal when cancel is clicked', async () => {
+      setMockQueueItems(completedItems)
+      renderWithProviders()
+
+      // Navigate to Completed tab
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Completed' })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('tab', { name: 'Completed' }))
+
+      // Open modal
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: /clear all.*completed items/i })
+        ).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /clear all.*completed items/i }))
+
+      // Click cancel
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+
+      // Modal should close
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      })
+    })
+
+    it('shows kebab menu on completed cards', async () => {
+      setMockQueueItems(completedItems)
+      renderWithProviders()
+
+      // Navigate to Completed tab
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Completed' })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('tab', { name: 'Completed' }))
+
+      // Should have kebab menus on cards
+      await waitFor(() => {
+        const menuButtons = screen.getAllByRole('button', { name: /card actions menu/i })
+        expect(menuButtons.length).toBe(2)
+      })
+    })
+
+    it('shows undo toast when single item is removed', async () => {
+      setMockQueueItems(completedItems)
+      renderWithProviders()
+
+      // Navigate to Completed tab
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Completed' })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('tab', { name: 'Completed' }))
+
+      // Wait for kebab menu and click it
+      await waitFor(() => {
+        expect(screen.getAllByRole('button', { name: /card actions menu/i })[0]).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getAllByRole('button', { name: /card actions menu/i })[0])
+
+      // Click "Remove from library"
+      await waitFor(() => {
+        expect(screen.getByText('Remove from library')).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByText('Remove from library'))
+
+      // Should show undo toast
+      await waitFor(() => {
+        expect(screen.getByText('Item removed')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument()
+      })
+    })
+
+    it('shows error toast when batch clear fails', async () => {
+      setMockQueueItems(completedItems)
+      renderWithProviders()
+
+      // Navigate to Completed tab
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Completed' })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('tab', { name: 'Completed' }))
+
+      // Open modal
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: /clear all.*completed items/i })
+        ).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /clear all.*completed items/i }))
+
+      // Set error before confirming
+      setMockQueueError(true)
+
+      // Confirm
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /clear items/i })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: /clear items/i }))
+
+      // Should show error toast
+      await waitFor(() => {
+        expect(screen.getByText(/failed to clear items/i)).toBeInTheDocument()
       })
     })
   })

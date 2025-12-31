@@ -1,13 +1,16 @@
 /**
  * useReadingQueue Hook
  * Story 5.7: Reading Library Page with Queue Display
+ * Story 5.12: Clear Completed Reading Materials
  *
  * React Query hook for fetching and managing reading queue data.
- * Supports filtering, sorting, and pagination.
+ * Supports filtering, sorting, pagination, and clear operations.
  */
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getQueueItems,
+  batchDismiss,
+  updateStatus,
   type ReadingQueueFilters,
   type ReadingQueueItem,
   type PaginationMeta,
@@ -77,4 +80,90 @@ export function useReadingQueue(params: UseReadingQueueParams = {}): UseReadingQ
     error: error as Error | null,
     refetch,
   }
+}
+
+/**
+ * Hook for batch clearing completed reading queue items.
+ * Story 5.12: Clear Completed Reading Materials
+ *
+ * @returns Mutation for batch clearing completed items
+ */
+export function useClearCompletedMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (queueIds: string[]) => batchDismiss(queueIds),
+    onSuccess: () => {
+      // Invalidate all reading queue queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['readingQueue'] })
+      queryClient.invalidateQueries({ queryKey: ['readingStats'] })
+    },
+  })
+}
+
+/**
+ * Hook for removing a single reading queue item with optimistic update.
+ * Story 5.12: Clear Completed Reading Materials
+ *
+ * @param filters - Current filter state for optimistic update
+ * @returns Mutation for removing item with rollback capability
+ */
+export function useRemoveItemMutation(filters?: ReadingQueueFilters) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (queueId: string) => updateStatus(queueId, 'dismissed'),
+    onMutate: async (queueId: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['readingQueue'] })
+
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(['readingQueue', filters])
+
+      // Optimistically remove from cache
+      queryClient.setQueryData(
+        ['readingQueue', filters],
+        (old: { items: ReadingQueueItem[]; pagination: PaginationMeta } | undefined) => {
+          if (!old) return old
+          return {
+            ...old,
+            items: old.items.filter((item) => item.queue_id !== queueId),
+          }
+        }
+      )
+
+      // Return context with snapshot for rollback
+      return { previousData, removedQueueId: queueId }
+    },
+    onError: (_err, _queueId, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(['readingQueue', filters], context.previousData)
+      }
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: ['readingQueue'] })
+      queryClient.invalidateQueries({ queryKey: ['readingStats'] })
+    },
+  })
+}
+
+/**
+ * Hook for restoring a dismissed item back to completed status (undo).
+ * Story 5.12: Clear Completed Reading Materials
+ *
+ * @returns Mutation for restoring item to completed status
+ */
+export function useRestoreItemMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (queueId: string) => updateStatus(queueId, 'completed'),
+    onSuccess: () => {
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['readingQueue'] })
+      queryClient.invalidateQueries({ queryKey: ['readingStats'] })
+    },
+  })
 }

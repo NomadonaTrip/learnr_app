@@ -368,6 +368,9 @@ export function useQuizSession(options?: UseQuizSessionOptions | SessionConfig) 
         version: data.session_stats.session_version,
       })
 
+      // Invalidate reading stats - backend may add items to reading queue on wrong answers
+      queryClient.invalidateQueries({ queryKey: ['readingStats'] })
+
       // Story 4.7: Handle auto-completion
       if (data.session_completed && data.session_summary) {
         setSessionSummary(data.session_summary)

@@ -671,6 +671,7 @@ function EndedState({
     isStartingReview,
     isFetchingQuestion: reviewIsFetchingQuestion,
     isSkipping,
+    isCheckingAvailability,
     checkAvailability,
     startReview,
     skipReview,
@@ -680,11 +681,12 @@ function EndedState({
   } = useReview({ originalSessionId: sessionId || undefined })
 
   // Check for review availability when component mounts (if there are incorrect answers)
+  // Guard with isCheckingAvailability to prevent duplicate requests
   useEffect(() => {
-    if (sessionId && incorrectCount > 0 && reviewStatus === 'idle') {
+    if (sessionId && incorrectCount > 0 && reviewStatus === 'idle' && !isCheckingAvailability) {
       checkAvailability(sessionId)
     }
-  }, [sessionId, incorrectCount, reviewStatus, checkAvailability])
+  }, [sessionId, incorrectCount, reviewStatus, isCheckingAvailability, checkAvailability])
 
   // Show review prompt state
   if (reviewStatus === 'prompt' && totalToReview > 0) {

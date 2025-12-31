@@ -1685,3 +1685,49 @@ class TestReadingBatchDismissAPI:
         assert "remaining_unread_count" in data
         assert isinstance(data["remaining_unread_count"], int)
         assert data["remaining_unread_count"] >= 0
+
+    async def test_batch_dismiss_completed_items(
+        self,
+        client,
+        queue_auth_token,
+        queue_test_enrollment,
+        queue_test_items,
+        db_session,
+    ):
+        """
+        Test batch dismissing completed items.
+        Story 5.12: Clear Completed Reading Materials
+
+        Verifies that completed items can be batch dismissed (cleared from library).
+        """
+        headers = {"Authorization": f"Bearer {queue_auth_token}"}
+
+        # First, mark an item as completed
+        item_to_complete = queue_test_items[0]
+        complete_response = await client.put(
+            f"/v1/reading/queue/{item_to_complete.id}/status",
+            headers=headers,
+            json={"status": "completed"},
+        )
+        assert complete_response.status_code == 200
+
+        # Now batch dismiss the completed item
+        response = await client.post(
+            "/v1/reading/queue/batch-dismiss",
+            headers=headers,
+            json={"queue_ids": [str(item_to_complete.id)]},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["dismissed_count"] == 1
+
+        # Verify the item is now dismissed (not in completed list)
+        list_response = await client.get(
+            "/v1/reading/queue?status=completed",
+            headers=headers,
+        )
+        assert list_response.status_code == 200
+        completed_items = list_response.json()["items"]
+        completed_ids = [item["queue_id"] for item in completed_items]
+        assert str(item_to_complete.id) not in completed_ids
