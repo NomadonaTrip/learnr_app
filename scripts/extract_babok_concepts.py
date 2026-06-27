@@ -361,7 +361,7 @@ def estimate_difficulty(section: MarkdownSection, base_difficulty: float) -> flo
     Estimate concept difficulty based on section characteristics.
 
     Args:
-        section: BabokSection the concept belongs to
+        section: MarkdownSection the concept belongs to
         base_difficulty: Initial difficulty from GPT-4
 
     Returns:

@@ -87,3 +87,16 @@ def test_empty_title_multichunk_suffix_includes_ref():
     t = generate_chunk_title(_sec(""), 1, 3)
     assert "3.1.1" in t
     assert "Part 2" in t
+
+
+# ---------------------------------------------------------------------------
+# Fix 1: _split_oversized never emits a unit exceeding max_tokens
+# ---------------------------------------------------------------------------
+
+def test_split_oversized_units_never_exceed_max_tokens():
+    from parse_corpus import _split_oversized
+    # Many short sentences whose " ".join re-tokenizes above the cap due to
+    # the additive individual-count approximation missing inter-word tokens.
+    text = ". ".join(f"sentence number {i} has some words" for i in range(400)) + "."
+    for unit in _split_oversized(text, max_tokens=200):
+        assert len(enc.encode(unit)) <= 200

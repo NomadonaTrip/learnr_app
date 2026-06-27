@@ -28,7 +28,6 @@ sys.path.append(str(project_root / "apps" / "api"))
 
 from utils.corpus_markdown import (
     CorpusMarkdownParser,
-    MarkdownSection,
     convert_pdf_to_markdown,
 )
 
@@ -109,13 +108,40 @@ def _ka_chapter_numbers(course) -> list[int]:
     return nums
 
 
-def resolve_chunk_chapters(course, cli_min, cli_max) -> ChapterScope:
-    """Chapter scope precedence: CLI > corpus_config > KA-chapter default."""
+def resolve_chunk_chapters(
+    course, cli_min: int | None, cli_max: int | None
+) -> ChapterScope:
+    """Chapter scope precedence: CLI > corpus_config > KA-chapter default.
+
+    KA-derived defaults are computed lazily — only when the value is absent
+    from both CLI and corpus_config — so a course with no knowledge_areas
+    (empty section_prefix list) raises a clear error only when needed.
+    """
     cfg = (course.corpus_config or {}).get("chunk_chapters") or {}
-    ka_nums = _ka_chapter_numbers(course)
-    default_min, default_max = min(ka_nums), max(ka_nums)
-    cmin = cli_min if cli_min is not None else cfg.get("min", default_min)
-    cmax = cli_max if cli_max is not None else cfg.get("max", default_max)
+
+    def _ka_default(key: str) -> int:
+        ka_nums = _ka_chapter_numbers(course)
+        if not ka_nums:
+            raise ValueError(
+                "course has no knowledge_areas with section_prefix; "
+                "pass --min-chapter/--max-chapter"
+            )
+        return min(ka_nums) if key == "min" else max(ka_nums)
+
+    if cli_min is not None:
+        cmin = cli_min
+    elif "min" in cfg:
+        cmin = cfg["min"]
+    else:
+        cmin = _ka_default("min")
+
+    if cli_max is not None:
+        cmax = cli_max
+    elif "max" in cfg:
+        cmax = cfg["max"]
+    else:
+        cmax = _ka_default("max")
+
     if cmin > cmax:
         raise ValueError(f"chunk chapter min ({cmin}) > max ({cmax})")
     return ChapterScope(int(cmin), int(cmax))
@@ -162,9 +188,27 @@ def get_ka_from_section(section_ref: str, ka_mapping: Dict[str, str]) -> str:
 
 
 
+def _emit_clamped(candidate: str, max_tokens: int, out: List[str]) -> None:
+    """Append *candidate* to *out*, token-window-splitting it if it exceeds max_tokens.
+
+    This is the safety clamp that makes the max_tokens invariant airtight:
+    even if the running token-count sum under-estimates the actual encoded
+    length of the joined string (due to BPE boundary effects), the emitted
+    units are guaranteed to be <= max_tokens tokens.
+    """
+    actual = len(enc.encode(candidate))
+    if actual <= max_tokens:
+        out.append(candidate)
+    else:
+        toks = enc.encode(candidate)
+        for i in range(0, len(toks), max_tokens):
+            out.append(enc.decode(toks[i : i + max_tokens]))
+
+
 def _split_oversized(text: str, max_tokens: int) -> List[str]:
     """Split a too-large unit by sentences, then by token window.
 
+    Every returned unit is guaranteed to have len(enc.encode(unit)) <= max_tokens.
     Note: sentences accumulated into a buffer are re-joined with a single
     space (original inter-sentence whitespace is not preserved).
     """
@@ -176,19 +220,19 @@ def _split_oversized(text: str, max_tokens: int) -> List[str]:
         s_tokens = len(enc.encode(s))
         if s_tokens > max_tokens:
             if buf:
-                out.append(" ".join(buf))
+                _emit_clamped(" ".join(buf), max_tokens, out)
                 buf, buf_tokens = [], 0
             toks = enc.encode(s)
             for i in range(0, len(toks), max_tokens):
                 out.append(enc.decode(toks[i:i + max_tokens]))
         elif buf_tokens + s_tokens > max_tokens and buf:
-            out.append(" ".join(buf))
+            _emit_clamped(" ".join(buf), max_tokens, out)
             buf, buf_tokens = [s], s_tokens
         else:
             buf.append(s)
             buf_tokens += s_tokens
     if buf:
-        out.append(" ".join(buf))
+        _emit_clamped(" ".join(buf), max_tokens, out)
     return out
 
 

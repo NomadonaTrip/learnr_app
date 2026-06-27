@@ -45,3 +45,24 @@ def test_unsupported_heading_style_raises():
 def test_numbered_heading_style_ok():
     validate_heading_style(MockCourse({"heading_style": "numbered"}))
     validate_heading_style(MockCourse(None))  # default is numbered
+
+
+# ---------------------------------------------------------------------------
+# Fix 5: empty-KA guard in resolve_chunk_chapters
+# ---------------------------------------------------------------------------
+
+class MockCourseNoKA:
+    def __init__(self, corpus_config=None):
+        self.corpus_config = corpus_config
+        self.knowledge_areas = []
+
+
+def test_empty_ka_with_cli_args_ok():
+    c = MockCourseNoKA(None)
+    assert resolve_chunk_chapters(c, 1, 8) == ChapterScope(1, 8)
+
+
+def test_empty_ka_without_args_raises_clear_error():
+    c = MockCourseNoKA(None)
+    with pytest.raises(ValueError):
+        resolve_chunk_chapters(c, None, None)
