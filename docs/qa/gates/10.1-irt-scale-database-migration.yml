@@ -1,0 +1,97 @@
+schema: 1
+story: '10.1'
+story_title: 'IRT Scale Database Migration'
+gate: PASS
+status_reason: 'All acceptance criteria verified. Migration, model, and schema updates complete with comprehensive tests.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2025-12-23T12:15:00Z'
+
+top_issues: []
+
+waiver:
+  active: false
+
+quality_score: 95
+expires: '2026-01-06T12:15:00Z'
+
+evidence:
+  tests_reviewed: 50
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'No security impact - internal data transformation only'
+  performance:
+    status: PASS
+    notes: 'Migration optimized with batch SQL updates'
+  reliability:
+    status: PASS
+    notes: 'Reversible migration with tested downgrade path'
+  maintainability:
+    status: PASS
+    notes: 'Clean separation of concerns, well-documented code'
+
+requirements_traceability:
+  - ac: 1
+    description: 'Add difficulty_label column'
+    validation: 'Verified in migration file line 35-42'
+    tests: ['test_question_schemas.py']
+  - ac: 2
+    description: 'Drop old constraint'
+    validation: 'Verified in migration file line 45'
+    tests: ['migration test']
+  - ac: 3
+    description: 'Convert difficulty values'
+    validation: 'SQL CASE statement with discrete + linear mapping verified'
+    tests: ['test_transformation tests']
+  - ac: 4
+    description: 'New IRT constraint'
+    validation: 'CheckConstraint in model line 122-125'
+    tests: ['test_question_schemas.py']
+  - ac: 5
+    description: 'Populate difficulty_label'
+    validation: 'Migration populates based on tier thresholds'
+    tests: ['verification queries']
+  - ac: 6
+    description: 'Reversible migration'
+    validation: 'downgrade() function verified in migration'
+    tests: ['test_migration_downgrade']
+  - ac: 7
+    description: 'Relative ordering preserved'
+    validation: 'Dev Agent verified Easy < Medium < Hard'
+    tests: ['verification queries']
+  - ac: 8
+    description: 'API returns both fields'
+    validation: 'QuestionResponse schema includes difficulty_label'
+    tests: ['test_question_schemas.py']
+  - ac: 9
+    description: 'Documentation updated'
+    validation: 'database-schema-bkt.md v3.1 updated'
+    tests: ['manual review']
+
+code_review:
+  files_reviewed:
+    - path: 'apps/api/src/db/migrations/versions/q7l8m9n0o1p2_migrate_difficulty_to_irt_scale.py'
+      status: PASS
+      notes: 'Clean migration with proper upgrade/downgrade paths'
+    - path: 'apps/api/src/models/question.py'
+      status: PASS
+      notes: 'Model correctly updated with IRT constraint and difficulty_label'
+    - path: 'apps/api/src/schemas/question.py'
+      status: PASS
+      notes: 'Schema validators use correct IRT range (-3.0 to 3.0)'
+    - path: 'docs/prd/database-schema-bkt.md'
+      status: PASS
+      notes: 'Documentation updated to v3.1 with IRT scale'
+
+recommendations:
+  immediate: []
+  future:
+    - action: 'Consider adding database index on difficulty_label for tier-based queries'
+      refs: ['apps/api/src/models/question.py']
+    - action: 'Add difficulty tier constants to avoid magic numbers'
+      refs: ['apps/api/src/services/question_selector.py']
