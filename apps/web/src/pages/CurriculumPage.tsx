@@ -69,7 +69,7 @@ export function CurriculumPage() {
               <p className="font-medium text-red-800">Couldn't load your curriculum</p>
               <button
                 type="button"
-                onClick={() => statusQuery.refetch()}
+                onClick={() => { void courseQuery.refetch(); void statusQuery.refetch() }}
                 className="mt-2 text-sm font-medium text-red-700 underline"
               >
                 Try again
