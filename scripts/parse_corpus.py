@@ -88,6 +88,41 @@ class ParseStats:
     avg_tokens: float = 0.0
 
 
+@dataclass(frozen=True)
+class ChapterScope:
+    min: int
+    max: int
+
+
+def _ka_chapter_numbers(course) -> list[int]:
+    nums = []
+    for ka in course.knowledge_areas:
+        prefix = ka.get("section_prefix")
+        if prefix is not None:
+            nums.append(int(str(prefix).split(".")[0]))
+    return nums
+
+
+def resolve_chunk_chapters(course, cli_min, cli_max) -> ChapterScope:
+    """Chapter scope precedence: CLI > corpus_config > KA-chapter default."""
+    cfg = (course.corpus_config or {}).get("chunk_chapters") or {}
+    ka_nums = _ka_chapter_numbers(course)
+    default_min, default_max = min(ka_nums), max(ka_nums)
+    cmin = cli_min if cli_min is not None else cfg.get("min", default_min)
+    cmax = cli_max if cli_max is not None else cfg.get("max", default_max)
+    if cmin > cmax:
+        raise ValueError(f"chunk chapter min ({cmin}) > max ({cmax})")
+    return ChapterScope(int(cmin), int(cmax))
+
+
+def validate_heading_style(course) -> None:
+    style = (course.corpus_config or {}).get("heading_style", "numbered")
+    if style != "numbered":
+        raise NotImplementedError(
+            f"heading_style {style!r} not supported; only 'numbered'"
+        )
+
+
 def get_ka_mapping(course: Course) -> Dict[str, str]:
     """
     Build section→KA mapping from course knowledge_areas JSONB.
@@ -632,6 +667,10 @@ async def main():
         default=500,
         help="Maximum tokens per chunk",
     )
+    parser.add_argument("--min-chapter", type=int, default=None,
+                        help="Override corpus_config chunk_chapters.min")
+    parser.add_argument("--max-chapter", type=int, default=None,
+                        help="Override corpus_config chunk_chapters.max")
 
     args = parser.parse_args()
 
