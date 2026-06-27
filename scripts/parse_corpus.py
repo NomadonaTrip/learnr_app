@@ -297,10 +297,14 @@ def generate_chunk_title(section: CorpusSection, chunk_index: int, total_chunks:
     Returns:
         Generated title (max 255 chars)
     """
+    base = section.title.strip() if section.title else ""
+    if not base:
+        base = f"Section {section.section_ref}"
+
     if total_chunks == 1:
-        title = section.title
+        title = base
     else:
-        title = f"{section.title} - Part {chunk_index + 1}"
+        title = f"{base} - Part {chunk_index + 1}"
 
     # Truncate if needed
     if len(title) > 255:

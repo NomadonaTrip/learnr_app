@@ -5,7 +5,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "scripts"))
 
 import tiktoken
-from parse_corpus import chunk_section, CorpusSection
+from parse_corpus import chunk_section, generate_chunk_title, CorpusSection
 
 enc = tiktoken.get_encoding("cl100k_base")
 
@@ -54,3 +54,36 @@ def test_normal_paragraphs_grouped_to_target():
     assert len(chunks) >= 1
     for content, _ in chunks:
         assert len(enc.encode(content)) <= 500
+
+
+# ---------------------------------------------------------------------------
+# generate_chunk_title tests
+# ---------------------------------------------------------------------------
+
+def _sec(title, ref="3.1.1"):
+    return CorpusSection(section_ref=ref, title=title, content="x",
+                         knowledge_area_id="k", page_numbers=[0, 0])
+
+
+def test_empty_title_falls_back_to_section_ref():
+    t = generate_chunk_title(_sec(""), 0, 1)
+    assert t and t.strip()           # non-empty
+    assert "3.1.1" in t
+
+
+def test_whitespace_title_falls_back():
+    assert generate_chunk_title(_sec("   "), 0, 1).strip()
+
+
+def test_nonempty_title_unchanged_single():
+    assert generate_chunk_title(_sec("Plan Approach"), 0, 1) == "Plan Approach"
+
+
+def test_nonempty_title_multichunk_suffix():
+    assert generate_chunk_title(_sec("Plan Approach"), 1, 3) == "Plan Approach - Part 2"
+
+
+def test_empty_title_multichunk_suffix_includes_ref():
+    t = generate_chunk_title(_sec(""), 1, 3)
+    assert "3.1.1" in t
+    assert "Part 2" in t
