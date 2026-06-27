@@ -1,0 +1,181 @@
+schema: 1
+story: '2.8'
+story_title: 'Content Retrieval API - Questions by Concept'
+gate: PASS
+status_reason: 'All QA concerns resolved. Comprehensive test coverage with 7 unit tests for routes layer (AC 8), proper test architecture balance, all 10 ACs met. Code quality excellent with refactoring applied. Production-ready.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2025-12-10T00:00:00Z'
+
+top_issues: [] # All previous issues resolved
+
+waiver:
+  active: false
+
+# Quality Score: 100 - (10 × 1 minor future enhancement) = 90
+quality_score: 90
+expires: '2025-12-24T00:00:00Z'
+
+previous_review:
+  date: '2025-12-10T00:00:00Z'
+  gate: CONCERNS
+  quality_score: 60
+  issues_resolved:
+    - 'Added unit tests for routes layer (AC 8) - 7 comprehensive tests'
+    - 'Test strategy compliance restored - now has unit + integration balance'
+    - 'Added integration test for difficulty validation edge case'
+
+evidence:
+  tests_reviewed:
+    count: 26
+    types:
+      unit: 7
+      integration: 19
+    files:
+      - 'apps/api/tests/unit/test_question_routes.py'
+      - 'apps/api/tests/integration/test_question_api.py'
+  risks_identified:
+    count: 0
+    categories: {}
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    ac_gaps: []
+  files_reviewed:
+    - 'apps/api/src/schemas/question.py'
+    - 'apps/api/src/repositories/question_repository.py'
+    - 'apps/api/src/routes/questions.py'
+    - 'apps/api/tests/unit/test_question_routes.py'
+    - 'apps/api/tests/integration/test_question_api.py'
+  refactoring_performed:
+    - file: 'apps/api/src/repositories/question_repository.py'
+      change: 'Extracted _apply_question_filters() helper method'
+      lines_reduced: ~50
+    - file: 'apps/api/src/routes/questions.py'
+      change: 'Added difficulty range validation'
+      lines_added: 11
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: |
+      ✓ Authentication required via JWT
+      ✓ Sensitive fields excluded (correct_answer, explanation)
+      ✓ Multi-course isolation enforced at DB level
+      ✓ Input validation for edge cases (difficulty range)
+      ℹ️ Rate limiting noted as future enhancement (not blocking)
+  performance:
+    status: PASS
+    notes: |
+      ✓ Response time logging with 100ms threshold
+      ✓ Efficient query with LEFT JOIN and array_agg
+      ✓ Proper index usage documented
+      ✓ Pagination implemented
+      ℹ️ Query caching consideration for future optimization
+  reliability:
+    status: PASS
+    notes: |
+      ✓ Error handling for course not found
+      ✓ Handles questions without concepts (empty array)
+      ✓ Input validation for invalid ranges
+      ✓ Proper async/await usage throughout
+      ✓ Edge cases tested in unit tests
+  maintainability:
+    status: PASS
+    notes: |
+      ✓ Repository pattern followed
+      ✓ Clear type hints throughout
+      ✓ Good documentation and comments
+      ✓ Code duplication eliminated
+      ✓ Separation of concerns maintained
+      ✓ Comprehensive test coverage (unit + integration)
+
+architecture_review:
+  strengths:
+    - 'Excellent multi-course architecture with proper course scoping'
+    - 'Repository pattern correctly implemented'
+    - 'Efficient database query design with concept aggregation'
+    - 'Clean separation between schemas, repositories, and routes'
+    - 'Comprehensive test coverage (7 unit tests + 19 integration tests)'
+    - 'Proper test architecture balance (unit + integration)'
+  concerns: []
+  improvements_applied:
+    - 'Refactored repository to eliminate filter logic duplication (DRY principle)'
+    - 'Added input validation for difficulty range edge case'
+    - 'Added comprehensive unit tests for routes layer (AC 8)'
+    - 'Added integration test for difficulty validation'
+
+code_quality:
+  metrics:
+    complexity: low
+    duplication: eliminated
+    documentation: excellent
+    type_coverage: full
+    test_coverage: comprehensive
+  patterns_followed:
+    - 'Repository pattern'
+    - 'Async/await'
+    - 'Dependency injection'
+    - 'Schema validation with Pydantic'
+    - 'Unit testing with mocks'
+    - 'Integration testing with real dependencies'
+  standards_compliance:
+    coding_standards: PASS
+    project_structure: PASS
+    testing_strategy: PASS
+
+recommendations:
+  immediate: []
+  future:
+    - action: 'Implement rate limiting to prevent question farming'
+      refs: ['apps/api/src/routes/questions.py']
+      priority: medium
+      note: 'Architectural enhancement, not blocking for production'
+    - action: 'Consider query result caching for popular course/concept combinations'
+      refs: ['apps/api/src/repositories/question_repository.py']
+      priority: low
+    - action: 'Database query plan analysis to validate index effectiveness'
+      priority: low
+    - action: 'Monitor production metrics to ensure <100ms performance target'
+      priority: medium
+
+test_coverage:
+  unit_tests:
+    count: 7
+    coverage: comprehensive
+    tests:
+      - 'test_get_questions_filter_by_concept - AC 8'
+      - 'test_get_questions_filter_by_knowledge_area - AC 8'
+      - 'test_get_questions_filter_by_difficulty_range - AC 8'
+      - 'test_get_questions_course_not_found - Error handling'
+      - 'test_get_questions_excludes_sensitive_fields - Security'
+      - 'test_get_questions_pagination - Pagination'
+      - 'test_get_questions_difficulty_min_greater_than_max - Edge case'
+  integration_tests:
+    count: 19
+    coverage: excellent
+    includes_new:
+      - 'test_invalid_difficulty_range - Validates QA-added difficulty validation'
+  missing_tests: []
+
+summary: |
+  Story 2.8 has been successfully re-reviewed after QA fixes. All previous CONCERNS have been
+  addressed:
+
+  ✅ AC 8 (Unit tests) - RESOLVED: Added 7 comprehensive unit tests for routes layer covering
+     all filtering scenarios, error handling, and edge cases
+
+  ✅ Test strategy compliance - RESOLVED: Now has proper unit + integration test balance
+
+  ✅ Missing difficulty validation test - RESOLVED: Added integration test
+
+  The implementation demonstrates:
+  - Excellent multi-course architecture with proper isolation
+  - Comprehensive test coverage (26 tests total: 7 unit + 19 integration)
+  - Clean code following repository pattern and DRY principles
+  - Proper security practices (auth, field exclusion, input validation)
+  - Good performance design with monitoring
+
+  Rate limiting remains a future enhancement recommendation but is not a blocking issue for
+  production deployment. The endpoint is authenticated, has input validation, and follows
+  all security best practices.
+
+  GATE DECISION: PASS - Story is production-ready and meets all quality gates.

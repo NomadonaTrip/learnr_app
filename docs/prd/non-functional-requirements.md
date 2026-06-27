@@ -54,12 +54,27 @@
 - Data deletion capability (GDPR right to be forgotten)
 - Clear privacy policy and data usage documentation
 
+**Role-Based Access Control (NEW - v3.0):**
+- User roles: `student`, `trainer`, `org_admin`, `admin` (replaces boolean `is_admin`)
+- Role hierarchy: admin > org_admin > trainer > student
+- Trainers can only access analytics for students in their assigned classes
+- Organization admins can manage classes and trainers within their organization
+- All role-scoped data access enforced at the API layer (not just the frontend)
+- Role assignment managed by org_admins (for trainers) and admins (for org_admins)
+
 **Admin Security:**
-- Admin role assignment controlled via database flag (no API endpoint for promotion)
+- Admin role assignment controlled via database flag (no API endpoint for self-promotion)
 - Admin actions logged to audit trail for compliance and security review
 - Impersonation tokens time-limited (30 minutes) to minimize risk window
 - Impersonation restricted to non-admin users (admins cannot impersonate each other)
 - Rate limiting on admin-sensitive operations (impersonation: 10/hour per admin)
+
+**Trainer Analytics Security (NEW - v3.0):**
+- Trainer data access scoped by class membership (enforced via SQL JOINs, not application logic alone)
+- All trainer analytics API calls logged with trainer_id, accessed student_ids, and timestamp
+- Trainer session tokens include class_ids claim for server-side scope validation
+- Export/download actions require explicit audit log entry
+- Rate limiting on analytics endpoints (60 requests/min per trainer)
 
 **Rationale:** Users trust us with their learning data and career advancement. Security breaches would destroy trust and business viability.
 

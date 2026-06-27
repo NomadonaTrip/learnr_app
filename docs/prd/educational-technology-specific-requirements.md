@@ -16,9 +16,18 @@
 - User right to delete account and all associated data
 - Secure storage of personally identifiable information (PII)
 
+**Trainer Data Access Controls (NEW - v3.0):**
+- Trainers can ONLY view performance data for students enrolled in their assigned classes
+- Trainers cannot modify student data (read-only analytics access)
+- Student consent required for trainer visibility (opt-in when joining a class via invite)
+- Trainer data access is logged for audit compliance
+- Students can leave a class at any time, which revokes trainer access to their data
+- Organization admins can see aggregate data across all classes but not individual student details unless also assigned as a trainer for that class
+
 **Regulatory Compliance:**
 - While COPPA/FERPA don't directly apply (adult learners, not K-12/university), follow privacy best practices
 - Prepare for GDPR compliance (if expanding to EU users)
+- FERPA-adjacent protections applied proactively: trainer access scoped, audit-logged, and consent-gated (positions platform for future K-12/university expansion)
 - Clear terms of service and user agreements
 
 ### Accessibility Requirements

@@ -1,0 +1,49 @@
+schema: 1
+story: '4.2'
+story_title: 'Bayesian Question Selection Engine'
+gate: PASS
+status_reason: 'All acceptance criteria met, schema validation issue fixed during review, comprehensive test coverage.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2025-12-17T17:40:00Z'
+
+top_issues: []
+
+waiver:
+  active: false
+
+quality_score: 100
+expires: '2025-12-31T23:59:59Z'
+
+evidence:
+  tests_reviewed: 28
+  integration_tests_reviewed: 8
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'JWT auth required, session ownership validated, sensitive data excluded from response'
+  performance:
+    status: PASS
+    notes: 'Optimized for <200ms, performance logging implemented, no scipy dependency'
+  reliability:
+    status: PASS
+    notes: 'Fallback strategy implemented, schema constraint fixed to handle entropy values'
+  maintainability:
+    status: PASS
+    notes: 'Clean architecture, comprehensive docstrings, proper DI patterns'
+
+recommendations:
+  immediate: []
+  future:
+    - action: 'Consider adding test case for fallback with highly concentrated beliefs'
+      refs: ['apps/api/tests/integration/test_question_selection.py']
+
+resolved_issues:
+  - id: QA-4.2-001
+    title: 'Schema ge=0.0 constraint incompatible with uncertainty fallback'
+    resolution: 'Removed ge=0.0 constraint from estimated_info_gain field'
+    fixed_in: 'apps/api/src/schemas/question_selection.py'
