@@ -1284,7 +1284,7 @@ class VendorQuestionImporter:
     async def _call_gpt4_for_concepts(self, prompt: str) -> dict:
         """Internal method to call GPT-4 with retry logic."""
         response = await self.openai_client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            model=os.environ.get("OPENAI_EXTRACTION_MODEL", "gpt-4o-mini"),
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
             temperature=0.3,
