@@ -19,12 +19,18 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
-import fitz  # PyMuPDF
 import tiktoken
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
+sys.path.append(str(project_root / "scripts"))
 sys.path.append(str(project_root / "apps" / "api"))
+
+from utils.corpus_markdown import (
+    CorpusMarkdownParser,
+    MarkdownSection,
+    convert_pdf_to_markdown,
+)
 
 # Load environment variables from apps/api/.env
 from dotenv import load_dotenv
@@ -154,91 +160,6 @@ def get_ka_from_section(section_ref: str, ka_mapping: Dict[str, str]) -> str:
     first_digit = section_ref.split(".")[0]
     return ka_mapping.get(first_digit, "unknown")
 
-
-def parse_pdf(pdf_path: str, course: Course) -> List[CorpusSection]:
-    """
-    Parse PDF and extract structured sections.
-
-    Args:
-        pdf_path: Path to corpus PDF
-        course: Course model for KA mapping
-
-    Returns:
-        List of CorpusSection objects
-    """
-    logger.info(f"Parsing PDF: {pdf_path}")
-    ka_mapping = get_ka_mapping(course)
-
-    sections: List[CorpusSection] = []
-    current_section: Optional[Dict] = None
-
-    try:
-        doc = fitz.open(pdf_path)
-        section_pattern = re.compile(r"^(\d+(?:\.\d+)*)\s+(.+)$")
-
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            text = page.get_text()
-
-            # Process each line to detect section headers
-            for line in text.split("\n"):
-                line = line.strip()
-                if not line:
-                    continue
-
-                # Check if line is a section header
-                match = section_pattern.match(line)
-                if match:
-                    # Save previous section if exists
-                    if current_section:
-                        ka_id = get_ka_from_section(
-                            current_section["section_ref"], ka_mapping
-                        )
-                        sections.append(
-                            CorpusSection(
-                                section_ref=current_section["section_ref"],
-                                title=current_section["title"],
-                                content=current_section["content"].strip(),
-                                knowledge_area_id=ka_id,
-                                page_numbers=current_section["pages"],
-                            )
-                        )
-
-                    # Start new section
-                    section_num, section_title = match.groups()
-                    current_section = {
-                        "section_ref": section_num,
-                        "title": section_title.strip(),
-                        "content": "",
-                        "pages": [page_num + 1],
-                    }
-                    logger.debug(f"Found section: {section_num} - {section_title}")
-                elif current_section:
-                    # Append content to current section
-                    current_section["content"] += f"{line}\n"
-                    if page_num + 1 not in current_section["pages"]:
-                        current_section["pages"].append(page_num + 1)
-
-        # Save final section
-        if current_section:
-            ka_id = get_ka_from_section(current_section["section_ref"], ka_mapping)
-            sections.append(
-                CorpusSection(
-                    section_ref=current_section["section_ref"],
-                    title=current_section["title"],
-                    content=current_section["content"].strip(),
-                    knowledge_area_id=ka_id,
-                    page_numbers=current_section["pages"],
-                )
-            )
-
-        doc.close()
-        logger.info(f"Parsed {len(sections)} sections from PDF")
-        return sections
-
-    except Exception as e:
-        logger.error(f"Error parsing PDF: {e}")
-        raise
 
 
 def chunk_section(
@@ -691,8 +612,25 @@ async def main():
                 sys.exit(1)
             logger.info(f"Found course: {course.name} (ID: {course.id})")
 
-            # Step 2: Parse PDF
-            sections = parse_pdf(str(pdf_path), course)
+            # Step 2: Parse sections from markdown
+            validate_heading_style(course)
+            scope = resolve_chunk_chapters(course, args.min_chapter, args.max_chapter)
+            logger.info(f"Chunking chapters {scope.min}-{scope.max}")
+            allowed = frozenset(range(scope.min, scope.max + 1))
+            md_path = convert_pdf_to_markdown(str(pdf_path))
+            md_sections = CorpusMarkdownParser(md_path, allowed_chapters=allowed).parse()
+            ka_mapping = get_ka_mapping(course)
+            sections = [
+                CorpusSection(
+                    section_ref=s.section_number,
+                    title=s.title,
+                    content=s.content,
+                    knowledge_area_id=get_ka_from_section(s.section_number, ka_mapping),
+                    page_numbers=[s.page_start, s.page_end],
+                )
+                for s in md_sections
+            ]
+            logger.info(f"Parsed {len(sections)} sections from markdown")
 
             # Step 3: Load concepts for course
             logger.info(f"Loading concepts for course {args.course_slug}...")
