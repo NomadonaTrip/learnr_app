@@ -67,7 +67,7 @@
 
 ### Critical User Flows
 
-**First-Time Learner Journey:**
+**First-Time User Journey:**
 1. Landing page with first onboarding question inline → Begin engagement immediately
 2. Complete 7-question onboarding flow → Personalization established
 3. Account creation prompt → Register with email/password
@@ -76,43 +76,19 @@
 6. First quiz session with reading → Experience full loop
 7. Return to dashboard → See progress
 
-**Daily Active Learner Journey:**
+**Daily Active User Journey:**
 1. Log in → Dashboard shows progress and reviews due
 2. Decision point: Reviews or new content
 3. Quiz session (mixed or new)
 4. See progress update
 5. Log out or continue
 
-**Pre-Exam Learner Journey:**
+**Pre-Exam User Journey:**
 1. Dashboard shows "Exam ready" status (or gaps remaining)
 2. Optional: Mock test (post-MVP)
 3. Final reviews on weak areas
 4. Confidence check
 5. Take real exam
-
-**First-Time Trainer Journey (NEW - v3.0):**
-1. Trainer registers with trainer role (or is promoted by admin/organization admin)
-2. Creates or joins an organization
-3. Creates first class → Receives invite link/code for students
-4. Students enroll via invite → Appear in class roster
-5. Trainer views class dashboard → Sees initial diagnostic results as students complete them
-6. Trainer configures at-risk alert thresholds (optional, sensible defaults provided)
-
-**Daily Trainer Journey (NEW - v3.0):**
-1. Log in → Organization dashboard shows KPI summary across all classes
-2. Review at-risk alerts → Students flagged for low engagement or persistent gaps
-3. Click into specific class → See concept mastery heatmap and class progress
-4. Drill into individual student → See detailed belief states, quiz history, gap analysis
-5. Optionally export progress report for stakeholder review
-6. Plan classroom instruction based on class-wide weak concepts
-
-**Trainer Intervention Journey (NEW - v3.0):**
-1. Receive at-risk notification (in-app or email) for a student
-2. Click through to student profile → See specific knowledge gaps
-3. Review student's recent quiz sessions and reading engagement
-4. Identify patterns (e.g., consistently wrong on prerequisite concepts)
-5. Take action outside LearnR (classroom instruction, 1-on-1 support)
-6. Monitor student progress over following days to validate intervention effectiveness
 
 ---
 
