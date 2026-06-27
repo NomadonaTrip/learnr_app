@@ -123,38 +123,54 @@ class PrerequisiteGraphBuilder:
 
     def infer_from_section_hierarchy(self) -> List[PrerequisiteEdge]:
         """
-        Infer prerequisites from BABOK section hierarchy.
+        Infer 'required' prerequisites from BABOK section structure.
 
-        Rule: Concepts in parent sections (e.g., 3.2) are prerequisites
-        of concepts in child sections (e.g., 3.2.1).
+        Concepts cluster at leaf subsections (e.g. 3.1.1 Purpose, 3.1.2
+        Description, ... 3.1.8 Outputs); the parent task section (3.1) usually
+        holds no concepts of its own. Rule: within a task (the first two
+        section components, e.g. '3.1'), concepts in each populated subsection
+        are required prerequisites for concepts in the *next* populated
+        subsection — a foundational -> advanced chain. Strictly increasing
+        subsection order keeps these edges acyclic.
         """
         logger.info("Inferring prerequisites from section hierarchy...")
         edges = []
 
+        def section_key(ref: str) -> tuple:
+            parts = []
+            for part in ref.split('.'):
+                try:
+                    parts.append(int(part))
+                except ValueError:
+                    parts.append(0)
+            return tuple(parts)
+
+        # Group concepts by task (first two section components), then by subsection.
+        tasks: Dict[str, Dict[str, List]] = {}
         for concept in self.concepts:
-            if not concept.corpus_section_ref:
+            ref = concept.corpus_section_ref
+            if not ref:
                 continue
-
-            parent_section = self._get_parent_section(concept.corpus_section_ref)
-            if not parent_section:
+            parts = ref.split('.')
+            if len(parts) < 2:
                 continue
+            task = '.'.join(parts[:2])
+            tasks.setdefault(task, {}).setdefault(ref, []).append(concept)
 
-            # Find all concepts in parent section
-            parent_concepts = self.section_map.get(parent_section, [])
-
-            for parent_concept in parent_concepts:
-                # Don't create self-loops
-                if parent_concept.id == concept.id:
-                    continue
-
-                edge = PrerequisiteEdge(
-                    concept_id=concept.id,
-                    prerequisite_concept_id=parent_concept.id,
-                    strength=0.8,  # Strong relationship for hierarchy
-                    relationship_type="required",
-                    source="hierarchy"
-                )
-                edges.append(edge)
+        for subsections in tasks.values():
+            ordered_refs = sorted(subsections.keys(), key=section_key)
+            for prev_ref, cur_ref in zip(ordered_refs, ordered_refs[1:]):
+                for concept in subsections[cur_ref]:
+                    for prereq in subsections[prev_ref]:
+                        if prereq.id == concept.id:
+                            continue
+                        edges.append(PrerequisiteEdge(
+                            concept_id=concept.id,
+                            prerequisite_concept_id=prereq.id,
+                            strength=0.8,  # Strong relationship for hierarchy
+                            relationship_type="required",
+                            source="hierarchy",
+                        ))
 
         logger.info(f"Inferred {len(edges)} prerequisites from section hierarchy")
         return edges
@@ -339,7 +355,7 @@ class PrerequisiteGraphBuilder:
 
                 try:
                     response = client.chat.completions.create(
-                        model="gpt-4-turbo-preview",
+                        model=os.environ.get("OPENAI_EXTRACTION_MODEL", "gpt-4o-mini"),
                         messages=[
                             {"role": "system", "content": "You are analyzing prerequisite relationships between BABOK v3 concepts."},
                             {"role": "user", "content": prompt}
@@ -425,23 +441,62 @@ Rules:
 
     def merge_and_deduplicate(self, all_edges: List[List[PrerequisiteEdge]]) -> None:
         """
-        Merge edges from all sources and deduplicate.
+        Merge edges from all sources into an acyclic graph.
 
-        When duplicates exist, keep the edge with highest strength.
+        Deduplicates by (concept, prerequisite) keeping the highest strength,
+        then inserts edges strongest-first, skipping any edge that would close
+        a cycle (i.e. when a path already runs from the dependent back to the
+        prerequisite). This guarantees a DAG without enumerating cycles, which
+        is intractable once the hierarchy backbone mixes with the semantic and
+        GPT-4 edges. The resulting ``self.graph`` is the validated DAG.
         """
-        logger.info("Merging and deduplicating prerequisites...")
+        logger.info("Merging prerequisites with incremental acyclic insertion...")
 
         edge_map: Dict[Tuple[UUID, UUID], PrerequisiteEdge] = {}
-
         for edge_list in all_edges:
             for edge in edge_list:
                 key = (edge.concept_id, edge.prerequisite_concept_id)
-
                 if key not in edge_map or edge.strength > edge_map[key].strength:
                     edge_map[key] = edge
 
-        self.edges = list(edge_map.values())
-        logger.info(f"Total unique prerequisites after merge: {len(self.edges)}")
+        # Seed a node-only graph so has_path can run from the first edge.
+        self.graph = nx.DiGraph()
+        for concept in self.concepts:
+            self.graph.add_node(
+                concept.id,
+                name=concept.name,
+                ka=concept.knowledge_area_id,
+                difficulty=concept.difficulty_estimate,
+                section=concept.corpus_section_ref,
+            )
+
+        accepted: List[PrerequisiteEdge] = []
+        skipped = 0
+        # Strongest first: hierarchy 'required' (0.8) forms the acyclic backbone,
+        # then weaker semantic/GPT-4 edges fill in only where they stay acyclic.
+        for edge in sorted(edge_map.values(), key=lambda e: e.strength, reverse=True):
+            prereq = edge.prerequisite_concept_id
+            dependent = edge.concept_id
+            if prereq == dependent or self.graph.has_edge(prereq, dependent):
+                continue
+            # Adding prereq -> dependent closes a cycle iff dependent can already reach prereq.
+            if nx.has_path(self.graph, dependent, prereq):
+                skipped += 1
+                continue
+            self.graph.add_edge(
+                prereq,
+                dependent,
+                strength=edge.strength,
+                relationship_type=edge.relationship_type,
+                source=edge.source,
+            )
+            accepted.append(edge)
+
+        self.edges = accepted
+        logger.info(
+            f"Merged to {len(self.edges)} acyclic prerequisites "
+            f"({skipped} cycle-creating edges skipped)"
+        )
 
     def validate_dag(self) -> bool:
         """
@@ -479,9 +534,11 @@ Rules:
             logger.info(f"Valid DAG with {len(order)} nodes in topological order")
             return True
         except nx.NetworkXUnfeasible:
-            # Cycles detected
-            cycles = list(nx.simple_cycles(self.graph))
-            logger.error(f"Invalid DAG: {len(cycles)} cycles detected!")
+            # Cycles detected. Only sample a few cycles — enumerating all of
+            # them via simple_cycles is exponential and can exhaust memory.
+            from itertools import islice
+            cycles = list(islice(nx.simple_cycles(self.graph), 5))
+            logger.error("Invalid DAG: cycles detected (showing up to 5)!")
 
             # Log first few cycles for debugging
             for i, cycle in enumerate(cycles[:5]):
@@ -501,7 +558,8 @@ Rules:
 
         while True:
             try:
-                nx.topological_sort(self.graph)
+                # topological_sort is lazy; force evaluation so cycles raise here.
+                list(nx.topological_sort(self.graph))
                 break  # No cycles
             except nx.NetworkXUnfeasible:
                 # Find a cycle
