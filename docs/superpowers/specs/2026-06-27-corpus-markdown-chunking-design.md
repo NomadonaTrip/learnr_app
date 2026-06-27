@@ -82,7 +82,7 @@ Targets stay configurable via `--min-tokens` / `--max-tokens` (defaults 200 / 50
 ### 5. `extract_babok_concepts.py` — minimal consume-the-shared-parser change
 
 - Import `convert_pdf_to_markdown` / `CorpusMarkdownParser` / `ka_chapter_map` / `MarkdownSection` from the shared module; delete its local copies and `BABOK_KA_CHAPTERS`.
-- Derive `allowed_chapters` and chapter→KA mapping from the course it already loads (`get_cbap_course_id`), so behavior for cbap is identical (`section_prefix` {3..8} == old constant).
+- Derive `allowed_chapters` and chapter→KA mapping from the course it already loads (`get_cbap_course_id`). For cbap, `section_prefix` {3..8} == the old constant, so the **in-range (ch 3–8) section boundaries are unchanged** and concept extraction over those sections is preserved. The only behavior change is the tail: trailing chapters (9+) are no longer folded into the last ch-8 section (an improvement). Concept extraction is **not re-run on this branch** — existing concepts (from the earlier #12 re-extraction) remain valid; the import-smoke + grep guard tests cover the refactor structurally.
 - Full agnosticism of the *rest* of concept extraction (slug, KA-name mapping) is **out of scope** — tracked as a follow-up.
 
 ### 6. Re-run pipeline + verification
@@ -96,7 +96,7 @@ Same sequence validated for #12:
 ## Testing
 
 - **Unit (`scripts/tests/test_corpus_markdown.py`):**
-  - **parity:** `CorpusMarkdownParser` with `allowed_chapters={3..8}` reproduces the prior ch 3–8 section list (numbers + titles) → concept extraction unaffected.
+  - **in-range stability:** `CorpusMarkdownParser` with `allowed_chapters={3..8}` keeps the ch 3–8 section boundaries intact (number-only/split-title anatomy, `>= 50` content guard) so concept extraction over those sections is preserved. (This asserts in-range behavior, not a full byte-for-byte output diff against the deleted parser.)
   - `allowed_chapters={1..8}` includes ch 1–2 sections.
   - out-of-range (ch 9+) heading finalizes + suspends (no tail pollution).
   - `ka_chapter_map` builds correctly from `section_prefix`.
@@ -114,6 +114,6 @@ Same sequence validated for #12:
 
 ## Risks
 
-- **Concept-extraction regression** from the refactor — mitigated by the parity unit test (no GPT re-run needed).
+- **Concept-extraction regression** from the refactor — mitigated by keeping in-range (ch 3–8) section boundaries unchanged (covered by unit tests) and not re-running GPT extraction on this branch. The tail-chapter exclusion is a deliberate improvement, not a regression.
 - **Schema migration** on `courses` — additive nullable column, low risk; existing rows default via the null-handling logic.
 - **pymupdf4llm cache staleness** — `convert_pdf_to_markdown` reuses the existing `.md`; delete it to regenerate if the PDF changes (unchanged here).
