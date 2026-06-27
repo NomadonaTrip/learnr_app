@@ -1,8 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import {
   prerequisiteService,
   GateCheckResult,
   BulkUnlockStatusResponse,
+  OverrideAttemptResponse,
 } from '../services/prerequisiteService'
 
 /**
@@ -58,5 +59,17 @@ export function useBulkUnlockStatus(
     queryFn: () => prerequisiteService.getBulkUnlockStatus(courseId as string, kaId),
     enabled: Boolean(courseId),
     staleTime: 30_000,
+  })
+}
+
+/**
+ * Override-launch a locked concept. Logs the attempt server-side (AC 8) and
+ * returns the concept's lock status. The caller navigates to the focused quiz
+ * on success.
+ */
+export function useAttemptLockedConcept() {
+  return useMutation<OverrideAttemptResponse, unknown, string>({
+    mutationFn: (conceptId: string) =>
+      prerequisiteService.attemptLockedConcept(conceptId),
   })
 }
