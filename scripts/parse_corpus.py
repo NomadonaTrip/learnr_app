@@ -616,6 +616,11 @@ async def main():
         help="Parse and chunk without database writes",
     )
     parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="Delete existing chunks for the course before inserting (clean re-parse)",
+    )
+    parser.add_argument(
         "--min-tokens",
         type=int,
         default=200,
@@ -668,6 +673,11 @@ async def main():
             if not args.dry_run:
                 logger.info("Storing chunks in database...")
                 chunk_repo = ReadingChunkRepository(session)
+
+                # Clean re-parse: remove existing chunks for this course first
+                if args.replace:
+                    deleted = await chunk_repo.delete_all_for_course(course.id)
+                    logger.info(f"Deleted {deleted} existing chunks for course {args.course_slug}")
 
                 # Convert to ChunkCreate schemas
                 chunk_creates = [
