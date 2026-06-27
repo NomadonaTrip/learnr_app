@@ -104,3 +104,6 @@ temp/
 #document files
 docs/
 .ignore/
+
+# Subagent-driven development scratch (briefs, reports, diffs, ledger)
+.superpowers/
