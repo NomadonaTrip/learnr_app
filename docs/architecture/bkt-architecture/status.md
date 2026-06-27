@@ -1,4 +1,0 @@
-# Status
-
-**DRAFT** - Approved
-
