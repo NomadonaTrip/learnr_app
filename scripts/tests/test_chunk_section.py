@@ -38,6 +38,16 @@ def test_tiny_trailing_content_merges():
     assert all(len(enc.encode(c)) >= 50 for c, _ in chunks)  # no 6-char stubs
 
 
+def test_accumulation_path_never_exceeds_max_tokens():
+    # Two paragraphs of exactly 250 tokens each — the "\n\n" separator tips the
+    # joined chunk over 500 if separators aren't counted in the overflow check.
+    tok_250 = enc.decode(enc.encode(" ".join(f"word{i}" for i in range(5000)))[:250])
+    content = tok_250 + "\n\n" + tok_250
+    chunks = chunk_section(_section(content), max_tokens=500)
+    for c, _ in chunks:
+        assert len(enc.encode(c)) <= 500
+
+
 def test_normal_paragraphs_grouped_to_target():
     paras = "\n\n".join(" ".join(f"w{i}" for i in range(120)) for _ in range(6))
     chunks = chunk_section(_section(paras), min_tokens=200, max_tokens=500)

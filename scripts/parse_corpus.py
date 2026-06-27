@@ -163,7 +163,11 @@ def get_ka_from_section(section_ref: str, ka_mapping: Dict[str, str]) -> str:
 
 
 def _split_oversized(text: str, max_tokens: int) -> List[str]:
-    """Split a too-large unit by sentences, then by token window."""
+    """Split a too-large unit by sentences, then by token window.
+
+    Note: sentences accumulated into a buffer are re-joined with a single
+    space (original inter-sentence whitespace is not preserved).
+    """
     sentences = re.split(r'(?<=[.!?])\s+', text)
     out: List[str] = []
     buf: List[str] = []
@@ -213,7 +217,12 @@ def chunk_section(
 
     for unit in units:
         unit_tokens = len(enc.encode(unit))
-        if current_tokens + unit_tokens > max_tokens and current:
+        # Measure the actual encoded size of the prospective joined chunk so the
+        # "\n\n" separators are counted (a +token-per-join the running sum misses).
+        projected = (
+            len(enc.encode("\n\n".join(current + [unit]))) if current else unit_tokens
+        )
+        if projected > max_tokens and current:
             chunks.append(("\n\n".join(current), len(chunks)))
             overlap_text = get_overlap(current, overlap_tokens)
             current = [overlap_text, unit] if overlap_text else [unit]
@@ -224,13 +233,15 @@ def chunk_section(
                 current_tokens = unit_tokens
         else:
             current.append(unit)
-            current_tokens += unit_tokens
+            current_tokens = projected
 
     if current:
         chunks.append(("\n\n".join(current), len(chunks)))
 
     # Merge a tiny trailing chunk into its predecessor (avoid stubs),
-    # but only when the merged result stays within max_tokens.
+    # but only when the merged result stays within max_tokens. When the merge
+    # would breach max_tokens we keep the (possibly sub-min) stub rather than
+    # violate the hard size constraint.
     if len(chunks) > 1 and len(enc.encode(chunks[-1][0])) < min_tokens:
         last_content, last_idx = chunks.pop()
         prev_content, prev_idx = chunks.pop()
