@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage'
 import { DiagnosticPage } from './pages/DiagnosticPage'
 import { DiagnosticResultsPage } from './pages/DiagnosticResultsPage'
 import { QuizPage } from './pages/QuizPage'
+import { CurriculumPage } from './pages/CurriculumPage'
 import { ReadingLibraryPage } from './pages/ReadingLibraryPage'
 import { ReadingDetailPage } from './pages/ReadingDetailPage'
 import { useAuthStore } from './stores/authStore'
@@ -96,6 +97,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <QuizPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/curriculum',
+    element: (
+      <ProtectedRoute>
+        <CurriculumPage />
       </ProtectedRoute>
     ),
   },
