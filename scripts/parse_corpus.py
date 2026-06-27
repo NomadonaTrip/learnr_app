@@ -162,55 +162,84 @@ def get_ka_from_section(section_ref: str, ka_mapping: Dict[str, str]) -> str:
 
 
 
+def _split_oversized(text: str, max_tokens: int) -> List[str]:
+    """Split a too-large unit by sentences, then by token window."""
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    out: List[str] = []
+    buf: List[str] = []
+    buf_tokens = 0
+    for s in sentences:
+        s_tokens = len(enc.encode(s))
+        if s_tokens > max_tokens:
+            if buf:
+                out.append(" ".join(buf))
+                buf, buf_tokens = [], 0
+            toks = enc.encode(s)
+            for i in range(0, len(toks), max_tokens):
+                out.append(enc.decode(toks[i:i + max_tokens]))
+        elif buf_tokens + s_tokens > max_tokens and buf:
+            out.append(" ".join(buf))
+            buf, buf_tokens = [s], s_tokens
+        else:
+            buf.append(s)
+            buf_tokens += s_tokens
+    if buf:
+        out.append(" ".join(buf))
+    return out
+
+
+def _split_into_units(content: str, max_tokens: int) -> List[str]:
+    """Paragraphs (\\n\\n) where possible; hard-split any paragraph over max_tokens."""
+    units: List[str] = []
+    for para in [p.strip() for p in content.split("\n\n") if p.strip()]:
+        if len(enc.encode(para)) <= max_tokens:
+            units.append(para)
+        else:
+            units.extend(_split_oversized(para, max_tokens))
+    return units
+
+
 def chunk_section(
     section: CorpusSection,
     min_tokens: int = 200,
     max_tokens: int = 500,
     overlap_tokens: int = 50,
 ) -> List[Tuple[str, int]]:
-    """
-    Chunk a section using hybrid strategy.
-
-    Rules:
-    1. Never split across section boundaries
-    2. Target 200-500 tokens per chunk
-    3. Prefer splitting at paragraph boundaries
-    4. Add 50-token overlap for context
-
-    Args:
-        section: CorpusSection to chunk
-        min_tokens: Minimum tokens per chunk
-        max_tokens: Maximum tokens per chunk
-        overlap_tokens: Overlap between chunks
-
-    Returns:
-        List of (content, chunk_index) tuples
-    """
-    paragraphs = [p.strip() for p in section.content.split("\n\n") if p.strip()]
+    """Chunk a section to <= max_tokens units, never relying on \\n\\n alone."""
+    units = _split_into_units(section.content, max_tokens)
     chunks: List[Tuple[str, int]] = []
-    current_chunk: List[str] = []
+    current: List[str] = []
     current_tokens = 0
 
-    for para in paragraphs:
-        para_tokens = len(enc.encode(para))
-
-        if current_tokens + para_tokens > max_tokens and current_chunk:
-            # Emit current chunk
-            chunk_content = "\n\n".join(current_chunk)
-            chunks.append((chunk_content, len(chunks)))
-
-            # Start new chunk with overlap
-            overlap_text = get_overlap(current_chunk, overlap_tokens)
-            current_chunk = [overlap_text, para] if overlap_text else [para]
-            current_tokens = len(enc.encode("\n\n".join(current_chunk)))
+    for unit in units:
+        unit_tokens = len(enc.encode(unit))
+        if current_tokens + unit_tokens > max_tokens and current:
+            chunks.append(("\n\n".join(current), len(chunks)))
+            overlap_text = get_overlap(current, overlap_tokens)
+            current = [overlap_text, unit] if overlap_text else [unit]
+            current_tokens = len(enc.encode("\n\n".join(current)))
+            # Guard: overlap + unit may exceed max_tokens — drop overlap if so.
+            if current_tokens > max_tokens:
+                current = [unit]
+                current_tokens = unit_tokens
         else:
-            current_chunk.append(para)
-            current_tokens += para_tokens
+            current.append(unit)
+            current_tokens += unit_tokens
 
-    # Emit final chunk if not empty
-    if current_chunk:
-        chunk_content = "\n\n".join(current_chunk)
-        chunks.append((chunk_content, len(chunks)))
+    if current:
+        chunks.append(("\n\n".join(current), len(chunks)))
+
+    # Merge a tiny trailing chunk into its predecessor (avoid stubs),
+    # but only when the merged result stays within max_tokens.
+    if len(chunks) > 1 and len(enc.encode(chunks[-1][0])) < min_tokens:
+        last_content, last_idx = chunks.pop()
+        prev_content, prev_idx = chunks.pop()
+        merged = prev_content + "\n\n" + last_content
+        if len(enc.encode(merged)) <= max_tokens:
+            chunks.append((merged, prev_idx))
+        else:
+            chunks.append((prev_content, prev_idx))
+            chunks.append((last_content, last_idx))
 
     return chunks
 
