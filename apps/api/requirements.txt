@@ -39,7 +39,8 @@ tiktoken==0.5.2  # Token counting for chunking
 scipy>=1.11.0  # Beta distribution entropy calculations for BKT
 
 # PDF Parsing (for concept extraction)
-pymupdf==1.23.8
+pymupdf==1.27.2.3
+pymupdf4llm==1.27.2.3  # PDF -> heading-structured markdown for corpus extraction
 
 # Fuzzy String Matching (for deduplication)
 thefuzz==0.22.1

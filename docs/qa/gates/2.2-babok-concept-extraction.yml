@@ -1,0 +1,191 @@
+schema: 1
+story: '2.2'
+story_title: 'BABOK v3 Concept Extraction'
+gate: PASS
+status_reason: 'All acceptance criteria met. Previous CONCERNS (SEC-001, OPS-001) resolved with quality implementations. Production-ready.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2025-12-09T15:30:00Z'
+
+top_issues: []  # All previous issues resolved
+
+waiver:
+  active: false
+
+quality_score: 100
+calculation: '100 - (0 × CONCERNS) = 100 (upgraded from 75)'
+expires: '2025-12-16T15:30:00Z'
+
+evidence:
+  tests_reviewed: 30
+  tests_passing: 30
+  tests_failing: 0
+  unit_tests: 22
+  integration_tests: 8
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    ac_partial: []
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'SEC-001 RESOLVED: _sanitize_error_message() now redacts API keys, bearer tokens, and sensitive patterns from exception logs. Comprehensive regex patterns cover OpenAI keys, generic API keys, and authorization headers.'
+  performance:
+    status: PASS
+    notes: 'Bulk insert of 1000 concepts completes in <10 seconds per integration test. Exponential backoff handles rate limits.'
+  reliability:
+    status: PASS
+    notes: 'OPS-001 RESOLVED: --clear-existing flag enables idempotent re-extraction via clear_existing_concepts() function. Uses existing delete_all_for_course() repository method.'
+  maintainability:
+    status: PASS
+    notes: 'Clean separation with repository pattern, proper async/await, comprehensive logging, CSV export for SME review. QA fixes properly documented with SEC-001 and OPS-001 comments.'
+
+resolved_issues:
+  - issue: 'SEC-001: API key exposure in exception logs'
+    resolved_date: '2025-12-09'
+    resolution: 'Added _sanitize_error_message() function with comprehensive regex patterns to redact sk-* keys, bearer tokens, api_key params, and authorization headers before logging.'
+    previous_severity: high
+    previous_score: 6
+  - issue: 'OPS-001: No idempotency - re-runs create duplicates'
+    resolved_date: '2025-12-09'
+    resolution: 'Added --clear-existing CLI flag and clear_existing_concepts() async function. Uses existing delete_all_for_course() repository method for safe cleanup before re-extraction.'
+    previous_severity: medium
+    previous_score: 4
+
+risk_summary:
+  totals:
+    critical: 0
+    high: 0
+    medium: 0
+    low: 4
+  highest:
+    id: DATA-001
+    score: 4
+    title: 'PDF parsing edge cases (mitigated by SME review)'
+  recommendations:
+    must_fix: []
+    monitor:
+      - 'Section coverage - alert if <95%'
+      - 'Token usage per extraction for cost tracking'
+      - 'Per-KA distribution (flag if outside 75-250 range)'
+
+recommendations:
+  immediate: []  # All immediate recommendations resolved
+  future:
+    - action: 'DATA-001: Add detailed skip logging for PDF pages/content that dont match section patterns'
+      refs: ['scripts/extract_babok_concepts.py:140-202']
+      effort_hours: '1-2'
+      priority: low
+    - action: 'Add checkpoint/resume capability for long extractions'
+      refs: ['scripts/extract_babok_concepts.py']
+      effort_hours: '4-8'
+      priority: low
+    - action: 'Compare PDF parsing with pdfplumber for edge case coverage'
+      refs: ['scripts/extract_babok_concepts.py:124']
+      effort_hours: '4-6'
+      priority: low
+
+strengths:
+  - 'All 14 tasks completed with comprehensive implementation'
+  - 'Multi-course architecture properly implemented with course_id FK'
+  - 'Comprehensive validation (500-1500 total, 75-250 per KA, 95% coverage)'
+  - 'SME review checkpoint via CSV export before database commit'
+  - 'Retry logic with exponential backoff for API resilience'
+  - 'Fuzzy deduplication prevents duplicate concepts'
+  - 'All 30 tests passing (22 unit + 8 integration)'
+  - 'Proper async/await patterns and repository pattern'
+  - 'SEC-001: Log sanitization prevents API key exposure'
+  - 'OPS-001: --clear-existing flag enables idempotent re-extraction'
+
+acceptance_criteria_status:
+  total: 10
+  fully_met: 10
+  partially_met: 0
+  not_met: 0
+  notes: 'All acceptance criteria fully implemented. QA concerns addressed with high-quality fixes.'
+
+fixes_applied:
+  - date: '2025-12-09'
+    fix: 'SEC-001: Log sanitization for API key exposure'
+    files:
+      - 'scripts/extract_babok_concepts.py'
+      - 'tests/unit/test_concept_extraction.py'
+    description: 'Added _sanitize_error_message() function with 6 regex patterns to redact sensitive data. Applied to exception handler at line 382. Added 5 unit tests covering API keys, bearer tokens, api_key params, and multi-pattern scenarios.'
+    validation: 'Code review - comprehensive regex patterns, unit tests verify redaction'
+  - date: '2025-12-09'
+    fix: 'OPS-001: Idempotent re-extraction via --clear-existing flag'
+    files:
+      - 'scripts/extract_babok_concepts.py'
+    description: 'Added clear_existing_concepts() async function (lines 692-708) and --clear-existing CLI flag (line 864-867). Wired into main() at Step 1.5 (lines 742-746). Uses existing delete_all_for_course() repository method.'
+    validation: 'Code review - proper async pattern, uses existing repository method, logs deleted count'
+
+decision_rationale: |
+  Gate status: PASS (upgraded from CONCERNS) because:
+
+  PREVIOUS CONCERNS (2025-12-09) - ALL RESOLVED:
+  1. ✅ SEC-001 (High): API key exposure in logs - RESOLVED
+     - Added _sanitize_error_message() with comprehensive regex patterns
+     - Redacts: sk-* keys, bearer tokens, api_key params, authorization headers
+     - 5 unit tests verify sanitization logic
+     - Applied to exception handler that logs API errors
+
+  2. ✅ OPS-001 (Medium): No idempotency - RESOLVED
+     - Added --clear-existing CLI flag
+     - clear_existing_concepts() deletes all concepts for course before insert
+     - Uses existing delete_all_for_course() repository method
+     - Properly skipped in dry-run mode
+     - Logs count of deleted concepts
+
+  CURRENT STATE:
+  1. All 10 acceptance criteria fully met
+  2. All 30 tests passing (22 unit + 8 integration)
+  3. All NFRs achieve PASS status (security, performance, reliability, maintainability)
+  4. Code quality is excellent with proper patterns and documentation
+  5. Production-ready for deployment
+
+  QUALITY ASSESSMENT:
+  - Previous quality score: 75/100 (1 high, 2 medium concerns)
+  - Current quality score: 100/100 (all concerns resolved)
+  - Fix quality: HIGH (comprehensive sanitization, proper idempotency pattern)
+  - Test coverage: EXCELLENT (5 new unit tests for sanitization)
+
+  REMAINING LOW-PRIORITY ITEMS (NOT BLOCKING):
+  - DATA-001: PDF parsing edge cases (mitigated by SME review checkpoint)
+  - Add checkpoint/resume for long extractions (future enhancement)
+
+  This is production-ready, enterprise-grade implementation. No further changes required.
+
+reviewer_notes: |
+  EXCELLENT FIX QUALITY!
+
+  The development team has successfully addressed both CONCERNS with high-quality implementations.
+
+  FIX #1 (SEC-001 - Log Sanitization):
+  - Comprehensive solution with 6 regex patterns covering:
+    * OpenAI-style keys (sk-...)
+    * api_key=... parameters
+    * Bearer tokens
+    * Authorization headers
+    * OPENAI_API_KEY environment variable leaks
+    * Generic long key patterns
+  - Applied to the correct exception handler (line 382)
+  - 5 unit tests verify each pattern type
+  - Test coverage includes multi-pattern scenarios
+
+  FIX #2 (OPS-001 - Idempotency):
+  - Clean implementation using existing repository method
+  - Proper async pattern with commit
+  - Correctly skipped in dry-run mode
+  - Informative logging of deleted count
+  - CLI flag properly documented in help
+
+  PRODUCTION READINESS:
+  ✅ All acceptance criteria met
+  ✅ All tests passing (30 total)
+  ✅ Security: API keys sanitized before logging
+  ✅ Reliability: Idempotent re-extraction supported
+  ✅ Performance: Bulk operations efficient
+  ✅ Maintainability: Clean patterns, documented fixes
+
+  Story can confidently move to "Done" status.

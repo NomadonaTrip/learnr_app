@@ -18,6 +18,8 @@
 - Limited study time (busy professionals with full-time jobs)
 - Requires both assessment and learning capabilities
 - Content must be accurate and validated (exam prep, not general education)
+- Trainers and instructors need visibility into student performance (B2B2C model)
+- Institutional adoption requires organization/class/student hierarchy and role-based access
 
 ---
 
