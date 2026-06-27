@@ -2,6 +2,7 @@ interface LockedConceptConfirmDialogProps {
   conceptName: string
   blockingPrerequisites: { concept_id: string; name: string }[]
   isSubmitting: boolean
+  isError?: boolean
   onConfirm: () => void
   onCancel: () => void
 }
@@ -14,6 +15,7 @@ export function LockedConceptConfirmDialog({
   conceptName,
   blockingPrerequisites,
   isSubmitting,
+  isError,
   onConfirm,
   onCancel,
 }: LockedConceptConfirmDialogProps) {
@@ -41,6 +43,9 @@ export function LockedConceptConfirmDialog({
               </li>
             ))}
           </ul>
+        )}
+        {isError && (
+          <p className="mt-3 text-sm text-red-600">Something went wrong. Please try again.</p>
         )}
         <div className="mt-6 flex justify-end gap-3">
           <button

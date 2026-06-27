@@ -21,8 +21,9 @@ export function ConceptRow({ concept }: ConceptRowProps) {
   const [showDialog, setShowDialog] = useState(false)
   const attemptLocked = useAttemptLockedConcept()
 
-  // Lazy: only fetch blocking-prerequisite detail once the row is hovered/focused.
-  const status = useConceptLockStatus(showDetail ? concept.concept_id : null)
+  // Lazy: only fetch blocking-prerequisite detail once the row is hovered/focused,
+  // and only for locked concepts (no useful data to fetch for unlocked ones).
+  const status = useConceptLockStatus(showDetail && !concept.is_unlocked ? concept.concept_id : null)
   const blockers = (status.data?.blocking_prerequisites ?? []).map((b) => ({
     concept_id: b.concept_id,
     name: b.name,
@@ -54,7 +55,9 @@ export function ConceptRow({ concept }: ConceptRowProps) {
     <div
       className="border-b border-gray-100 py-3"
       onMouseEnter={() => setShowDetail(true)}
+      onMouseLeave={() => setShowDetail(false)}
       onFocus={() => setShowDetail(true)}
+      onBlur={() => setShowDetail(false)}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
@@ -99,6 +102,7 @@ export function ConceptRow({ concept }: ConceptRowProps) {
           conceptName={concept.concept_name}
           blockingPrerequisites={blockers}
           isSubmitting={attemptLocked.isPending}
+          isError={attemptLocked.isError}
           onConfirm={handleConfirm}
           onCancel={() => setShowDialog(false)}
         />
