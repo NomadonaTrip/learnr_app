@@ -85,3 +85,12 @@ def test_parser_skips_sections_with_content_below_50_chars(tmp_path):
     md = _write(tmp_path, short_md)
     secs = CorpusMarkdownParser(md, allowed_chapters=frozenset({3})).parse()
     assert secs == []   # guard excludes sub-50-char sections
+
+
+def test_extract_script_uses_shared_parser_no_hardcoded_chapters():
+    """Guard: the concept-extraction script must not redefine the parser
+    or a hardcoded BABOK chapter constant."""
+    src = (project_root / "scripts" / "extract_babok_concepts.py").read_text()
+    assert "BABOK_KA_CHAPTERS" not in src
+    assert "class MarkdownBabokParser" not in src
+    assert "from utils.corpus_markdown import" in src
