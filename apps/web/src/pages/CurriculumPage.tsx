@@ -5,6 +5,7 @@ import { courseService } from '../services/courseService'
 import { useBulkUnlockStatus } from '../hooks/useConceptLockStatus'
 import { groupConceptsByKa } from '../utils/curriculum'
 import { KnowledgeAreaSection } from '../components/curriculum/KnowledgeAreaSection'
+import { RecentlyUnlockedStrip } from '../components/curriculum/RecentlyUnlockedStrip'
 
 const ONBOARDING_STORAGE_KEY = 'learnr_onboarding'
 const DEFAULT_COURSE_SLUG = 'cbap'
@@ -60,6 +61,8 @@ export function CurriculumPage() {
           Concepts grouped by knowledge area. Locked concepts list the
           prerequisites to master first.
         </p>
+
+        <RecentlyUnlockedStrip />
 
         <div className="mt-6 space-y-3">
           {isLoading && <p className="text-gray-500">Loading your curriculum…</p>}

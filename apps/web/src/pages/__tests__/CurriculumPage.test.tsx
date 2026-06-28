@@ -18,6 +18,9 @@ vi.mock('../../services/courseService', () => ({
 vi.mock('../../services/prerequisiteService', () => ({
   prerequisiteService: { getBulkUnlockStatus: vi.fn() },
 }))
+vi.mock('../../components/curriculum/RecentlyUnlockedStrip', () => ({
+  RecentlyUnlockedStrip: () => null,
+}))
 
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -35,7 +38,7 @@ const course = {
 }
 
 describe('CurriculumPage', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks() })
 
   it('renders KA sections on success', async () => {
     vi.mocked(courseService.fetchCourseBySlug).mockResolvedValue(course as never)
