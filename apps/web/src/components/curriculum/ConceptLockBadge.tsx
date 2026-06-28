@@ -8,11 +8,12 @@ interface ConceptLockBadgeProps {
 export function ConceptLockBadge({ isUnlocked }: ConceptLockBadgeProps) {
   return (
     <span
+      role="img"
       aria-label={isUnlocked ? 'Concept unlocked' : 'Concept locked'}
       className={
         isUnlocked
-          ? 'inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700'
-          : 'inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500'
+          ? 'inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700'
+          : 'inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500'
       }
     >
       {isUnlocked ? 'Unlocked' : 'Locked'}

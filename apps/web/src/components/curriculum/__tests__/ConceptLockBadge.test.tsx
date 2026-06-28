@@ -14,4 +14,9 @@ describe('ConceptLockBadge', () => {
     expect(screen.getByLabelText('Concept locked')).toBeInTheDocument()
     expect(screen.getByText('Locked')).toBeInTheDocument()
   })
+
+  it('exposes the badge as an image so the label is reliably announced', () => {
+    render(<ConceptLockBadge isUnlocked={false} />)
+    expect(screen.getByRole('img', { name: 'Concept locked' })).toBeInTheDocument()
+  })
 })

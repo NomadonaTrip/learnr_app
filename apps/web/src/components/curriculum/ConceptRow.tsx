@@ -51,6 +51,9 @@ export function ConceptRow({ concept }: ConceptRowProps) {
     }
   }
 
+  const tooltipId = `concept-lock-tooltip-${concept.concept_id}`
+  const showTooltip = showDetail && !concept.is_unlocked
+
   return (
     <div
       className="border-b border-gray-100 py-3"
@@ -82,14 +85,16 @@ export function ConceptRow({ concept }: ConceptRowProps) {
         <button
           type="button"
           onClick={handlePractice}
+          aria-describedby={showTooltip ? tooltipId : undefined}
           className="shrink-0 px-3 py-1.5 text-sm font-medium text-primary-700 rounded-[14px] border border-primary-200 hover:bg-primary-50"
         >
           Practice
         </button>
       </div>
 
-      {showDetail && !concept.is_unlocked && (
+      {showTooltip && (
         <ConceptLockTooltip
+          id={tooltipId}
           isLoading={status.isLoading}
           error={status.isError}
           blockingPrerequisites={blockers}
