@@ -16,7 +16,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, relationship
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
 
 from ..db.session import Base
 
@@ -49,13 +49,11 @@ class DiagnosticSession(Base):
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     enrollment_id = Column(
         UUID(as_uuid=True),
         ForeignKey("enrollments.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
 
     # Session data
@@ -98,18 +96,21 @@ class DiagnosticSession(Base):
             "current_index >= 0",
             name="diagnostic_session_index_check",
         ),
+        Index('idx_diagnostic_sessions_enrollment', 'enrollment_id'),
+        Index('idx_diagnostic_sessions_user', 'user_id'),
+        Index('idx_diagnostic_sessions_user_enrollment_status', 'user_id', 'enrollment_id', 'status'),
         # Partial unique index: only one active session per enrollment
         Index(
             "idx_diagnostic_sessions_active_enrollment",
             "enrollment_id",
             unique=True,
-            postgresql_where=(Column("status") == "in_progress"),
+            postgresql_where=text("(status)::text = 'in_progress'::text"),
         ),
         # Index for stale session cleanup
         Index(
             "idx_diagnostic_sessions_stale",
             "started_at",
-            postgresql_where=(Column("status") == "in_progress"),
+            postgresql_where=text("(status)::text = 'in_progress'::text"),
         ),
     )
 
