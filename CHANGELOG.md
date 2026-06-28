@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- **Performance indexes** (migration `ab01perfindexes`) — `idx_questions_difficulty_label` on `questions(course_id, difficulty_label)` (difficulty-tier selection / Story 10.1 IRT) and `idx_review_responses_question` on `review_responses(question_id)` (FK lookups/joins). Declared in both the migration and the models, so `alembic check` stays clean.
+
 - **Course-agnostic corpus chunking pipeline** (`scripts/utils/corpus_markdown.py`, `scripts/parse_corpus.py`, `courses.corpus_config`)
   - Generic markdown parser `CorpusMarkdownParser` with caller-supplied `allowed_chapters`; KA chapters derived from `knowledge_areas[].section_prefix` (no hardcoded chapter numbers). Shared with `extract_babok_concepts.py`.
   - New nullable `courses.corpus_config` JSONB column (`chunk_chapters` {min,max} + `heading_style`); CLI `--min-chapter`/`--max-chapter` overrides. cbap configured for chapters 1–8.
@@ -28,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- **Backend test suite collection** — removed a stale duplicate `tests/unit/test_quiz_answer_service.py` whose basename collided with the maintained `tests/unit/services/test_quiz_answer_service.py`, aborting pytest collection for the entire suite (`import file mismatch`). The removed copy never ran and was outdated against the current `QuizAnswerService`. Follow-up: port its unique coverage (answer-correctness, idempotency, normalization, error-handling) into the maintained file.
 - **`questions.created_at`/`updated_at` made timezone-aware** (migration `aa01questionstz`) — they were `timestamp without time zone` while every other table is tz-aware; stored values reinterpreted as UTC.
 - **`quiz_responses.time_taken_ms` model type** corrected to `Float` to match the DB `DOUBLE PRECISION` column.
 
