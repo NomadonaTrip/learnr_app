@@ -1,4 +1,5 @@
 import api from './api'
+import type { SessionUnlockItem } from './prerequisiteService'
 
 /**
  * Response from checking if review is available.
@@ -101,6 +102,7 @@ export interface ReviewSummaryResponse {
   still_incorrect_count: number
   reinforcement_rate: number
   still_incorrect_concepts: StillIncorrectConcept[]
+  new_unlocks: SessionUnlockItem[]
 }
 
 /**

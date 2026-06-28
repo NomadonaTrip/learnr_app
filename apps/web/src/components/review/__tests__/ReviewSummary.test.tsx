@@ -14,6 +14,7 @@ describe('ReviewSummary', () => {
     still_incorrect_count: 1,
     reinforcement_rate: 0.75,
     still_incorrect_concepts: [],
+    new_unlocks: [],
     ...overrides,
   })
 

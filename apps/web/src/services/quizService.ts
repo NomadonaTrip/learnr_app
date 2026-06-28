@@ -1,4 +1,5 @@
 import api from './api'
+import type { SessionUnlockItem } from './prerequisiteService'
 
 /**
  * Quiz session type determines question selection strategy.
@@ -203,6 +204,7 @@ export interface SessionSummary {
   concepts_strengthened: number
   quizzes_completed_total: number
   session_duration_seconds: number
+  new_unlocks: SessionUnlockItem[]
 }
 
 /**

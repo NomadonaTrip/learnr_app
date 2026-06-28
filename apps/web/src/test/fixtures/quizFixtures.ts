@@ -188,6 +188,7 @@ export const mockSessionSummary: SessionSummary = {
   concepts_strengthened: 8,
   quizzes_completed_total: 5,
   session_duration_seconds: 480,
+  new_unlocks: [],
 }
 
 /**
