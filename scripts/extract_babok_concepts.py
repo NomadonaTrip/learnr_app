@@ -22,13 +22,20 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
-import fitz  # PyMuPDF
 from openai import OpenAI
 from thefuzz import fuzz
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(Path(__file__).parent))      # scripts/ — for utils.corpus_markdown
 sys.path.append(str(project_root / "apps" / "api"))
+
+from utils.corpus_markdown import (  # noqa: E402
+    CorpusMarkdownParser,
+    MarkdownSection,
+    convert_pdf_to_markdown,
+    ka_chapter_map,
+)
 
 from src.config import settings
 from src.db.session import AsyncSessionLocal
@@ -73,16 +80,6 @@ def _sanitize_error_message(error_msg: str) -> str:
 
     return sanitized
 
-# BABOK v3 Knowledge Areas with chapter mappings
-BABOK_KA_CHAPTERS = {
-    3: "ba-planning",      # Chapter 3: Business Analysis Planning and Monitoring
-    4: "elicitation",      # Chapter 4: Elicitation and Collaboration
-    5: "rlcm",             # Chapter 5: Requirements Life Cycle Management
-    6: "strategy",         # Chapter 6: Strategy Analysis
-    7: "radd",             # Chapter 7: Requirements Analysis and Design Definition
-    8: "solution-eval",    # Chapter 8: Solution Evaluation
-}
-
 # Concept extraction prompt template
 CONCEPT_EXTRACTION_PROMPT = """Given this BABOK v3 section, identify distinct testable concepts.
 
@@ -115,18 +112,6 @@ Rules:
 
 
 @dataclass
-class BabokSection:
-    """Represents a parsed BABOK section."""
-    section_number: str  # e.g., "3.2.1"
-    title: str
-    content: str
-    chapter: int  # 3-8 for KA chapters
-    depth: int  # 1=chapter, 2=section, 3=subsection, etc.
-    page_start: int
-    page_end: int
-
-
-@dataclass
 class ConceptCandidate:
     """Represents an extracted concept before validation."""
     name: str
@@ -150,212 +135,11 @@ class ExtractionStats:
     total_tokens: int = 0
 
 
-class BabokPdfParser:
-    """Parses BABOK v3 PDF to extract sections."""
-
-    # Regex pattern for section numbers (e.g., "3.2.1")
-    SECTION_PATTERN = re.compile(r'^(\d+(?:\.\d+)*)\s+(.+)$', re.MULTILINE)
-
-    def __init__(self, pdf_path: str):
-        self.pdf_path = pdf_path
-        self.doc = None
-
-    def open(self) -> None:
-        """Open the PDF document."""
-        self.doc = fitz.open(self.pdf_path)
-        logger.info(f"Opened PDF: {self.pdf_path} ({len(self.doc)} pages)")
-
-    def close(self) -> None:
-        """Close the PDF document."""
-        if self.doc:
-            self.doc.close()
-
-    def parse_babok_pdf(self) -> List[BabokSection]:
-        """
-        Parse BABOK v3 PDF and extract sections.
-
-        Returns:
-            List of BabokSection objects
-        """
-        if not self.doc:
-            self.open()
-
-        sections = []
-        current_section = None
-        current_content = []
-
-        for page_num in range(len(self.doc)):
-            page = self.doc[page_num]
-            text = page.get_text()
-
-            # Find section headers in the text
-            for match in self.SECTION_PATTERN.finditer(text):
-                section_num = match.group(1)
-                title = match.group(2).strip()
-
-                # Only process KA chapters (3-8)
-                chapter = int(section_num.split('.')[0])
-                if chapter not in BABOK_KA_CHAPTERS:
-                    continue
-
-                # Save previous section if exists
-                if current_section:
-                    current_section.content = '\n'.join(current_content)
-                    current_section.page_end = page_num
-                    if len(current_section.content.strip()) > 50:  # Minimum content
-                        sections.append(current_section)
-                    current_content = []
-
-                # Calculate depth
-                depth = len(section_num.split('.'))
-
-                # Start new section
-                current_section = BabokSection(
-                    section_number=section_num,
-                    title=title,
-                    content='',
-                    chapter=chapter,
-                    depth=depth,
-                    page_start=page_num,
-                    page_end=page_num,
-                )
-
-            # Accumulate content for current section
-            if current_section:
-                current_content.append(text)
-
-        # Don't forget the last section
-        if current_section and current_content:
-            current_section.content = '\n'.join(current_content)
-            current_section.page_end = len(self.doc) - 1
-            if len(current_section.content.strip()) > 50:
-                sections.append(current_section)
-
-        logger.info(f"Parsed {len(sections)} sections from PDF")
-        return sections
-
-
-def convert_pdf_to_markdown(pdf_path: str, md_path: Optional[str] = None) -> str:
-    """
-    Convert a PDF to heading-structured markdown using pymupdf4llm.
-
-    pymupdf4llm performs font/layout analysis to emit real markdown headings
-    (e.g. ``## 3.2 Plan Stakeholder Engagement``), which the markdown parser
-    chunks by BABOK section number. This replaces the fragile raw-text PDF
-    parsing that produced malformed chunks.
-
-    Args:
-        pdf_path: Path to the source PDF.
-        md_path: Optional output path. Defaults to the PDF path with a
-            ``.md`` suffix; an existing cache is reused.
-
-    Returns:
-        Path to the markdown file.
-    """
-    import pymupdf4llm
-
-    out = md_path or str(Path(pdf_path).with_suffix(".md"))
-    if Path(out).exists() and Path(out).stat().st_size > 0:
-        logger.info(f"Reusing cached markdown: {out}")
-        return out
-
-    logger.info(f"Converting PDF to markdown via pymupdf4llm: {pdf_path}")
-    markdown = pymupdf4llm.to_markdown(pdf_path)
-    Path(out).parent.mkdir(parents=True, exist_ok=True)
-    Path(out).write_text(markdown, encoding="utf-8")
-    logger.info(f"Wrote markdown ({len(markdown)} chars) to {out}")
-    return out
-
-
-class MarkdownBabokParser:
-    """
-    Parses a pymupdf4llm-generated markdown rendering of the BABOK v3 guide
-    into :class:`BabokSection` objects, chunking by section-numbered headings.
-
-    Heading shapes handled:
-    - ``## 3.2 Plan Stakeholder Engagement`` — number + inline title
-    - ``## 3.2.1`` followed by ``## Purpose`` — number-only, title on the next
-      heading (BABOK's standard subsection anatomy)
-    - ``## Inputs`` / ``## .1 Perform ...`` / ``## Figure 3.2.1: ...`` — content
-      sub-headings, folded into the current section's content
-    """
-
-    # Strips the leading ``#`` markers from a heading line.
-    HEADING_PATTERN = re.compile(r'^#+\s*(.*?)\s*$')
-    # Matches a heading whose (bold-stripped) text starts with a section number.
-    SECTION_PATTERN = re.compile(r'^\**\s*(\d+(?:\.\d+)+)\b\s*\**\s*(.*?)\s*\**$')
-
-    def __init__(self, md_path: str):
-        self.md_path = md_path
-
-    def parse(self) -> List[BabokSection]:
-        lines = Path(self.md_path).read_text(encoding="utf-8").splitlines()
-        sections: List[BabokSection] = []
-        current: Optional[BabokSection] = None
-        content: List[str] = []
-        pending_title: Optional[BabokSection] = None
-
-        def finalize() -> None:
-            nonlocal current, content
-            if current is not None:
-                current.content = "\n".join(content).strip()
-                if len(current.content) >= 50:
-                    sections.append(current)
-            content = []
-
-        for line in lines:
-            heading_match = self.HEADING_PATTERN.match(line)
-            if not heading_match:
-                if line.strip():
-                    # Only an immediately-following heading can supply a split title.
-                    pending_title = None
-                if current is not None:
-                    content.append(line)
-                continue
-
-            heading_text = heading_match.group(1).strip().strip('*').strip()
-            section_match = self.SECTION_PATTERN.match(heading_text)
-
-            if section_match:
-                section_number = section_match.group(1)
-                title = section_match.group(2).strip().strip('*').strip()
-                chapter = int(section_number.split('.')[0])
-                if chapter not in BABOK_KA_CHAPTERS:
-                    # Front-matter / appendix numbering — treat as content, not a boundary.
-                    if current is not None:
-                        content.append(line)
-                    continue
-
-                finalize()
-                current = BabokSection(
-                    section_number=section_number,
-                    title=title,
-                    content='',
-                    chapter=chapter,
-                    depth=len(section_number.split('.')),
-                    page_start=0,
-                    page_end=0,
-                )
-                pending_title = current if not title else None
-                continue
-
-            # Non-numbered heading: it's either a split title or a content sub-heading.
-            if pending_title is not None and heading_text and not heading_text.startswith('.'):
-                pending_title.title = heading_text
-                pending_title = None
-                continue
-            if current is not None:
-                content.append(line)
-
-        finalize()
-        logger.info(f"Parsed {len(sections)} sections from markdown")
-        return sections
-
-
 class Gpt4ConceptExtractor:
     """Extracts concepts from sections using GPT-4."""
 
-    def __init__(self, api_key: str = None):
+    def __init__(self, chapter_to_ka: Dict[int, str], api_key: str = None):
+        self.chapter_to_ka = chapter_to_ka
         self.client = OpenAI(api_key=api_key or settings.OPENAI_API_KEY)
         # Model is overridable via env; default to a current, widely-available model
         # (gpt-4-turbo-preview was retired).
@@ -410,18 +194,18 @@ class Gpt4ConceptExtractor:
         return chunks
 
     def extract_concepts_from_section(
-        self, section: BabokSection
+        self, section: MarkdownSection
     ) -> List[ConceptCandidate]:
         """
-        Extract concepts from a BABOK section using GPT-4.
+        Extract concepts from a corpus section using GPT-4.
 
         Args:
-            section: BabokSection to extract concepts from
+            section: MarkdownSection to extract concepts from
 
         Returns:
             List of ConceptCandidate objects
         """
-        ka_id = BABOK_KA_CHAPTERS.get(section.chapter)
+        ka_id = self.chapter_to_ka.get(section.chapter)
         if not ka_id:
             logger.warning(f"Unknown chapter {section.chapter}, skipping")
             return []
@@ -572,12 +356,12 @@ class ConceptDeduplicator:
         return unique_concepts
 
 
-def estimate_difficulty(section: BabokSection, base_difficulty: float) -> float:
+def estimate_difficulty(section: MarkdownSection, base_difficulty: float) -> float:
     """
     Estimate concept difficulty based on section characteristics.
 
     Args:
-        section: BabokSection the concept belongs to
+        section: MarkdownSection the concept belongs to
         base_difficulty: Initial difficulty from GPT-4
 
     Returns:
@@ -865,6 +649,11 @@ async def main(
         logger.error(str(e))
         return 1
 
+    # Derive chapter→KA mapping and allowed chapter set from the course data;
+    # chapters are not hardcoded — they come from knowledge_areas[].section_prefix.
+    chapter_to_ka = ka_chapter_map(knowledge_areas)
+    allowed = frozenset(chapter_to_ka)
+
     # Step 1.5: Clear existing concepts if requested (OPS-001 idempotency)
     if clear_existing and not dry_run:
         logger.info("Step 1.5: Clearing existing concepts for idempotent re-extraction...")
@@ -875,7 +664,7 @@ async def main(
     logger.info("Step 2: Converting PDF to markdown and parsing sections...")
     try:
         md_path = markdown_path or convert_pdf_to_markdown(pdf_path)
-        sections = MarkdownBabokParser(md_path).parse()
+        sections = CorpusMarkdownParser(md_path, allowed_chapters=allowed).parse()
         if max_sections is not None:
             sections = sections[:max_sections]
             logger.info(f"Limiting to first {len(sections)} sections (--max-sections)")
@@ -894,7 +683,7 @@ async def main(
 
     # Step 3: Extract concepts from each section via GPT-4
     logger.info("Step 3: Extracting concepts via GPT-4...")
-    extractor = Gpt4ConceptExtractor()
+    extractor = Gpt4ConceptExtractor(chapter_to_ka=chapter_to_ka)
     all_concepts = []
 
     for idx, section in enumerate(sections, start=1):

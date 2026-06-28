@@ -1,228 +1,562 @@
 course_id,title,corpus_section,knowledge_area,concept_count,concept_names,content_preview,estimated_read_time
-1b8a4860-156f-4d06-8393-85c4088db2d9,If the union,1,unknown,0,,"does not
-agree with
-changes to
-job
-descriptions
-then planned
-staff changes
-will not be
-able to occur...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,If subject,2,unknown,0,,"matter
-experts are
-not available
-for
-requirements
-elicitation
-then scope
-and quality
-will be
-reduced...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Task: Business Analysis Planning,2.0,unknown,0,,and Monitoring,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Task: Requirements Management,2.0,unknown,0,,and Communication,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Task: Solution Assessment and,2.0,unknown,0,,Validation,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Business Analysis Approach,2.1,unknown,0,,"Prioritization and Change
-Management content shifted to 3.3
-Plan Business Analysis Governance",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Requirements Classification,2.3,unknown,0,,Schema,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Business Analysis,2.4,unknown,0,,Communication,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Requirements Management,2.5,unknown,0,,"Process
-Prioritization and Change
-Management content shifted to 3.3
-Plan Business Analysis Governanc...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Manage Business Analysis,2.6,unknown,0,,Performance,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,If an,3,ba-planning,0,,"insufficient
-number of
-customers
-reply to our
-survey
-then we will
-not have a
-representative
-sample o...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Task: Business Analysis Planning,3.0,ba-planning,0,,and Monitoring,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Task: Requirements Life Cycle,3.0,ba-planning,0,,Management,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Task: Requirements Analysis and,3.0,ba-planning,0,,Design Definition,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Business Analysis,3.1,ba-planning,0,,"Approach
-Business Analysis
-Performance Assessment
-3.1
-Business Analysis
-Approach
-3.2
-Plan Stakeholde...",11
-1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Stakeholder,3.2,ba-planning,0,,"Engagement
-Business Analysis
-Performance Assessment
-3.2
-Stakeholder
-Engagement
-Approach
-3.3
-Plan Bus...",8
-1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholder,3.2,ba-planning,0,,"Engagement
-Approach
-3.1
-Business Analysis
-Approach
-Business Policies
-Current State Description
-5.3
-P...",7
-1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Business Analysis,3.3,ba-planning,0,,"Governance
-Business Analysis
-Performance Assessment
-3.3
-Governance
-Approach
-3.4
-Plan Business
-Analys...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Business Analysis,3.4,ba-planning,0,,"Information Management
-Business Analysis
-Performance Assessment
-3.4
-Information
-Management
-Approach
-...",7
-1b8a4860-156f-4d06-8393-85c4088db2d9,Plan Business Analysis Information,3.4,ba-planning,0,,Management,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Identify Business Analysis,3.5,ba-planning,0,,"Performance Improvements
-Organizational  Performance
-Standards
-3.5
-Business Analysis
-Performance
-Ass...",10
-1b8a4860-156f-4d06-8393-85c4088db2d9,Business,3.5,ba-planning,0,,"Analysis
-Performance
-Assessment
-3.2
-Stakeholder
-Engagement
-Approach
-Business Objectives
-Future State...",42
-1b8a4860-156f-4d06-8393-85c4088db2d9,Identify Business Analysis,3.5,ba-planning,0,,Performance Improvements,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,If the,4,elicitation,0,,"organizational
-structure
-does not
-adjust to the
-new business
-processes
-then the
-enterprise will
-not ...",236
-1b8a4860-156f-4d06-8393-85c4088db2d9,Prepare for Elicitation,4.1,elicitation,0,,"Business Analysis Approach
-4.1
-Elicitation
-Activity Plan
-4.2
-Conduct Elicitation
-3.2
-Stakeholder
-Eng...",22
-1b8a4860-156f-4d06-8393-85c4088db2d9,Manage Solution Scope and,4.1,elicitation,0,,"Requirements
-Solution Scope Management is
-addressed within 5.1 Trace
-Requirements. Conflict and Issu...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Conduct Elicitation,4.2,elicitation,0,,"Summary of Changes from BABOK® Guide v 2.0
-485
-Complimentary IIBA® Member Copy. Not for Distribution...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Manage Requirements Traceability,4.2,elicitation,0,,"Relationships and Configuration
-Management are addressed in 5.1
-Trace Requirements. Impact Analysis ...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Communicate Business Analysis,4.4,elicitation,0,,"Information
-n/a",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Communicate Business Analysis,4.4,elicitation,0,,Information,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Communicate Business Analysis,4.4,elicitation,0,,"Information
-Summary of Changes from BABOK® Guide v 2.0
-486
-Complimentary IIBA® Member Copy. Not for ...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Manage Stakeholder,4.5,elicitation,0,,Collaboration,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Define Business Need,5.1,rlcm,0,,"Business Problem or Opportunity is
-addressed in 6.1 Analyze Current
-State. Business Goals and Object...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Assess Capability Gaps,5.2,rlcm,0,,"Current Capability Analysis is
-addressed in 6.1 Analyze Current
-State. Assessment of New Capability
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose of the BABOK[®] Guide,1.1,unknown,0,,The primary purpose of the _BABOK[®] Guide_ is to define the profession of business analysis and pro...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,What is Business Analysis?,1.2,unknown,0,,Business analysis is the practice of enabling change in an enterprise by defining needs and recommen...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Who is a Business Analyst?,1.3,unknown,0,,A business analyst is any person who performs business analysis tasks described in the _BABOK[®] Gui...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Structure of the BABOK[®] Guide,1.4,unknown,0,,The core content of the _BABOK[®] Guide_ is composed of business analysis tasks organized into knowl...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Key Concepts,1.4.1,unknown,0,,The Business Analysis Key Concepts chapter provides a basic understanding of the central ideas neces...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Knowledge Areas - Part 1,1.4.2,unknown,0,,Knowledge areas represent areas of specific business analysis expertise that encompass several tasks...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Knowledge Areas - Part 2,1.4.2,unknown,0,," constraints that prevent the full realization of the value.
+
+The following diagram shows a general ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Tasks - Part 1,1.4.3,unknown,0,,A task is a discrete piece of work that may be performed formally or informally as part of business ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Tasks - Part 2,1.4.3,unknown,0,," Inputs section includes a visual representation of the inputs and outputs, the other tasks that use...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Underlying Competencies,1.4.4,unknown,0,,"Underlying competencies reflect knowledge, skills, behaviours, characteristics, and personal qualiti...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,1.4.5,unknown,0,,"Techniques provide additional information on ways that a task may be performed.
+
+The list of techniq...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Perspectives - Part 1,1.4.6,unknown,0,,Perspectives are used within business analysis work to provide focus to tasks and techniques specifi...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Perspectives - Part 2,1.4.6,unknown,0,," In the Business Process Management perspective, frameworks are listed instead of approaches.
+
+## **...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,The Business Analysis Core Concept Model™ - Part 1,2.1,unknown,0,,The _Business Analysis Core Concept Model™_ ( _BACCM™_ ) is a conceptual framework for business anal...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,The Business Analysis Core Concept Model™ - Part 2,2.1,unknown,0,," by<br>stakeholders or enabling stakeholders to take advantage of<br>an opportunity.|
+
+Business Anal...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,The Business Analysis Core Concept Model™ - Part 3,2.1,unknown,0,, knowledge area description there are examples of how the core concepts may be used and/or applied d...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,The Business Analysis Core Concept Model™ - Part 4,2.1,unknown,0,, Business Analysis Information Management' it includes all the examples listed above. If the _BABOK[...,2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Requirements Classification Schema,2.3,unknown,0,,"For the purposes of the _BABOK[®] Guide_ , the following classification schema describes requirement...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,2.4,unknown,0,,Each task includes a list of stakeholders who are likely to participate in the execution of that tas...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Business Analyst,2.4.1,unknown,0,,The business analyst is inherently a stakeholder in all business analysis activities. The _BABOK[®] ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Supplier,2.4.10,unknown,0,,A supplier is a stakeholder outside the boundary of a given organization or organizational unit. Sup...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Tester,2.4.11,unknown,0,,Testers are responsible for determining how to verify that the solution meets the requirements defin...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Customer,2.4.2,unknown,0,,A customer uses or may use products or services produced by the enterprise and may have contractual ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Domain Subject Matter Expert,2.4.3,unknown,0,,A domain subject matter expert is any individual with in-depth knowledge of a topic relevant to the ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,End User,2.4.4,unknown,0,,End users are stakeholders who directly interact with the solution. End users can include all partic...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Implementation Subject Matter Expert,2.4.5,unknown,0,,An implementation subject matter expert is any stakeholder who has specialized knowledge regarding t...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Operational Support,2.4.6,unknown,0,,Operational support is responsible for the day-to-day management and maintenance of a system or prod...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Project Manager,2.4.7,unknown,0,,Project managers are responsible for managing the work required to deliver a solution that meets a b...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Regulator,2.4.8,unknown,0,,Regulators are responsible for the definition and enforcement of standards. Standards can be imposed...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Sponsor,2.4.9,unknown,0,,Sponsors are responsible for initiating the effort to define a business need and develop a solution ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Requirements and Designs - Part 1,2.5,unknown,0,,"Eliciting, analyzing, validating, and managing requirements have consistently been recognized as key...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Requirements and Designs - Part 2,2.5,unknown,0,,"|
+|Record and access a medical patient’s<br>history.|Screen mock-up showing specific<br>data fields....",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Requirements and Designs - Part 3,2.5,unknown,0,, tasks organize and coordinate the efforts of business analysts and stakeholders. These tasks produc...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Requirements and Designs - Part 4,2.5,unknown,0,, the six core concepts. The following table describes the usage and application of each of the core ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Requirements and Designs - Part 5,2.5,unknown,0,," to develop<br>an efficient business analysis approach.|
+
+Business Analysis Planning and Monitoring
 ...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Prioritize Requirements,5.3,rlcm,0,,"Moved from 6.1 Prioritize
-Requirements (v2.0)
-N/A",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Determine Solution Approach,5.3,rlcm,0,,"Alternative Generation and
-Assumptions and Constraints are
-addressed in 6.2 Define Future State.
-Ran...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Prioritize Requirements (v3,5.3,rlcm,0,,"Requirements Life Cycle Management
-knowledge area)",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Approve Requirements,5.5,rlcm,0,,"New task which includes the concepts
-from the v2 Elements Conflict and
-Issue Management , Presenting...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Business,6.1,strategy,0,,"Requirements
-Solution Performance Goals
-6.2
-Define Future State
-Solution Performance
-Measures
-Stakeh...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Analyze Current State,6.1,strategy,0,,"Strategy Analysis
-Analyze Current State
-105
-Complimentary IIBA® Member Copy. Not for Distribution or...",349
-1b8a4860-156f-4d06-8393-85c4088db2d9,"Analyze Current State, 6.2 Define",6.1,strategy,0,,Future State,1
-1b8a4860-156f-4d06-8393-85c4088db2d9,"Analyze Current State, 6.2 Define",6.1,strategy,0,,"Future State, 6.4 Define Change
-Strategy
-Define Change Strategy includes a
-Gap Analysis which was no...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,"Define Future State, 7.5 Define",6.2,strategy,0,,"Design Options (v3 Requirements
-Analysis and Design Definition
-knowledge area), 7.6 Analyze
-Potentia...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Define Future State (v3 Strategy,6.2,strategy,0,,"Analysis knowledge area) and 7.6
-Analyze Potential Value and
-Recommend Solution",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Define Assumptions and,6.4,strategy,0,,"Constraints
-Assumptions and Business Constraints
-are addressed in 6.2 Define Future
-State. Technical...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Define Change Strategy (v3,6.4,strategy,0,,"Strategy Analysis knowledge area)
-Summary of Changes from BABOK® Guide v 2.0
-489
-Complimentary IIBA®...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Define Change Strategy (v3,6.4,strategy,0,,"Strategy Analysis knowledge area),",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Allocate Requirements (v2.0,7.2,radd,0,,"Solution Assessment and Validation
-knowledge area)
-N/A",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Validate Requirements,7.3,radd,0,,"Summary of Changes from BABOK® Guide v 2.0
-488
-Complimentary IIBA® Member Copy. Not for Distribution...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Define Design Options,7.5,radd,0,,"New task in Requirements Analysis
-and Design Definition which
-incorporates 5.3 Determine Solution
-Ap...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Define Design Options and 7.6,7.5,radd,0,,"Analyze Potential Value and
-Recommend Solution (v3
-Requirements Analysis and Design
-Definition knowl...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Define Design Options (v3,7.5,radd,0,,"Requirements Analysis and Design
-Definition knowledge area)",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Analyze Potential Value and,7.6,radd,0,,"Recommend Solution (Requirements
-Analysis and Design Definition
-knowledge area), 10.7 Business Cases...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Analyze Potential Value and,7.6,radd,0,,"Recommend Solution
-New task in Requirements Analysis
-and Design Definition which
-incorporates 5.5 De...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Measure Solution Performance,8.1,solution-eval,0,,"New task that incorporates defining
-solution performance measures and
-measuring the actual performan...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Analyze Performance Measures,8.2,solution-eval,0,,"New task that focuses on comparing
-the actual value (solution
-performance) against the expected
-valu...",1
-1b8a4860-156f-4d06-8393-85c4088db2d9,Assess Enterprise Limitations,8.4,solution-eval,0,,"New task that identifies what, external
-to the solution, may be preventing it
-from delivering its ex...",13
-1b8a4860-156f-4d06-8393-85c4088db2d9,Recommend Actions to Increase,8.5,solution-eval,0,,"Solution Value
-N/A",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,3.1.1,ba-planning,2,"Methods for Business Analysis Activities, Planning Business Analysis Activities",The purpose of Plan Business Analysis Approach is to define an appropriate method to conduct busines...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,3.1.2,ba-planning,5,"Alignment of Business Analysis to Change Goals, Coordination of Business Analysis Tasks, Selection of Techniques and Tools, Stakeholder Collaboration for Standards Development, Tailoring Business Analysis Processes",Business analysis approaches describe the overall method that will be followed when performing busin...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,3.1.3,ba-planning,3,"Business Analysis Needs Identification, Evolving Understanding of Needs, Input Elements for Business Analysis Planning",- **Needs** : the business analysis approach is shaped by the problem or opportunity faced by the or...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,3.1.4,ba-planning,6,"Adaptive Planning Approach, Business Analysis Activities Integration, Complexity and Risk Assessment, Formality of Documentation, Stakeholder Acceptance of Business Analysis Approach, Timing of Business Analysis Work","## **.1 Planning Approach**
+
+There are various planning methods used across perspectives, industries...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,3.1.4,ba-planning,6,"Adaptive Planning Approach, Business Analysis Activities Integration, Complexity and Risk Assessment, Formality of Documentation, Stakeholder Acceptance of Business Analysis Approach, Timing of Business Analysis Work"," affect the approach include:
+
+- the change is complex and high risk,
+
+- the organization is in, or ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 3,3.1.4,ba-planning,6,"Adaptive Planning Approach, Business Analysis Activities Integration, Complexity and Risk Assessment, Formality of Documentation, Stakeholder Acceptance of Business Analysis Approach, Timing of Business Analysis Work"," associated activities and tasks, or
+
+Plan Business Analysis Approach
+
+Business Analysis Planning an...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 4,3.1.4,ba-planning,6,"Adaptive Planning Approach, Business Analysis Activities Integration, Complexity and Risk Assessment, Formality of Documentation, Stakeholder Acceptance of Business Analysis Approach, Timing of Business Analysis Work",",
+
+- any pre-selected framework, methodology, tools, and/or techniques
+
+Business Analysis Planning a...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,3.1.5,ba-planning,3,"Business Policies Impact on Analysis, Expert Judgment in Business Analysis, Methodologies and Frameworks in Business Analysis",- **Business Analysis Performance Assessment** : provides results of previous assessments that shoul...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,3.1.6,ba-planning,14,"Brainstorming for Business Analysis, Business Case Evaluation, Conducting Interviews for Planning, Document Analysis in Planning, Estimation of Business Analysis Activities, Financial Analysis for Delivery Options, Functional Decomposition Technique, Item Tracking in Planning Activities, Lessons Learned Analysis, Process Modelling for Business Analysis, Risk Analysis and Management in Planning, Scope Modelling for Solution Boundaries, Surveys and Questionnaires in Business Analysis, Workshops for Collaborative Planning","- **Brainstorming** : used to identify possible business analysis activities, techniques, risks and ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,3.1.7,ba-planning,4,"Project Manager Role in Business Analysis, Regulator Approval in Business Analysis, Sponsor's Influence on Business Analysis Approach, Stakeholder Engagement Planning",- **Domain Subject Matter Expert** : can be a source of risk when their involvement is required and ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,3.1.8,ba-planning,5,"Activity Sequencing in Business Analysis, Business Analysis Approach Identification, Business Analysis Techniques Utilization, Deliverables Definition, Integration of Outputs",- **Business Analysis Approach** : identifies the business analysis approach and activities that wil...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,3.2.1,ba-planning,4,"Effective Relationship Maintenance, Engagement Strategy Development, Stakeholder Analysis Importance, Stakeholder Identification Techniques",The purpose of Plan Stakeholder Engagement is to plan an approach for establishing and maintaining e...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,3.2.2,ba-planning,5,"Collaboration Approaches for Stakeholders, Communication Strategies for Stakeholder Engagement, Complexity of Stakeholder Engagement, Scalability of Stakeholder Management Techniques, Stakeholder Risk Planning",Plan Stakeholder Engagement involves conducting a thorough stakeholder analysis to identify all of t...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,3.2.3,ba-planning,1,Evolving Business Needs,- **Needs** : understanding the business need and the parts of the enterprise that it affects helps ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,3.2.4,ba-planning,5,"Decision-Making Authority Assessment, Influence Level Evaluation, Stakeholder Attitude Analysis, Stakeholder Collaboration Planning, Stakeholder Communication Needs Assessment","## **.1 Perform Stakeholder Analysis**
+
+Stakeholder analysis involves identifying the stakeholders (...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,3.2.4,ba-planning,5,"Decision-Making Authority Assessment, Influence Level Evaluation, Stakeholder Attitude Analysis, Stakeholder Collaboration Planning, Stakeholder Communication Needs Assessment","- business goals, objectives of the initiative, and any proposed solutions,
+
+- business analysis in ...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 3,3.2.4,ba-planning,5,"Decision-Making Authority Assessment, Influence Level Evaluation, Stakeholder Attitude Analysis, Stakeholder Collaboration Planning, Stakeholder Communication Needs Assessment"," across the initiative. Some considerations when planning collaboration include:
+
+- timing and frequ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,3.2.5,ba-planning,0,,- **Business Analysis Performance Assessment** : provides results of previous assessments that shoul...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,3.2.6,ba-planning,13,"Brainstorming for Stakeholder Identification, Business Rules Analysis for Stakeholder Identification, Conducting Stakeholder Interviews, Creating Stakeholder Maps or Personas, Document Analysis for Stakeholder Engagement, Facilitating Workshops for Stakeholder Engagement, Lessons Learned in Stakeholder Engagement, Mind Mapping for Stakeholder Relationships, Organizational Modeling for Stakeholder Needs, Process Modeling for Stakeholder Categorization, Risk Analysis in Stakeholder Engagement, Scope Modeling for Stakeholder Interaction, Using Surveys for Stakeholder Characteristics",- **Brainstorming** : used to produce the stakeholder list and identify stakeholder roles and respon...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,3.2.7,ba-planning,6,"Customer Identification, End User Definition, Project Manager Stakeholder Role, Regulator Involvement, Sponsor Stakeholder Request, Supplier as External Stakeholder","- **Customers** : a source of external stakeholders.
+
+- **Domain Subject Matter Expert** : may help ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,3.2.8,ba-planning,3,"Communication Approach Planning, Roles and Responsibilities Documentation, Stakeholder Characteristics Analysis","- **Stakeholder Engagement Approach** : contains a list of the stakeholders, their characteristics w...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,3.3.1,ba-planning,5,"Approval Workflow for Requirements, Change Control Procedures, Prioritization Techniques for Requirements, Requirements Decision-Making Process, Review Process for Requirements",The purpose of Plan Business Analysis Governance is to define how decisions are made about requireme...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,3.3.2,ba-planning,7,"Approval and Prioritization Procedures, Authority in Change Discussions, Change Approval Authority, Change Documentation and Communication, Change Proposal Process, Change Request Analysis Responsibility, Governance Process Identification",Business analysts ensure that a governance process is in place and clarify any ambiguities within it...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,3.3.3,ba-planning,3,"Governance Approach Update, Input/Output Diagram Interpretation, Legal and Regulatory Information Consideration",- **Business Analysis Approach** : incorporating the overall business analysis approach into the gov...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,3.3.4,ba-planning,8,"Approval Process Planning, Change Communication Strategies, Change Control Process Elements, Change Prioritization, Change Request Components, Decision-Making Roles, Impact Analysis Responsibility, Prioritization Criteria","## **.1 Decision Making**
+
+Decisions are made throughout the initiative. A stakeholder may serve in ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,3.3.4,ba-planning,8,"Approval Process Planning, Change Communication Strategies, Change Control Process Elements, Change Prioritization, Change Request Components, Decision-Making Roles, Impact Analysis Responsibility, Prioritization Criteria", by other stakeholders so decision makers can make a choice that will best serve the needs of the in...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 3,3.3.4,ba-planning,8,"Approval Process Planning, Change Communication Strategies, Change Control Process Elements, Change Prioritization, Change Request Components, Decision-Making Roles, Impact Analysis Responsibility, Prioritization Criteria"," the change and associated risks of foregoing or delaying an approval.
+
+The business analyst must de...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,3.3.5,ba-planning,2,"Business Analysis Performance Assessment, Current State Description Importance",- **Business Analysis Performance Assessment** : provides results of previous assessments that shoul...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,3.3.6,ba-planning,9,"Document Analysis for Governance Processes, Interviews for Decision-Making Identification, Item Tracking in Governance Planning, Lessons Learned in Governance, Organizational Modelling for Governance, Process Modelling for Governance, Reviews of Governance Plans, Surveys for Decision-Making Insights, Workshops for Collaborative Decision-Making",- **Brainstorming** : used to generate an initial list of potential stakeholder names who may need a...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,3.3.7,ba-planning,3,"Project Manager Collaboration, Regulator Influence on Governance, Sponsor Requirements for Information Management",- **Domain Subject Matter Expert** : may be a possible source of a requested change or may be identi...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,3.3.8,ba-planning,4,"Approval Process for Changes, Change Management Process Definition, Prioritization of Business Analysis Work, Stakeholder Responsibility Identification",- **Governance Approach** : identifies the stakeholders who will have the responsibility and authori...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,3.4.1,ba-planning,4,"Access Management for Business Analysis Information, Approach Development for Information Management, Business Analysis Information Management Planning, Information Storage Strategies",The purpose of Plan Business Analysis Information Management is to develop an approach for how busin...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,3.4.2,ba-planning,9,"Accessibility of Business Analysis Information, Business Analysis Information Types, Cross-Initiative Information Usage, Detail Level for Information Capture, Functional Organization of Information, Information Access and Storage Guidelines, Information Characteristics Maintenance, Information Organization Principles, Information Relationships Identification","Business analysis information is comprised of all the information business analysts elicit, create, ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,3.4.3,ba-planning,3,"Governance Approach Definition, Information Management Planning, Stakeholder Engagement Identification",- **Business Analysis Approach** : incorporating the overall business analysis approach into the inf...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,3.4.4,ba-planning,9,"Business Analysis Information Organization, Business Analysis Information Storage and Access, Identifying Requirement Risks, Level of Abstraction in Business Analysis, Requirement Status Identification, Requirements Attributes Definition, Requirements Reuse Planning, Traceability Approach Planning, Understanding Requirement Complexity","## **.1 Organization of Business Analysis Information**
+
+Business analysts are responsible for organ...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,3.4.4,ba-planning,9,"Business Analysis Information Organization, Business Analysis Information Storage and Access, Identifying Requirement Risks, Level of Abstraction in Business Analysis, Requirement Status Identification, Requirements Attributes Definition, Requirements Reuse Planning, Traceability Approach Planning, Understanding Requirement Complexity",",
+
+- business processes, or
+
+- requirements describing products the enterprise produces.
+
+Plan Busin...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 3,3.4.4,ba-planning,9,"Business Analysis Information Organization, Business Analysis Information Storage and Access, Identifying Requirement Risks, Level of Abstraction in Business Analysis, Requirement Status Identification, Requirements Attributes Definition, Requirements Reuse Planning, Traceability Approach Planning, Understanding Requirement Complexity", or group that needs the requirement or will be the business owner after the solution is implemented...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,3.4.5,ba-planning,2,"Information Management Tools, Legal and Regulatory Information Management",- **Business Analysis Performance Assessment** : provides results of previous assessments that shoul...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,3.4.6,ba-planning,8,"Brainstorming for Information Management Needs, Conducting Interviews for Information Management, Designing Surveys for Stakeholder Input, Facilitating Workshops for Information Management Needs, Item Tracking in Information Management, Mind Mapping for Information Categorization, Process Modelling for Information Management, Utilizing Lessons Learned",- **Brainstorming** : used to help stakeholders uncover their business analysis information manageme...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,3.4.7,ba-planning,1,Sponsor's Role in Business Analysis,"- **Domain Subject Matter Expert** : may need to access and work with business analysis information,...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,3.4.8,ba-planning,2,"Access Protocols for Business Analysis Information, Storage Methods for Business Analysis Information",- **Information Management Approach** : includes the defined approach for how business analysis info...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,3.5.1,ba-planning,2,"Identifying Improvement Opportunities, Process Improvement Planning",The purpose of Identify Business Analysis Performance Improvements is to assess business analysis wo...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,3.5.2,ba-planning,8,"Continuous Performance Monitoring, Corrective Action Implementation, Developmental Action Planning, Guideline Formation from Analysis, Performance Analysis Execution, Performance Measure Establishment, Performance Reporting, Preventive Action Identification","To monitor and improve performance, it is necessary to establish the performance measures, conduct t...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,3.5.3,ba-planning,3,"Business Analysis Performance Improvements Identification, External Performance Objectives, Guidelines and Tools for Business Analysis","- **Business Analysis Approach** : identifies business analysis deliverables that will be produced, ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,3.5.4,ba-planning,9,"Accuracy and Completeness Assessment, Assessment Measures Identification, Corrective Actions for Business Analysis, Impact of Performance Metrics, Performance Analysis Reporting, Preventive Actions in Business Analysis, Quantitative vs Qualitative Measures, Stakeholder Perspective in Performance Analysis, Timeliness Evaluation","## **.1 Performance Analysis**
+
+What constitutes effective business analysis work depends on the con...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,3.5.4,ba-planning,9,"Accuracy and Completeness Assessment, Assessment Measures Identification, Corrective Actions for Business Analysis, Impact of Performance Metrics, Performance Analysis Reporting, Preventive Actions in Business Analysis, Quantitative vs Qualitative Measures, Stakeholder Perspective in Performance Analysis, Timeliness Evaluation","** : look at whether business objectives were met, problems were solved, and improvements were achie...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,3.5.5,ba-planning,3,"Mandated Expectations for Business Analysis, Organizational Performance Standards, Performance Metrics in Business Analysis",- **Organizational Performance Standards** : may include performance metrics or expectations for bus...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,3.5.6,ba-planning,8,"Interviewing for Performance Assessment, Lessons Learned Documentation, Observation Techniques, Process Analysis Methodology, Process Modelling Techniques, Review Process for Deliverables, Root Cause Analysis Techniques, Workshop Facilitation for Performance Assessment","- **Brainstorming** : used to generate ideas for improvement opportunities.
+
+- **Interviews** : used...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,3.5.7,ba-planning,6,"Business Analysis Performance Reporting, Consultation for Change Impact, Domain Subject Matter Expert Involvement, Manager of Business Analysts Role, Project Manager Accountability, Sponsor Reporting Requirements",- **Domain Subject Matter Experts** : should be informed about the business analysis activities in o...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 1,3.5.8,ba-planning,6,"Communication of Business Analysis Information, Confirming Elicitation Results, Context Identification in Elicitation, Iterative Elicitation Process, Stakeholder Collaboration Management, Value Assessment in Elicitation",- **Business Analysis Performance Assessment** : includes a comparison of planned versus actual perf...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 2,3.5.8,ba-planning,6,"Communication of Business Analysis Information, Confirming Elicitation Results, Context Identification in Elicitation, Iterative Elicitation Process, Stakeholder Collaboration Management, Value Assessment in Elicitation", nature of the activities they are going to perform. It also sets a shared set of expectations regar...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 3,3.5.8,ba-planning,6,"Communication of Business Analysis Information, Confirming Elicitation Results, Context Identification in Elicitation, Iterative Elicitation Process, Stakeholder Collaboration Management, Value Assessment in Elicitation", following table describes the usage and application of each of the core concepts within the context...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 4,3.5.8,ba-planning,6,"Communication of Business Analysis Information, Confirming Elicitation Results, Context Identification in Elicitation, Iterative Elicitation Process, Stakeholder Collaboration Management, Value Assessment in Elicitation","identify business analysis information<br>about the context that may affect the<br>change.||
+
+Prepar...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Prepare for Elicitation,4.1.1,elicitation,3,"Elicitation Technique Selection, Resource Procurement for Elicitation, Supporting Materials Planning","## **Purpose**
+
+The purpose of Prepare for Elicitation is to understand the scope of the elicitation...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,4.1.2,elicitation,5,"Collaboration Circumstances Understanding, Elicitation Logistics Establishment, Elicitation Outcome Definition, Supporting Materials Identification, Work Product Determination","Business analysts prepare for elicitation by defining the desired outcomes of the activity, consider...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,4.1.3,elicitation,2,"Elicitation Event Preparation, Needs Identification",- **Needs** : guides the preparation in terms of the scope and purpose of elicitation activities. El...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,4.1.4,elicitation,6,"Assessing Elicitation Outputs, Logistics Planning for Elicitation, Preparing Stakeholders for Elicitation, Securing Supporting Materials, Selecting Elicitation Techniques, Understanding Elicitation Scope","## **.1 Understand the Scope of Elicitation**
+
+To determine the type of business analysis informatio...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,4.1.4,elicitation,6,"Assessing Elicitation Outputs, Logistics Planning for Elicitation, Preparing Stakeholders for Elicitation, Securing Supporting Materials, Selecting Elicitation Techniques, Understanding Elicitation Scope",", rooms, and tools,
+
+- locations,
+
+- communication channels,
+
+- techniques, and
+
+- languages used by...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,4.1.5,elicitation,2,"Business Objectives, Potential Value",- **Business Analysis Approach** : sets the general strategy to be used to guide the business analys...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,4.1.6,elicitation,5,"Brainstorming Technique, Data Mining Purpose, Document Analysis Method, Estimation in Elicitation, Mind Mapping Technique",- **Brainstorming** : used to collaboratively identify and reach consensus about which sources of bu...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,4.1.7,elicitation,3,"Domain Subject Matter Expert Role, Project Manager Responsibilities in Elicitation, Sponsor Authority in Elicitation Events",- **Domain Subject Matter Expert** : provides supporting materials as well as guidance about which o...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,4.1.8,elicitation,3,"Elicitation Activity Plan Components, Scope Definition in Elicitation, Supporting Materials for Elicitation","- **Elicitation Activity Plan** : used for each elicitation activity. It includes logistics, scope o...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,4.2.1,elicitation,3,"Conduct Elicitation, Exploration Techniques, Information Identification","The purpose of Conduct Elicitation is to draw out, explore, and identify information relevant to the...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,4.2.2,elicitation,5,"Collaborative Elicitation, Elicitation Techniques, Experimental Elicitation, Feedback on Elicitation Materials, Research Elicitation","There are three common types of elicitation:
+
+- **Collaborative** : involves direct interaction with...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,4.2.3,elicitation,3,"Background Information Sources, Logistics of Elicitation Activities, Purpose of Elicitation Activity Plan","- **Elicitation Activity Plan** : includes the planned elicitation activities and techniques, activi...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements,4.2.4,elicitation,6,"Capturing Elicitation Outcomes, Information Usage in Elicitation, Integration of Elicitation Output, Output Forms in Elicitation, Scope of Change in Elicitation, Sufficient Elicitation Determination","## **.1 Guide Elicitation Activity**
+
+Understanding the proposed representations of business analysi...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,4.2.5,elicitation,2,"Existing Business Analysis Information, Supporting Materials","- **Business Analysis Approach** : influences how each elicitation activity is performed, as it iden...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques - Part 1,4.2.6,elicitation,2,"Benchmarking and Market Analysis, Concept Modelling",- **Benchmarking and Market Analysis** : used as a source of business analysis information by compar...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques - Part 2,4.2.6,elicitation,2,"Benchmarking and Market Analysis, Concept Modelling"," or designs.
+
+- **Survey or Questionnaire** : used to elicit business analysis information, includin...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,4.2.7,elicitation,4,"Customer Role in Elicitation, Domain Subject Matter Expert's Contribution, End User Participation, Stakeholder Knowledge in Elicitation","- **Customer** : will provide valuable business analysis information during elicitation.
+
+- **Domain...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,4.2.8,elicitation,1,Elicitation Activity Types,- **Elicitation Results (unconfirmed)** : captured information in a format that is specific to the e...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,4.3.1,elicitation,3,"Accuracy in Elicitation, Consistency in Elicitation, Elicitation Session Review",The purpose of Confirm Elicitation Results is to check the information gathered during an elicitatio...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,4.3.2,elicitation,4,"Additional Elicitation for Inconsistent Results, Consistency Check of Elicitation Results, Elicitation Result Confirmation, Informal Review of Elicitation Results",Elicited information is confirmed to identify any problems and resolve them before resources are com...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,4.3.3,elicitation,2,"Elicitation Results Definition, Output of Confirmed Elicitation Results",- **Elicitation Results (unconfirmed)** : capture information in a format specific to the elicitatio...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements,4.3.4,elicitation,6,"Comparison of Multiple Elicitation Results, Development of Specifications and Models during Elicitation, Elicitation Results Comparison with Source Information, Identification of Variations in Elicitation Results, Stakeholder Confirmation of Elicitation Results, Use of Historical Data in Elicitation","## **.1 Compare Elicitation Results Against Source Information**
+
+Task Conduct Elicitation (p. 61) d...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,4.3.5,elicitation,2,"Elicitation Activity Plan, Utilization of Existing Business Analysis Information",- **Elicitation Activity Plan** : used to guide which alternative sources and which elicitation resu...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,4.3.6,elicitation,3,"Document Analysis Technique, Review Technique, Workshop Facilitation",- **Document Analysis** : used to confirm elicitation results against source information or other ex...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,4.3.7,elicitation,2,"Identifying Elicitation Omissions, Stakeholder Participation in Elicitation","- **Domain Subject Matter Experts** : people with substantial knowledge, experience, or expertise ab...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,4.3.8,elicitation,3,"Elicitation Results Confirmation, Relevance of Elicitation Outputs, Stakeholder Agreement on Elicitation Results",- **Elicitation Results (confirmed)** : integrated output that the business analyst and other stakeh...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,4.4.1,elicitation,4,"Effective Communication Techniques in Elicitation, Role of Elicitation in Business Analysis, Shared Understanding of Business Analysis Information, Stakeholder Engagement in Business Analysis",The purpose of Communicate Business Analysis Information is to ensure stakeholders have a shared und...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,4.4.2,elicitation,8,"Adapting Communication Methods, Appropriate Communication Formats, Bi-directional Communication, Content and Purpose of Communication, Engaging Stakeholders for Understanding, Evaluating Communication Needs, Iterative Communication Process, Stakeholder Communication Timing",Business analysts must communicate appropriate information to stakeholders at the right time and in ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,4.4.3,elicitation,3,"Guidelines and Tools for Communication, Input/Output Relationship in Business Analysis, Role of Stakeholders in Business Analysis",- **Business Analysis Information** : any kind of information at any level of detail that is used as...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,4.4.4,elicitation,5,"Audience Identification for Communication, Business Analysis Approach, Communication Platforms for Stakeholders, Objectives of Business Analysis Packages, Preferred Communication Styles","## **.1 Determine Objectives and Format of Communication**
+
+Business analysis information packages m...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,4.4.4,elicitation,5,"Audience Identification for Communication, Business Analysis Approach, Communication Platforms for Stakeholders, Objectives of Business Analysis Packages, Preferred Communication Styles"," have.
+
+Selecting the appropriate communication platform is also important. Common communication pla...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,4.4.6,elicitation,3,"Interviews in Elicitation, Reviews for Stakeholder Feedback, Workshops for Consensus Building","- **Interviews** : used to individually communicate information to stakeholders.
+
+- **Reviews** : us...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,4.4.7,elicitation,5,"Customer Communication, End User Communication, Implementation Subject Matter Expert Role, Stakeholder Communication Necessity, Tester Role in Business Analysis",- **End User** : needs to be communicated with frequently so they are aware of relevant business ana...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,4.4.8,elicitation,1,Stakeholder Understanding Assessment,- **Business Analysis Information (communicated)** : business analysis information is considered com...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,4.5.1,elicitation,4,"Common Goal Identification, Conflict Resolution in Collaboration, Stakeholder Collaboration Purpose, Stakeholder Engagement Strategies",The purpose of Manage Stakeholder Collaboration is to encourage stakeholders to work towards a commo...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,4.5.2,elicitation,6,"Building Trust with Stakeholders, Effects of Poor Stakeholder Relationships, Impact of Stakeholder Relationships, Managing Stakeholder Collaboration, Monitoring Stakeholder Attitudes, Stakeholder Influence Assessment",Business analysis work lends itself to many collaboration opportunities between groups of stakeholde...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,4.5.3,elicitation,2,"Guidelines and Tools for Stakeholder Collaboration, Recommended Actions for Stakeholder Engagement",- **Stakeholder Engagement Approach** : describes the types of expected engagement with stakeholders...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements,4.5.4,elicitation,7,"Collaboration Techniques, Conflict Resolution in Stakeholder Management, Effective Stakeholder Negotiation, Genuine Stakeholder Engagement, Identifying Stakeholder Risks, Monitoring Stakeholder Engagement, Stakeholder Commitment Agreement","## **.1 Gain Agreement on Commitments**
+
+Stakeholders participate in business analysis activities th...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,4.5.5,elicitation,2,"Recommended Actions Communication, Risk Analysis Results Interpretation",- **Business Analysis Approach** : describes the nature and level of collaboration required from eac...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,4.5.6,elicitation,2,"Collaborative Games, Stakeholder Mapping",- **Collaborative Games** : used to stimulate teamwork and collaboration by temporarily immersing pa...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,4.5.7,elicitation,3,"Collaboration Strategies, Stakeholder Analysis Techniques, Types of Stakeholders",- **All stakeholders** : all types of stakeholders who might be involved in collaboration during cha...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 1,4.5.8,elicitation,4,"Core Concept Model, Stakeholder Engagement, Trace Requirements, Value in Requirements Management",- **Stakeholder Engagement** : willingness from stakeholders to engage in business analysis activiti...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 2,4.5.8,elicitation,4,"Core Concept Model, Stakeholder Engagement, Trace Requirements, Value in Requirements Management"," maintains the relationships between requirements, designs, solution components, and other work prod...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 3,4.5.8,elicitation,4,"Core Concept Model, Stakeholder Engagement, Trace Requirements, Value in Requirements Management"," core concepts.
+
+The following table describes the usage and application of each of the core concept...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 4,4.5.8,elicitation,4,"Core Concept Model, Stakeholder Engagement, Trace Requirements, Value in Requirements Management"," the context to support tracing<br>and prioritization activities.|
+
+Requirements Life Cycle Manageme...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,5.1.1,rlcm,4,"Change Management in Requirements, Levels of Requirements, Requirements Alignment, Trace Requirements Purpose",The purpose of Trace Requirements is to ensure that requirements and designs at different levels are...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,5.1.2,rlcm,6,"Backward Traceability, Complexity Assessment of Changes, Forward Traceability, Missing Functionality Identification, Release Planning, Requirements Inconsistencies Detection","Requirements traceability identifies and documents the lineage of each requirement, including its ba...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,5.1.3,rlcm,3,"Design Tracing, Legal and Regulatory Requirements Awareness, Requirements Tracing","- **Requirements** : may be traced to other requirements (including goals, objectives, business requ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements,5.1.4,rlcm,4,"Benefits of Requirements Management Tools, Derive Relationship in Requirements, Level of Formality in Requirements Tracing, Traceability Repository Importance","## **.1 Level of Formality**
+
+When tracing requirements, business analysts consider the value that e...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,5.1.5,rlcm,4,"Domain Knowledge in Traceability, Information Management Approach for Traceability, Legal and Regulatory Considerations for Traceability, Requirements Management Tools Overview",- **Domain Knowledge** : knowledge of and expertise in the business domain needed to support traceab...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,5.1.6,rlcm,3,"Business Rules Analysis, Process Modelling, Scope Modelling","- **Business Rules Analysis** : used to trace business rules to requirements that they support, or r...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,5.1.7,rlcm,8,"Customer Impact on Requirements Implementation, End User Dependency Relationships, Implementation Subject Matter Expert and Traceability, Operational Support and Traceability Documentation, Project Manager's Role in Traceability, Sponsor Approval of Relationships, Supplier Considerations in Requirements Implementation, Tester Understanding of Requirements Implementation","- **Customers** : are affected by how and when requirements are implemented, and may have to be cons...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,5.1.8,rlcm,3,"Change Impact Analysis, Traced Designs Identification, Traced Requirements Identification","- **Requirements (traced)** : have clearly defined relationships to other requirements, solution com...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,5.2.1,rlcm,3,"Change Impact Analysis for Requirements, Requirement Accuracy Maintenance, Requirement Consistency Management",The purpose of Maintain Requirements is to retain requirement accuracy and consistency throughout an...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,5.2.2,rlcm,3,"Consistent Requirement Representation, Quality Assurance in Requirements Management, Standardized Review Process",A requirement that represents an ongoing need must be maintained to ensure that it remains valid ove...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,5.2.3,rlcm,5,"Designs Maintenance, Guidelines and Tools in Requirements Management, Input/Output Diagram Components, Requirements Life Cycle Maintenance, Types of Requirements","- **Requirements** : include goals, objectives, business requirements, stakeholder requirements, sol...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements,5.2.4,rlcm,5,"Requirements Maintenance, Requirements Naming and Definition, Requirements Relationships Management, Requirements Reusability Criteria, Stakeholder Validation for Reuse","## **.1 Maintain Requirements**
+
+Requirements are maintained so that they remain correct and current...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,5.2.5,rlcm,2,"Information Management Approach, Requirements Reuse Strategy",- **Information Management Approach** : indicates how requirements will be managed for reuse.,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,5.2.6,rlcm,3,"Data Flow Diagrams, Use Cases and Scenarios, User Stories",- **Business Rules Analysis** : used to identify business rules that may be similar across the enter...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,5.2.7,rlcm,4,"Implementation Subject Matter Expert Usage of Requirements, Operational Support Reference to Requirements, Regulator Compliance Verification, Tester Utilization of Requirements",- **Domain Subject Matter Expert** : references maintained requirements on a regular basis to ensure...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,5.2.8,rlcm,4,"Future Initiative Requirements, Maintained Designs, Maintained Requirements, Organizational Process Assets",- **Requirements (maintained)** : defined once and available for long-term usage by the organization...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,5.3.1,rlcm,2,"Prioritize Requirements, Relative Importance Ranking","The purpose of Prioritize Requirements is to rank requirements in the order of relative importance.
+...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,5.3.2,rlcm,2,"Maximizing Value through Prioritization, Priority Definition",Prioritization is the act of ranking requirements to determine their relative importance to stakehol...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,5.3.3,rlcm,5,"Business Constraints in Prioritization, Designs for Prioritization, Governance Approach for Requirements, Guidelines and Tools for Requirements, Input Types for Prioritization","- **Requirements** : any requirements in the form of text, matrices, or diagrams that are ready to p...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,5.3.4,rlcm,8,"Basis for Requirements Prioritization, Benefit in Requirements Prioritization, Continual Prioritization Process, Cost Consideration in Requirements Prioritization, Regulatory Compliance in Requirements, Risk Assessment in Requirements Prioritization, Stability of Requirements, Time Sensitivity in Requirements","## **.1 Basis for Prioritization**
+
+The basis on which requirements are prioritized is agreed upon b...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,5.3.4,rlcm,8,"Basis for Requirements Prioritization, Benefit in Requirements Prioritization, Continual Prioritization Process, Cost Consideration in Requirements Prioritization, Regulatory Compliance in Requirements, Risk Assessment in Requirements Prioritization, Stability of Requirements, Time Sensitivity in Requirements","Time Sensitivity** : the 'best before' date of the requirement, after which the implementation of th...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,5.3.5,rlcm,4,"Business Constraints, Domain Knowledge, Requirements Management Tools/Repository, Solution Scope","- **Business Constraints** : regulatory statutes, contractual obligations and business policies that...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,5.3.6,rlcm,6,"Business Case Assessment, Decision Analysis for Requirements, Facilitated Workshops for Prioritization, Financial Analysis of Requirements, Item Tracking for Prioritization, Risk Analysis in Prioritization",- **Backlog Management** : used to compare requirements to be prioritized. The backlog can be the lo...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,5.3.7,rlcm,5,"Customer Role in Requirement Prioritization, End User Role in Requirement Verification, Project Manager's Use of Prioritization, Regulator's Role in Requirement Consistency, Sponsor's Perspective on Requirement Value",- **Customer** : verifies that the prioritized requirements will deliver value from a customer or en...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,5.3.8,rlcm,2,"Prioritized Designs Management, Prioritized Requirements Management",- **Requirements (prioritized)** : prioritized or ranked requirements are available for additional w...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,5.4.1,rlcm,1,Implications of Requirements Changes,The purpose of Assess Requirements Changes is to evaluate the implications of proposed changes to re...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,5.4.2,rlcm,10,"Alignment with Overall Strategy, Assess Requirements Changes, Change Value Assessment, Conflict Identification in Requirements, Impact on Delivery Time, Opportunities and Constraints Assessment, Resource Requirement Changes, Risk Evaluation of Changes, Support for Decision Making, Traceability of Proposed Changes",The Assess Requirements Changes task is performed as new needs or possible solutions are identified....,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,5.4.3,rlcm,7,"Change Strategy in Requirements Management, Design Assessment for Changes, Governance Approach in Change Management, Guidelines and Tools for Change Assessment, Proposed Change Identification, Requirements Assessment for Changes, Triggers for Proposed Change",- **Proposed Change** : can be identified at any time and impact any aspect of business analysis wor...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements,5.4.4,rlcm,6,"Assessment Formality Determination, Components of Impact Assessment, Documentation of Change Impacts, Impact Analysis Definition, Impact Resolution Authority, Predictive vs Adaptive Assessment Approaches","## **.1 Assessment Formality**
+
+Business analysts will determine the formality of the assessment pro...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,5.4.5,rlcm,2,"Importance of Domain Knowledge, Solution Scope Assessment","- **Change Strategy** : describes the purpose and direction for changes, establishes the context for...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,5.4.6,rlcm,5,"Change Size Estimation, Financial Consequences Estimation, Issue Tracking in Impact Analysis, Stakeholder Interviews, Workshop Facilitation for Change Impact","- **Business Cases** : used to justify a proposed change.
+
+- **Business Rules Analysis** : used to a...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,5.4.7,rlcm,5,"Customer Feedback Impact, End User Impact Assessment, Operational Support Requirements, Regulator Compliance Role, Sponsor Accountability","- **Customer** : provides feedback concerning the impact the change will have on value.
+
+- **Domain ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,5.4.8,rlcm,2,"Design Change Assessment, Requirements Change Assessment","- **Requirements Change Assessment** : the recommendation to approve, modify, or deny a proposed cha...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,5.5.1,rlcm,4,"Criteria for Requirement Approval, Impact of Requirement Approval on Solution Construction, Requirement Approval Process, Role of Business Analyst in Requirement Approval",The purpose of Approve Requirements is to obtain agreement on and approval of requirements and desig...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,5.5.2,rlcm,5,"Adaptive Approval Timing, Communication of Requirement Outcomes, Predictive Approval Timing, Stakeholder Consensus Building, Tracking Approval Status","Business analysts are responsible for ensuring clear communication of requirements, designs, and oth...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,5.5.3,rlcm,3,"Governance Approach in Requirements Management, Ready Designs, Verified Requirements",- **Requirements (verified)** : a set of requirements that have been verified to be of sufficient qu...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,5.5.4,rlcm,5,"Approval Process Documentation, Audit History Maintenance, Consensus Building Strategies, Influence of Stakeholders, Risk Management in Approval","## **.1 Understand Stakeholder Roles**
+
+The approval process is defined by the task Plan Business An...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,5.5.4,rlcm,5,"Approval Process Documentation, Audit History Maintenance, Consensus Building Strategies, Influence of Stakeholders, Risk Management in Approval"," any questions or providing additional information when requested.
+
+Complete agreement may not be ne...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,5.5.5,rlcm,4,"Change Strategy, Governance Approach, Legal/Regulatory Information, Solution Scope Consideration",- **Change Strategy** : provides information which assists in managing stakeholder consensus regardi...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,5.5.6,rlcm,3,"Decision Analysis Application, Item Tracking Process, Requirements Review Techniques","- **Acceptance and Evaluation Criteria** : used to define approval criteria.
+
+Requirements Life Cycl...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,5.5.7,rlcm,7,"Customer Role in Requirements Approval, End User Participation in Requirements, Operational Support Responsibilities, Project Manager Risk Management, Regulator's Role in Compliance, Sponsor's Approval Responsibilities, Tester Quality Assurance Standards",- **Customer** : may play an active role in reviewing and approving requirements and designs to ensu...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 1,5.5.8,rlcm,7,"Approved Designs, Approved Requirements, Change Strategy Definition, Context Consideration, Future State Definition, Risk Assessment, Value Examination",- **Requirements (approved)** : requirements which are agreed to by stakeholders and are ready for u...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 2,5.5.8,rlcm,7,"Approved Designs, Approved Requirements, Change Strategy Definition, Context Consideration, Future State Definition, Risk Assessment, Value Examination","Solution Evaluation**<br>Proof of Concept/<br>Prototype<br>Pilot/Beta<br>Operating<br>**Actual**|
+|-...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 3,5.5.8,rlcm,7,"Approved Designs, Approved Requirements, Change Strategy Definition, Context Consideration, Future State Definition, Risk Assessment, Value Examination",_ ) describes the relationships among the six core concepts. The following table describes the usage...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 4,5.5.8,rlcm,7,"Approved Designs, Approved Requirements, Change Strategy Definition, Context Consideration, Future State Definition, Risk Assessment, Value Examination","consider the context of the enterprise in<br>developing a change strategy.|
+
+Strategy Analysis
+
+## *...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,6.1.1,strategy,2,"Impact Analysis of Changes, Understanding Change Drivers",The purpose of Analyze Current State is to understand the reasons why an enterprise needs to change ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,6.1.2,strategy,5,"Articulating Business Needs, Collaboration for Current State Modeling, Dynamic Nature of Current State, Influence of Current State on Change, Scope of Current State",The starting point for any change is an understanding of _why_ the change is needed. Potential chang...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,6.1.3,strategy,4,"Current State Analysis Purpose, Enterprise Limitations Identification, Solution Performance Goals Definition, Understanding Needs in Business Analysis","- **Elicitation Results** : used to define and understand the current state.
+
+- **Needs** : the prob...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,6.1.4,strategy,9,"Assessment of Internal Assets, Business Architecture Integration, Capability-Centric View, Criticality of Business Needs Definition, Cultural Assessment in Strategy Analysis, Impact of External Influencers, Process-Centric View, Role of Policies in Decision Making, Understanding Organizational Structure","## **.1 Business Needs**
+
+Business needs are the problems and opportunities of strategic importance ...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,6.1.4,strategy,9,"Assessment of Internal Assets, Business Architecture Integration, Capability-Centric View, Criticality of Business Needs Definition, Cultural Assessment in Strategy Analysis, Impact of External Influencers, Process-Centric View, Role of Policies in Decision Making, Understanding Organizational Structure"," detail all aspects of the current state before further developing the change strategy, this explora...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 3,6.1.4,strategy,9,"Assessment of Internal Assets, Business Architecture Integration, Capability-Centric View, Criticality of Business Needs Definition, Cultural Assessment in Strategy Analysis, Impact of External Influencers, Process-Centric View, Role of Policies in Decision Making, Understanding Organizational Structure", with suppliers and customers. The infrastructure describes the enterprise’s environment with respec...,2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 4,6.1.4,strategy,9,"Assessment of Internal Assets, Business Architecture Integration, Capability-Centric View, Criticality of Business Needs Definition, Cultural Assessment in Strategy Analysis, Impact of External Influencers, Process-Centric View, Role of Policies in Decision Making, Understanding Organizational Structure", the emergence of new alternative ways that customers can meet their needs may drive the enterprise ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,6.1.5,strategy,4,"Enterprise Limitation, Organizational Strategy, Solution Limitation, Stakeholder Analysis Results",- **Business Analysis Approach** : guides how the business analyst undertakes an analysis of the cur...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques - Part 1,6.1.6,strategy,2,"Business Model Canvas, Process Analysis",- **Benchmarking and Market Analysis** : provides an understanding of where there are opportunities ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques - Part 2,6.1.6,strategy,2,"Business Model Canvas, Process Analysis"," that have not been identified previously by a stakeholder.
+
+- **Organizational Modelling** : descri...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,6.1.7,strategy,8,"Customer Role in Solution Feedback, End User Input on Solutions, Operational Support Contribution, Project Manager's Use of Current State, Regulator's Influence on Business Policies, Sponsor's Context for Performance, Supplier's Role as External Influencer, Tester’s Contribution to Issue Identification",- **Customer** : makes use of the existing solution and might have input about issues with a current...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,6.1.8,strategy,2,"Business Requirements Identification, Current State Description","- **Current State Description** : the context of the enterprise’s scope, capabilities, resources, pe...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,6.2.1,strategy,2,"Define Future State, Necessary Conditions Analysis",The purpose of Define Future State is to determine the set of necessary conditions to meet the busin...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description - Part 1,6.2.2,strategy,7,"Assessment of Competing Strategies, Components of Enterprise Change, Definition of Future State, Performance Measures Identification, Stakeholder Consensus Achievement, Value Assessment of Future State, Visual Models in Future State Description",All purposeful change must include a definition of success. Business analysts work to ensure that th...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description - Part 2,6.2.2,strategy,7,"Assessment of Competing Strategies, Components of Enterprise Change, Definition of Future State, Performance Measures Identification, Stakeholder Consensus Achievement, Value Assessment of Future State, Visual Models in Future State Description",", • lines of business,
+
+- organization structures,
+
+- staff competencies,
+
+- knowledge and skills,
+
+...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,6.2.3,strategy,4,"Constraints Identification, Future State Potential Value Assessment, Metrics and KPIs Definition, Organizational Strategy Alignment","- **Business Requirements** : the problems, opportunities, or constraints that the future state will...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,6.2.4,strategy,9,"Assumptions Identification, Capabilities and Processes Identification, Organizational Structure Impact, Policies as Constraints, Potential Value Evaluation, SMART Objectives Criteria, Scope of Solution Space, Technology and Infrastructure Requirements, Types of Constraints","## **.1 Business Goals and Objectives**
+
+A future state can be described in terms of business object...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,6.2.4,strategy,9,"Assumptions Identification, Capabilities and Processes Identification, Organizational Structure Impact, Policies as Constraints, Potential Value Evaluation, SMART Objectives Criteria, Scope of Solution Space, Technology and Infrastructure Requirements, Types of Constraints"," aligning with the enterprise’s vision, mission, and goals, and
+
+- **T** ime-bounded: defining a tim...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 3,6.2.4,strategy,9,"Assumptions Identification, Capabilities and Processes Identification, Organizational Structure Impact, Policies as Constraints, Potential Value Evaluation, SMART Objectives Criteria, Scope of Solution Space, Technology and Infrastructure Requirements, Types of Constraints"," the team and stakeholders,
+
+- a requirement that certain stakeholders not be affected by the implem...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 4,6.2.4,strategy,9,"Assumptions Identification, Capabilities and Processes Identification, Organizational Structure Impact, Policies as Constraints, Potential Value Evaluation, SMART Objectives Criteria, Scope of Solution Space, Technology and Infrastructure Requirements, Types of Constraints"," to meeting the business goals and objectives. In addition, they should be integrated into the overa...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 5,6.2.4,strategy,9,"Assumptions Identification, Capabilities and Processes Identification, Organizational Structure Impact, Policies as Constraints, Potential Value Evaluation, SMART Objectives Criteria, Scope of Solution Space, Technology and Infrastructure Requirements, Types of Constraints"," consider increased or decreased potential value from:
+
+- external opportunities revealed in assessi...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,6.2.5,strategy,0,,- **Current State Description** : provides the context within which the work needs to be completed. ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques - Part 1,6.2.6,strategy,0,,- **Acceptance and Evaluation Criteria** : used to identify what may make the future state acceptabl...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques - Part 2,6.2.6,strategy,0,,"elling** : used to define the boundaries of the enterprise in the future state.
+
+- **Survey or Quest...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,6.2.7,strategy,6,"End User Expectations, Operational Support Involvement, Project Manager Input, Regulator Responsibilities, Supplier's Influence on Future State, Tester Responsibilities",- **Customer** : might be targeted purchasers or consumers in a future state who might or might not ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,6.2.8,strategy,0,,- **Business Objectives** : the desired direction that the business wishes to pursue in order to ach...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,6.3.1,strategy,4,"Assessing Risk Impact, Making Recommendations Based on Risk Assessment, Transition to Future State, Understanding Internal Forces",The purpose of Assess Risks is to understand the undesirable consequences of internal and external f...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,6.3.2,strategy,5,"Change Strategy Input from Risks, Positive Risk Management, Risk Acceptance Criteria, Risk Analysis Components, Risk Impact Minimization","Assessing risks includes analyzing and managing them. Risks might be related to the current state, a...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,6.3.3,strategy,5,"Business Objectives Identification, Elicitation Results Analysis, Influences on Future State Realization, Potential Value Assessment, Requirements Prioritization Impact",- **Business Objectives** : describing the desired direction needed to achieve the future state can ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,6.3.4,strategy,6,"Categories of Risk Recommendations, Monitoring Risks and Consequences, Negative Impact to Value, Restating Constraints as Risks, Risk Assessment Collaboration, Understanding Risk Tolerance","## **.1 Unknowns**
+
+When assessing a risk, there will be uncertainty in the likelihood of it occurri...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,6.3.4,strategy,6,"Categories of Risk Recommendations, Monitoring Risks and Consequences, Negative Impact to Value, Restating Constraints as Risks, Risk Assessment Collaboration, Understanding Risk Tolerance","** : some level of risk is acceptable, provided the course of action does not result in a loss even ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,6.3.5,strategy,5,"Business Policies Impact on Risk Management, Change Strategy Assessment, Current State Description and Risk Identification, Future State Description and Risk Analysis, Identified Risks Utilization","- **Business Analysis Approach** : guides how the business analyst analyzes risks.
+
+- **Business Pol...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,6.3.6,strategy,9,"Business Case Development, Decision Analysis for Problem Assessment, Document Analysis for Risk Assessment, Financial Analysis of Risks, Lessons Learned for Risk Foundation, Root Cause Analysis for Risk Mitigation, Stakeholder Interviews for Risk Identification, Surveys for Stakeholder Risk Insights, Workshops for Collaborative Risk Understanding","- **Brainstorming** : used to collaboratively identify potential risks for assessment.
+
+- **Business...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,6.3.7,strategy,5,"Operational Support in Risk Identification, Regulator's Role in Risk Assessment, Sponsor's Understanding of Risk, Supplier Risk Considerations, Tester’s Role in Risk Identification",- **Domain Subject Matter Expert** : provides input to the risk assessment based on their knowledge ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,6.3.8,strategy,5,"Future State Risk Analysis, Risk Identification, Risk Impact Assessment, Risk Likelihood Assessment, Risk Mitigation Strategies","Risk Analysis Results: an understanding of the risks associated with achieving the future state, and...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,6.4.1,strategy,2,"Assess Alternative Approaches, Select Recommended Approach","The purpose of Define Change Strategy is to develop and assess alternative approaches to the change,...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,6.4.2,strategy,7,"Change Strategy Representation Formats, Identifying Alternative Change Strategies, Investment and Resource Assessment, Justification for Change Strategy Selection, Partial Future State Attainment, Transition States Clarification, Value Realization Post-Delivery",Developing a change strategy is simpler when the current state and the future state are already defi...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs - Part 1,6.4.3,strategy,3,"Define Change Strategy, Risk Analysis Results, Stakeholder Engagement Approach","- **Current State Description** : provides context about the current state, and includes assessments...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs - Part 2,6.4.3,strategy,3,"Define Change Strategy, Risk Analysis Results, Stakeholder Engagement Approach"," need to be included as part of the change strategy.
+
+Define Change Strategy
+
+Strategy Analysis
+
+## ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,6.4.4,strategy,6,"Change Strategy Development, Enterprise Readiness Assessment, Gap Analysis Execution, Opportunity Cost Analysis, Release Planning Factors, Transition States Management","## **.1 Solution Scope**
+
+The solution is the outcome of a change that allows an enterprise to satis...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,6.4.4,strategy,6,"Change Strategy Development, Enterprise Readiness Assessment, Gap Analysis Execution, Opportunity Cost Analysis, Release Planning Factors, Transition States Management"," facilities,
+
+Define Change Strategy
+
+Strategy Analysis
+
+- locations,
+
+- data and information,
+
+- ap...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 3,6.4.4,strategy,6,"Change Strategy Development, Enterprise Readiness Assessment, Gap Analysis Execution, Opportunity Cost Analysis, Release Planning Factors, Transition States Management"," the pros and cons of various approaches to making the change.
+
+When defining the change strategy, t...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,6.4.5,strategy,3,"Impact of Change Strategy on Design Options, Role of Subject Matter Experts in Recommendations, Solution Recommendations Identification","- **Business Analysis Approach** : guides how the business analyst defines a change strategy.
+
+- **D...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques - Part 1,6.4.6,strategy,0,,- **Balanced Scorecard** : used to define the metrics that will be used to evaluate the effectivenes...,2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques - Part 2,6.4.6,strategy,0,," used to determine whether any vendors are part of the change strategy, either to implement the chan...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 1,6.4.8,strategy,4,"Core Concept Model Application, Requirements Specification Techniques, Requirements Validation Importance, Solution Options Analysis","- **Change Strategy** : the approach that the organization will follow to guide change.
+
+- **Solutio...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 2,6.4.8,strategy,4,"Core Concept Model Application, Requirements Specification Techniques, Requirements Validation Importance, Solution Options Analysis"," set of requirements or designs in detail using analytical techniques.
+
+- **Verify Requirements** : ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 3,6.4.8,strategy,4,"Core Concept Model Application, Requirements Specification Techniques, Requirements Validation Importance, Solution Options Analysis", following table describes the usage and application of each of the core concepts within the context...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 4,6.4.8,strategy,4,"Core Concept Model Application, Requirements Specification Techniques, Requirements Validation Importance, Solution Options Analysis","stakeholders.|
+
+Specify and Model Requirements
+
+Requirements Analysis and Design Definition
+
+## **Fi...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Specify and Model Requirements,7.1.1,radd,4,"Elicitation Results Validation, Modeling Requirements, Requirements Analysis Techniques, Synthesis of Elicitation Results","## **Purpose**
+
+The purpose of Specify and Model Requirements is to analyze, synthesize, and refine ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,7.1.2,radd,5,"Elicitation Analysis Practices, Models for Requirement Representation, Requirements vs. Design Outputs, Role of Metadata in Requirements, Terminology in IT Environments","Specify and Model Requirements describes the practices for analyzing elicitation
+
+Requirements Analy...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,7.1.3,radd,5,"Management Tools for Requirements, Modelling Notations Application, Output of Requirements Modeling, Requirements Architecture Understanding, Sequential vs. Concurrent Elicitation",- **Elicitation Results (any state)** : modelling can begin with any elicitation result and may lead...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,7.1.4,radd,11,"Activity Flow Modelling, Capability Modelling Techniques, Data and Information Modelling, Diagram Modelling Technique, Levels of Abstraction in Requirements, Matrix Modelling Technique, Model Requirements Definition, People and Roles Modelling, Rationale Modelling Techniques, Requirement Decomposition, Requirement Representation Attributes","## **.1 Model Requirements**
+
+A model is a descriptive and visual way to convey information to a spe...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,7.1.4,radd,11,"Activity Flow Modelling, Capability Modelling Techniques, Data and Information Modelling, Diagram Modelling Technique, Levels of Abstraction in Requirements, Matrix Modelling Technique, Model Requirements Definition, People and Roles Modelling, Rationale Modelling Techniques, Requirement Decomposition, Requirement Representation Attributes", Information** : models represent the characteristics and the exchange of information within an ente...,2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 3,7.1.4,radd,11,"Activity Flow Modelling, Capability Modelling Techniques, Data and Information Modelling, Diagram Modelling Technique, Levels of Abstraction in Requirements, Matrix Modelling Technique, Model Requirements Definition, People and Roles Modelling, Rationale Modelling Techniques, Requirement Decomposition, Requirement Representation Attributes", require or find value in the complete set of requirements and models. It may be appropriate to prod...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,7.1.5,radd,5,"Modelling Notations and Standards, Modelling Tools, Requirements Architecture, Requirements Life Cycle Management Tools, Solution Scope Definition","- **Modelling Notations/Standards** : allow requirements and designs to be precisely specified, as i...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques - Part 1,7.1.6,radd,1,Prototyping,- **Acceptance and Evaluation Criteria** : used to represent the acceptance and evaluation criteria ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques - Part 2,7.1.6,radd,1,Prototyping,Sequence Diagrams** : used to specify and model requirements to show how processes operate and inter...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,7.1.7,radd,3,"Requirements Communication to Stakeholders, Role of Business Analysts in Stakeholder Engagement, Stakeholder Participation in Requirements Gathering",- **Any stakeholder** : business analysts may choose to perform this task themselves and then separa...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,7.1.8,radd,5,"Diagrammatic Representation of Designs, Matrix Representation of Requirements, Requirements Modeling Techniques, Requirements Specification, Textual Requirements Documentation",- **Requirements (specified and modelled)** : any combination of requirements and/or designs in the ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,7.2.1,radd,2,"Design Specification Quality Standards, Models in Requirements Analysis",The purpose of Verify Requirements is to ensure that requirements and designs specifications and mod...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,7.2.2,radd,4,"Fitness for Use, Formal and Informal Notation Standards, Quality Specification Characteristics, Stakeholder Determination of Quality",Verifying requirements ensures that the requirements and designs have been defined correctly. Requir...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,7.2.3,radd,3,"Modeling Notation Accuracy, Output of Verified Requirements, Requirements Structuring Techniques","- **Requirements (specified and modelled)** : any requirement, design, or set of those may be verifi...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,7.2.4,radd,8,"Atomic Requirements, Checklists for Quality Control, Complete Requirements, Consistent Requirements, Testable Requirements, Unambiguous Requirements, Understandable Requirements, Verification Activities","## **.1 Characteristics of Requirements and Designs Quality**
+
+While quality is ultimately determine...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,7.2.4,radd,8,"Atomic Requirements, Checklists for Quality Control, Complete Requirements, Consistent Requirements, Testable Requirements, Unambiguous Requirements, Understandable Requirements, Verification Activities", ensuring the terminology used in expressing the requirement is understandable to stakeholders and c...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,7.2.5,radd,3,"Atomic Requirement Definition, Requirement Prioritization Techniques, Unambiguous Requirement Identification",- **Requirements Life Cycle Management Tools** : some tools have functionality to check for issues r...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,7.2.6,radd,4,"Acceptance and Evaluation Criteria, Item Tracking, Metrics and Key Performance Indicators (KPIs), Requirements Reviews",- **Acceptance and Evaluation Criteria** : used to ensure that requirements are stated clearly enoug...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,7.2.7,radd,4,"Business Analyst Responsibilities, Collaboration Among Stakeholders, Problematic Requirements Discovery, Role of Subject Matter Experts","- **All stakeholders** : the business analyst, in conjunction with the domain and implementation sub...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,7.2.8,radd,3,"Quality Criteria for Requirements, Requirements as a Basis for Work, Verified Requirements Definition",- **Requirements (verified)** : a set of requirements or designs that is of sufficient quality to be...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,7.3.1,radd,3,"Alignment of Requirements and Business Goals, Design Validation Techniques, Value Delivery in Requirements Analysis","The purpose of Validate Requirements is to ensure that all requirements and
+
+Requirements Analysis a...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,7.3.2,radd,4,"Alignment of Requirements, Conflicting Stakeholder Needs Identification, Design Satisfaction of Requirements, Stakeholder Future State Understanding","Requirements validation is an ongoing process to ensure that stakeholder, solution, and transition r...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,7.3.3,radd,3,"Input for Requirements Validation, Role of Business Objectives in Requirements Validation, Verification vs. Validation",- **Requirements (specified and modelled)** : any types of requirements and designs can be validated...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements,7.3.4,radd,8,"Define Measurable Evaluation Criteria, Develop Target Metrics, Establish Baseline Metrics, Evaluate Requirement Alignment, Identify Assumptions, Identify Requirements for Elimination, Manage Assumptions Risks, Validate Design Against Requirements","## **.1 Identify Assumptions**
+
+If an organization is launching an unprecedented product or service,...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,7.3.5,radd,3,"Business Objectives Alignment, Future State Requirements Validation, Value Assessment Benchmarking","- **Business Objectives** : ensure the requirements deliver the desired business benefits.
+
+- **Futu...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,7.3.6,radd,1,Reviews,- **Acceptance and Evaluation Criteria** : used to define the quality metrics that must be met to ac...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,7.3.7,radd,4,"Identification of Problematic Requirements, Responsibilities of the Business Analyst, Role of End Users in Requirements Communication, Stakeholder Involvement in Requirements Validation","- **All stakeholders** : the business analyst, in conjunction with the customer, end users, and spon...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,7.3.8,radd,3,"Benefits Realization, Solution Scope Alignment, Validated Requirements",- **Requirements (validated)** : validated requirements and designs are those that can be demonstrat...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Define Requirements Architecture,7.4.1,radd,3,"Objectives Alignment Assessment, Requirements Coherence Evaluation, Requirements Support Analysis","## **Purpose**
+
+The purpose of Define Requirements Architecture is to ensure that the requirements c...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,7.4.2,radd,3,"Integration of Requirements Models, Stakeholder Outcomes from Requirements Architecture, Support for Business Objectives",Requirements architecture is the structure of all of the requirements of a change. A requirements ar...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Section 7.4.3,7.4.3,radd,7,"Alignment of Requirements Architecture with Solution Scope, Completeness of Requirements Architecture, Information Management Approach in Requirements, Models Selection for Requirements, Requirements Cohesion, Requirements Traceability vs. Cohesion, Trade-off Decisions in Requirements","Business analysts use a requirements architecture to:
+
+- understand which models are appropriate for...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,7.4.4,radd,7,"Business Analysis Information Architecture, Iterative Elicitation for Completeness, Quality Criteria for Requirements Relationships, Requirements View Description, Requirements Viewpoint Definition, Stakeholder Concerns in Viewpoints, Template Architectures in Requirements Analysis","## **.1 Requirements Viewpoints and Views**
+
+A viewpoint is a set of conventions that define how req...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,7.4.4,radd,7,"Business Analysis Information Architecture, Iterative Elicitation for Completeness, Quality Criteria for Requirements Relationships, Requirements View Description, Requirements Viewpoint Definition, Stakeholder Concerns in Viewpoints, Template Architectures in Requirements Analysis"," architecture. Similarly, the framework can be populated with domain-specific information to form a ...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,7.4.5,radd,2,"Architecture Management Software, Legal and Regulatory Constraints","- **Architecture Management Software** : modelling software can help to manage the volume, complexit...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,7.4.6,radd,5,"Data Modelling, Functional Decomposition, Interviews for Requirements Gathering, Organizational Modelling, Workshops for Requirements Definition","- **Data Modelling** : used to describe the requirements structure as it relates to data.
+
+- **Funct...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,7.4.7,radd,3,"Requirements Architecture Definition, Stakeholder Identification, Stakeholder Roles in Requirements Assessment","- **Domain Subject Matter Expert, Implementation Subject Matter Expert, Project Manager, Sponsor, Te...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,7.4.8,radd,2,"Contextual Information in Requirements, Interrelationships Among Requirements","- **Requirements Architecture** : the requirements and the interrelationships among them, as well as...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,7.5.1,radd,4,"Achieve Desired Future State, Allocate Requirements, Define Solution Approach, Represent Design Options","The purpose of Define Design Options is to define the solution approach, identify opportunities to i...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,7.5.2,radd,5,"Design Options Identification, Evolution of Design Options, Tactical vs Strategic Design, Trade-offs in Design Options, Value Delivery Assessment","When designing a solution, there may be one or more design options identified. Each design option re...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,7.5.3,radd,3,"Change Strategy Impact on Design, Input/Output in Define Design Options, Validated Requirements in Design",- **Change Strategy** : describes the approach that will be followed to transition to the future sta...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,7.5.4,radd,7,"Design Element Components, Design Options Evaluation, Future Capability Identification, Improvement Opportunities Identification, Integration Considerations in Design, Requirements Allocation Process, Solution Approach Definition","## **.1 Define Solution Approaches**
+
+The solution approach describes whether solution components wi...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,7.5.4,radd,7,"Design Element Components, Design Options Evaluation, Future Capability Identification, Improvement Opportunities Identification, Integration Considerations in Design, Requirements Allocation Process, Solution Approach Definition"," Options
+
+by assessing the trade-offs between alternatives in order to maximize benefits and minimiz...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,7.5.5,radd,1,Existing Solutions Identification,"- **Existing Solutions** : existing products or services, often third party, that are considered as ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,7.5.6,radd,8,"Brainstorming, Document Analysis, Interviews, Lessons Learned, Mind Mapping, Survey or Questionnaire, Vendor Assessment, Workshops",- **Benchmarking and Market Analysis** : used to identify and analyze existing solutions and market ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,7.5.7,radd,3,"Operational Support Evaluation, Project Manager Responsibilities, Supplier Information Provision",- **Domain Subject Matter Expert** : provides the expertise within the business to provide input and...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,7.5.8,radd,1,Analyzing Potential Value,- **Design Options** : describe various ways to satisfy one or more needs in a context. They may inc...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,7.6.1,radd,4,"Comparison of Design Options, Recommendation of Design Solutions, Understanding Enterprise Requirements, Value Estimation for Design Options",The purpose of Analyze Potential Value and Recommend Solution is to estimate the potential value for...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,7.6.2,radd,4,"Potential Value Analysis, Proofs of Concept Development, Recommendation to Do Nothing, Uncertainty in Value Estimates",Analyze Potential Value and Recommend Solution describes how to estimate and model the potential val...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,7.6.3,radd,1,Potential Value Benchmarking,- **Potential Value** : can be used as a benchmark against which the value delivered by a design can...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,7.6.4,radd,10,"Assessing Potential Value, Calculating Expected Benefits, Constraints on Solution Implementation, Dependencies Between Requirements, Design Option Assessment Criteria, Expected Benefits Definition, Expected Costs Components, Opportunity Cost Understanding, Re-evaluation of Design Elements, Resource Availability Impact","## **.1 Expected Benefits**
+
+Expected benefits describe the positive value that a solution is intend...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,7.6.4,radd,10,"Assessing Potential Value, Calculating Expected Benefits, Constraints on Solution Implementation, Dependencies Between Requirements, Design Option Assessment Criteria, Expected Benefits Definition, Expected Costs Components, Opportunity Cost Understanding, Re-evaluation of Design Elements, Resource Availability Impact", heavily weighted than value for any individual stakeholder groups. There might be increases in valu...,2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,7.6.5,radd,3,"Current State Context Analysis, Future State Description Definition, Risk Analysis in Design Options","- **Business Objectives** : used to calculate the expected benefit.
+
+- **Current State Description**...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,7.6.6,radd,3,"Estimation, Financial Analysis, Focus Groups",- **Acceptance and Evaluation Criteria** : used to express requirements in the form of acceptance cr...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,7.6.7,radd,5,"Customer Involvement in Requirements Analysis, End User Insights on Change Value, Project Manager's Risk Awareness, Regulator's Role in Risk Evaluation, Sponsor's Approval Process","- **Customer** : represents the market segments affected by the requirements and solutions, and will...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 1,7.6.8,radd,6,"Analyze Performance Measures, Assess Enterprise Limitations, Core Concept Model in Solution Evaluation, Solution Recommendation, Stakeholder Engagement in Solution Evaluation, Value Assessment in Solution Evaluation","- **Solution Recommendation** : identifies the suggested, most appropriate solution based on an eval...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 2,7.6.8,radd,6,"Analyze Performance Measures, Assess Enterprise Limitations, Core Concept Model in Solution Evaluation, Solution Recommendation, Stakeholder Engagement in Solution Evaluation, Value Assessment in Solution Evaluation",">Prototype<br>Pilot/Beta<br>Operating<br>**Actual**|
+|---|---|---|---|
+||Need<br>Solution<br>Scope|R...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 3,7.6.8,radd,6,"Analyze Performance Measures, Assess Enterprise Limitations, Core Concept Model in Solution Evaluation, Solution Recommendation, Stakeholder Engagement in Solution Evaluation, Value Assessment in Solution Evaluation", relationships among the six core concepts. The following table describes the usage and application ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs - Part 4,7.6.8,radd,6,"Analyze Performance Measures, Assess Enterprise Limitations, Core Concept Model in Solution Evaluation, Solution Recommendation, Stakeholder Engagement in Solution Evaluation, Value Assessment in Solution Evaluation"," that may<br>prohibit value from being realized.|
+
+Measure Solution Performance
+
+Solution Evaluation...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Measure Solution Performance,8.1.1,solution-eval,3,"Data Collection for Evaluation, Effectiveness Evaluation, Value Assessment","## **Purpose**
+
+The purpose of Measure Solution Performance is to define performance measures and us...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,8.1.2,solution-eval,5,"Alignment of Performance Measures with Goals, Contextual Factors in Performance Measurement, Process Performance Targets, Stakeholder Collaboration for Performance Measures, Testing Software Applications for Performance",Performance measures determine the value of a newly deployed or existing solution. The measures used...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,8.1.3,solution-eval,3,"Change Strategy Importance, Implemented Solution Types, Measure Solution Performance Input",- **Business Objectives** : the measurable results that the enterprise wants to achieve. Provides a ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements,8.1.4,solution-eval,6,"Collecting Performance Measures, Impact of Frequency and Timing on Measurements, Importance of Currency in Data Collection, Types of Performance Measures, Validate Performance Measures, Volume or Sample Size in Performance Measurement","## **.1 Define Solution Performance Measures**
+
+When measuring solution performance, business analys...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,8.1.5,solution-eval,2,"Future State Description Components, Solution Scope Evaluation","- **Change Strategy** : the change strategy used or in use to implement the potential value.
+
+- **Fu...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,8.1.6,solution-eval,1,Business Cases,"- **Acceptance and Evaluation Criteria** : used to define acceptable solution performance.
+
+- **Benc...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,8.1.7,solution-eval,5,"Customer Feedback on Solution Performance, End User Contribution to Solution Value, Project Manager Responsibilities in Solution Measurement, Regulator Constraints on Solution Performance, Sponsor's Role in Performance Measures","- **Customer** : may be consulted to provide feedback on solution performance.
+
+- **Domain Subject M...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,8.1.8,solution-eval,1,Solution Performance Measures,- **Solution Performance Measures** : measures that provide information on how well the solution is ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,8.2.1,solution-eval,1,Insights Generation from Performance Data,The purpose of Analyze Performance Measures is to provide insights into the performance of a solutio...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,8.2.2,solution-eval,5,"Goal and Objective Alignment, Interpretation of Performance Measures, Risk Tolerance Assessment, Synthesis of Performance Data, Understanding Stakeholder Value",The measures collected in the task Measure Solution Performance (p. 166) often require interpretatio...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,8.2.3,solution-eval,2,"Potential Value Definition, Risk Analysis Results Utilization",- **Potential Value** : describes the value that may be realized by implementing the proposed future...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements,8.2.4,solution-eval,6,"Analyzing Performance Trends, Ensuring Measure Accuracy, Identifying Solution Risks, Root Cause Analysis for Performance Issues, Solution Performance Assessment, Understanding Performance Variances","## **.1 Solution Performance versus Desired Value**
+
+Business analysts examine the measures previous...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,8.2.5,solution-eval,0,,- **Change Strategy** : the change strategy that was used or is in use to implement the potential va...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,8.2.6,solution-eval,2,"Data Mining, Observation",- **Acceptance and Evaluation Criteria** : used to define acceptable solution performance through ac...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,8.2.7,solution-eval,1,Sponsor Decision-Making,- **Domain Subject Matter Expert** : can identify risks and provide insights into data for analyzing...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,8.2.8,solution-eval,1,Value Improvement Recommendations,- **Solution Performance Analysis** : results of the analysis of measurements collected and recommen...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,8.3.1,solution-eval,4,"Impact of Limitations on Value, Internal Factors Identification, Solution Evaluation Techniques, Value Realization Barriers",The purpose of Assess Solution Limitations is to determine the factors internal to the solution that...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,8.3.2,solution-eval,4,"Assessment Activities Consistency, Concurrent Task Execution, Internal Factors Assessment, Solution Life Cycle Assessment Timing",Assessing solution limitations identifies the root causes for under-performing and ineffective solut...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,8.3.3,solution-eval,5,"Assess Solution Limitations Process, Implemented Solution Definition, Input Requirements for Solution Evaluation, Output of Assessing Solution Limitations, Solution Performance Analysis Purpose",- **Implemented Solution (external)** : a solution that exists. The solution may or may not be in op...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements,8.3.4,solution-eval,5,"Impact Assessment of Solution Problems, Internal Solution Component Dependencies, Mitigation Strategies for Solution Problems, Problem Analysis in Solutions, Quality Level Assessment","## **.1 Identify Internal Solution Component Dependencies**
+
+Solutions often have internal dependenc...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,8.3.5,solution-eval,1,Defining Solution Scope,"- **Change Strategy** : the change strategy used or in use to implement the potential value.
+
+Assess...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,8.3.6,solution-eval,0,,- **Acceptance and Evaluation Criteria** : used both to indicate the level at which acceptance crite...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,8.3.7,solution-eval,4,"Customer Perspective on Value, End User Contribution to Value Realization, Regulator Consultation Importance, Tester Role in Solution Evaluation","- **Customer** : is ultimately affected by a solution, and therefore has an important perspective on...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,8.3.8,solution-eval,3,"Defect Analysis in Solutions, Solution Limitation Identification, Understanding Constraints in Solutions",- **Solution Limitation** : a description of the current limitations of the solution including const...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,8.4.1,solution-eval,2,"Solution Evaluation Purpose, Value Realization Factors",The purpose of Assess Enterprise Limitations is to determine how factors external to the solution ar...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,8.4.2,solution-eval,5,"Assessment Timing in Solution Life Cycle, Environmental Factors Impacting Solutions, Interactions and Interdependencies of Solutions, Root Cause Analysis in Solution Evaluation, Skills Required for Solution Assessment","Solutions may operate across various organizations within an enterprise, and therefore have many int...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,8.4.3,solution-eval,1,Implemented Solution Criteria,- **Current State Description** : the current internal environment of the solution including the env...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,8.4.4,solution-eval,7,"Cultural Change Requirements, Enterprise Culture Assessment, Evaluation of Policies and Procedures, Operational Assessment, Organizational Structure Assessment, Stakeholder Impact Analysis, Stakeholder Understanding of Solutions","## **.1 Enterprise Culture Assessment**
+
+Enterprise culture is defined as the deeply rooted beliefs,...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,8.4.4,solution-eval,7,"Cultural Change Requirements, Enterprise Culture Assessment, Evaluation of Policies and Procedures, Operational Assessment, Organizational Structure Assessment, Stakeholder Impact Analysis, Stakeholder Understanding of Solutions"," the value of the solution, and the impact the solution has on a stakeholder’s ability to perform ne...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,8.4.5,solution-eval,4,"Business Objectives Measurement, Change Strategy Implementation, Future State Description Boundaries, Risk Analysis Evaluation","- **Business Objectives** : are considered when measuring and determining solution performance.
+
+- *...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,8.4.6,solution-eval,3,"Decision Analysis, Risk Analysis and Management, SWOT Analysis",- **Benchmarking and Market Analysis** : used to identify existing solutions and enterprise interact...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,8.4.7,solution-eval,2,"End User Identification, Regulator Function",- **Customer** : people directly purchasing or consuming the solution who may interact with the orga...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,8.4.8,solution-eval,2,"Documentation of Enterprise Limitations, Impact Analysis of Solution Performance",- **Enterprise Limitation** : a description of the current limitations of the enterprise including h...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Purpose,8.5.1,solution-eval,3,"Action Recommendation Process, Factors Influencing Solution Value, Value Alignment Analysis",The purpose of Recommend Actions to Increase Solution Value is to understand the factors that create...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Description,8.5.2,solution-eval,4,"Assessment Aggregation, Long-term Solution Effects, Organizational Adjustment Recommendations, Recommendation Formulation","The various tasks in the Solution Evaluation knowledge area help to measure, analyze, and determine ...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Inputs,8.5.3,solution-eval,3,"Enterprise Limitation Description, Recommend Actions to Increase Solution Value, Solution Limitation Description",- **Enterprise Limitation** : a description of the current limitations of the enterprise including h...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 1,8.5.4,solution-eval,10,"Avoid Waste, Do Nothing Recommendation, Eliminate Redundancy, Identify Additional Capabilities, Ongoing Cost versus Initial Investment, Opportunity Cost, Organizational Change Management, Reduce Complexity of Interfaces, Retire the Solution, Sunk Cost","## **.1 Adjust Solution Performance Measures**
+
+In some cases, the performance of the solution is co...",2
+1b8a4860-156f-4d06-8393-85c4088db2d9,Elements - Part 2,8.5.4,solution-eval,10,"Avoid Waste, Do Nothing Recommendation, Eliminate Redundancy, Identify Additional Capabilities, Ongoing Cost versus Initial Investment, Opportunity Cost, Organizational Change Management, Reduce Complexity of Interfaces, Retire the Solution, Sunk Cost"," can be met with a single solution, reducing the cost of implementation.
+
+- **Avoid Waste** : the ai...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Guidelines and Tools,8.5.5,solution-eval,3,"Business Objectives Evaluation, Current State Description Utilization, Identifying Unintended Consequences","- **Business Objectives** : are considered in evaluating, measuring, and determining solution perfor...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Techniques,8.5.6,solution-eval,9,"Data Mining for Solution Performance, Decision Analysis Impact Assessment, Financial Analysis for Change Assessment, Focus Groups for Performance Measurement, Organizational Modelling for Change Demonstration, Prioritization of Improvement Actions, Process Analysis for Opportunity Identification, Risk Analysis and Management Evaluation, Survey Design for Stakeholder Feedback","- **Data Mining** : used to generate predictive estimates of solution performance.
+
+- **Decision Ana...",1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Stakeholders,8.5.7,solution-eval,2,"Customer Definition, Sponsor Responsibilities",- **Customer** : people directly purchasing or consuming the solution and who may interact with the ...,1
+1b8a4860-156f-4d06-8393-85c4088db2d9,Outputs,8.5.8,solution-eval,219,"Acceptance Criteria Definition, Acceptance Criteria Purpose, Active Listening Skills, Adaptability in Business Analysis, Adaptability to Change, Adaptive Planning in Agile, Affinity Mapping Technique, Agile Development in Business Analysis, Agile Initiative Value Delivery, Agile Perspective Characteristics, Analytical Dataset Formation, Analytical Thinking Skills, Assessing Alternatives in Business Cases, Assumptions and Constraints Identification, Attribute Definition, BABOK Guide Concept Model, BPM Frameworks, Backlog Management, Backlog Management Principles, Balanced Scorecard, Balanced Scorecard Dimensions, Benchmarking Process, Best Practices in Business Analysis, Business Acumen, Business Analysis Tools and Technologies, Business Architecture Elements, Business Architecture Principles, Business Architecture Techniques, Business Architecture as a Planning Framework, Business Capability Analysis, Business Case Justification, Business Decisions, Business Model Canvas Components, Business Process Architecture, Business Process Management (BPM), Cardinality in Relationships, Categories of Non-Functional Requirements, Change Management, Change Scope in Agile, Change Scope in IT Initiatives, Change Sponsor Role, Close-ended vs Open-ended Questions, Collaboration in Capability Model Definition, Commitment to Business Analysis, Communication Tools for Collaboration, Concept Modeling Purpose, Conceptual Data Model, Conceptual Thinking Skills, Confidence Interval in Estimation, Conflict Resolution Techniques, Continuous Improvement Mindset, Cost-Benefit Analysis, Creative Thinking in Problem Solving, Current State Model, Customer Journey Map, Data Dictionary Definition, Data Flow Diagram Purpose, Data Mining Techniques, Decision Analysis Purpose, Decision Matrix, Decision Model Limitations, Decision Models, Decision Trees, Definitional Rules in Business Rules Analysis, Deployment of Data Mining Models, Depth of Change in Business Architecture, Descriptive Analytics, Desired Outcomes Definition, Document Analysis Purpose, Document Review Techniques, Effective Decision Making, Effective Teamwork Measures, Effective Verbal Communication, Effectiveness Measures of Adaptability, Elements of Functional Decomposition, Elicitation Techniques for Personas, Enterprise Limitations Assessment, Entity-Relationship Diagram (ERD), Estimation Methods, Estimation Techniques, Ethical Decision Making in Business Analysis, Evaluation Criteria for Solutions, Facilitation Skills, Financial Analysis in Business Cases, Fishbone Diagram Development, Fishbowl Discussion Format, Five Perspectives of Business Analysis, Five Whys Technique, Flowcharting Techniques, Focus Group Objectives, Functional Prototype Definition, Future State Model, Glossary Creation Importance, Homegrown Methodology, IIBA Membership Benefits, Identifying Gaps in Process Analysis, Identifying Interfaces, Impact Analysis, Impact Analysis in Business Architecture, Incremental Delivery in Agile, Industry Knowledge, Interface Analysis Definition, Interface Definition, Internal Rate of Return (IRR), Interview Goals, Kano Analysis for Customer Satisfaction, Lean Methodology, Learning Techniques for Business Analysts, Lessons Learned Process, Lightweight Documentation Principle, Logical Data Models, Managing Changes to the Backlog, Market Analysis Techniques, Measurement of Non-Functional Requirements, Methodology Knowledge, Mind Map Structure, Minimal Guarantee, Need Assessment in Business Cases, Negotiation in Prioritization, Net Present Value (NPV), Net Present Value (NPV) Calculation, New Business Analysis Techniques, Non-Functional Requirement, Non-Functional Requirements Analysis, Non-Functional Requirements Definition, Office Productivity Tools, Organization and Time Management Skills, Organizational Chart Elements, Organizational Knowledge, Paper Prototyping Technique, Payback Period Definition, Performance Expectations in Capabilities, Performance Measures Analysis, Persona Definition, Personal Accountability in Business Analysis, Physical Data Model, Post-Condition Definition, Prioritization Approaches, Prioritization Techniques, Proactive Analysis, Problem Definition and Root Cause Analysis, Process Performance Assessment, Product Box Construction, Professional Recognition in Business Analysis, Prototyping Tools in Business Intelligence, Purpose of Collaborative Games, Quality and Efficiency in Business Analysis Outputs, RACI Matrix, RACI Matrix Construction, Ranking in Prioritization, Real Options, Recommended Actions for Solution Improvement, Reference Models in Business Architecture, Requirements Engineering (RE), Requirements Management Plan, Requirements Package Preparation, Requirements Traceability, Requirements Validation, Requirements Verification, Requirements Workshop, Residual Risk, Return on Investment (ROI), Risk Analysis Definition, Risk Assessment in Business Analysis, Risk Assessment in Capabilities, Risk Identification Process, Role of Agile Team Leader, Role of Business Analyst in Agile Teams, Role of Keywords in Mind Maps, Role of the Moderator in Focus Groups, Roles and Permissions Matrix Purpose, Root Cause Analysis, Root Cause Analysis Definition, SIPOC Methodology, Scope Models, Separation of Concerns Principle, Sequence Diagram Purpose, Six Sigma Methodology, Solution Evaluation Metrics, Solution Knowledge, Stakeholder Analysis, Stakeholder Engagement in Agile, Stakeholder List and Mapping, Stakeholder List, Map, or Personas, Stakeholder Map Types, State Diagram Elements, State Modelling Purpose, State Transition Definition, Storyboarding Technique, Structured Interview, Structured Systems Analysis and Design Method (SSADM), Success Guarantee, Survey Preparation Steps, Systems Thinking, Systems Thinking Application, Teaching Skills in Business Analysis, Time Boxing/Budgeting, Total Cost of Ownership (TCO), Traceability in Requirements Management, Trade-offs in Decision Making, Transition Model, Transition Requirement, Trustworthiness in Stakeholder Relationships, Types of Organizational Models, Underlying Competencies for Business Analysts, Unified Process (UP), Usability Prototype Definition, Use Case Diagram Relationships, Use Case Diagram Strengths, Use Case Elements, User Acceptance Test (UAT), User Story Structure, Value Mapping, Value Stream Analysis, Value Stream Mapping (VSM), Vendor Assessment Purpose, Visual Prototype Definition, Visual Thinking Techniques, Workshop Roles",- **Recommended Actions** : recommendation of what should be done to improve the value of the soluti...,1

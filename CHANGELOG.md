@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- **Course-agnostic corpus chunking pipeline** (`scripts/utils/corpus_markdown.py`, `scripts/parse_corpus.py`, `courses.corpus_config`)
+  - Generic markdown parser `CorpusMarkdownParser` with caller-supplied `allowed_chapters`; KA chapters derived from `knowledge_areas[].section_prefix` (no hardcoded chapter numbers). Shared with `extract_babok_concepts.py`.
+  - New nullable `courses.corpus_config` JSONB column (`chunk_chapters` {min,max} + `heading_style`); CLI `--min-chapter`/`--max-chapter` overrides. cbap configured for chapters 1–8.
+  - `parse_corpus.py --replace` flag for clean, idempotent re-parsing.
+
 - **Story 4.9: Post-Session Review Mode** - Complete implementation of post-session review functionality allowing users to review incorrect answers after completing a quiz session.
   - Backend: ReviewSession and ReviewResponse models, service, repository, and API endpoints
   - Frontend: ReviewPrompt, ReviewQuestion, ReviewSummary components with QuizPage integration
@@ -18,6 +23,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `TestBeliefUpdateMultipliers` class verifying 1.5x and 0.5x multipliers are correctly applied
 
 ### Fixed
+
+- **Rebuilt `reading_chunks` concept links after CBAP re-extraction (#12)** — `reading_chunks.concept_ids` referenced stale pre-re-extraction concept UUIDs (0/58 resolved). Re-ran the corpus + embedding pipeline; cbap now has 327 chunks with 0 unresolved concept references and Qdrant vectors in sync (327/327).
+- **Corpus chunker producing unusable chunks** (`scripts/parse_corpus.py`) — raw-PDF (fitz) sectioning + `\n\n`-only splitter yielded 42 header-only stubs and giant blobs (one 466,987-char chunk holding ~80% of the corpus). Rewrote to chunk from heading-structured markdown with a token-budget splitter (sentence → token-window hard fallback); every chunk is now ≤ 500 tokens, and section coverage rose from ~35 to 263 sections.
 
 - **N+1 Query in Review Summary** (`apps/api/src/services/review_session_service.py`, `apps/api/src/repositories/review_session_repository.py`)
   - Issue: `_get_still_incorrect_concepts()` made separate database queries for each incorrect response

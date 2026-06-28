@@ -41,6 +41,10 @@ class Course(Base):
     # Each element: {"id": str, "name": str, "short_name": str, "display_order": int, "color": str}
     knowledge_areas = Column(JSONB, nullable=False)
 
+    # Per-course corpus chunking config (chapter scope, heading style).
+    # Null => default to KA chapters only (derived from knowledge_areas).
+    corpus_config = Column(JSONB, nullable=True)
+
     # Secondary tag definitions (course-configurable keywords for classification)
     # Perspectives (e.g., BABOK Chapter 10): [{"id": str, "name": str, "keywords": [str]}]
     perspectives = Column(JSONB, nullable=True)

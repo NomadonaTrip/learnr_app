@@ -19,12 +19,17 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
-import fitz  # PyMuPDF
 import tiktoken
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
+sys.path.append(str(project_root / "scripts"))
 sys.path.append(str(project_root / "apps" / "api"))
+
+from utils.corpus_markdown import (
+    CorpusMarkdownParser,
+    convert_pdf_to_markdown,
+)
 
 # Load environment variables from apps/api/.env
 from dotenv import load_dotenv
@@ -88,6 +93,68 @@ class ParseStats:
     avg_tokens: float = 0.0
 
 
+@dataclass(frozen=True)
+class ChapterScope:
+    min: int
+    max: int
+
+
+def _ka_chapter_numbers(course) -> list[int]:
+    nums = []
+    for ka in course.knowledge_areas:
+        prefix = ka.get("section_prefix")
+        if prefix is not None:
+            nums.append(int(str(prefix).split(".")[0]))
+    return nums
+
+
+def resolve_chunk_chapters(
+    course, cli_min: int | None, cli_max: int | None
+) -> ChapterScope:
+    """Chapter scope precedence: CLI > corpus_config > KA-chapter default.
+
+    KA-derived defaults are computed lazily — only when the value is absent
+    from both CLI and corpus_config — so a course with no knowledge_areas
+    (empty section_prefix list) raises a clear error only when needed.
+    """
+    cfg = (course.corpus_config or {}).get("chunk_chapters") or {}
+
+    def _ka_default(key: str) -> int:
+        ka_nums = _ka_chapter_numbers(course)
+        if not ka_nums:
+            raise ValueError(
+                "course has no knowledge_areas with section_prefix; "
+                "pass --min-chapter/--max-chapter"
+            )
+        return min(ka_nums) if key == "min" else max(ka_nums)
+
+    if cli_min is not None:
+        cmin = cli_min
+    elif "min" in cfg:
+        cmin = cfg["min"]
+    else:
+        cmin = _ka_default("min")
+
+    if cli_max is not None:
+        cmax = cli_max
+    elif "max" in cfg:
+        cmax = cfg["max"]
+    else:
+        cmax = _ka_default("max")
+
+    if cmin > cmax:
+        raise ValueError(f"chunk chapter min ({cmin}) > max ({cmax})")
+    return ChapterScope(int(cmin), int(cmax))
+
+
+def validate_heading_style(course) -> None:
+    style = (course.corpus_config or {}).get("heading_style", "numbered")
+    if style != "numbered":
+        raise NotImplementedError(
+            f"heading_style {style!r} not supported; only 'numbered'"
+        )
+
+
 def get_ka_mapping(course: Course) -> Dict[str, str]:
     """
     Build section→KA mapping from course knowledge_areas JSONB.
@@ -120,90 +187,64 @@ def get_ka_from_section(section_ref: str, ka_mapping: Dict[str, str]) -> str:
     return ka_mapping.get(first_digit, "unknown")
 
 
-def parse_pdf(pdf_path: str, course: Course) -> List[CorpusSection]:
+
+def _emit_clamped(candidate: str, max_tokens: int, out: List[str]) -> None:
+    """Append *candidate* to *out*, token-window-splitting it if it exceeds max_tokens.
+
+    This is the safety clamp that makes the max_tokens invariant airtight:
+    even if the running token-count sum under-estimates the actual encoded
+    length of the joined string (due to BPE boundary effects), the emitted
+    units are guaranteed to be <= max_tokens tokens.
     """
-    Parse PDF and extract structured sections.
+    actual = len(enc.encode(candidate))
+    if actual <= max_tokens:
+        out.append(candidate)
+    else:
+        toks = enc.encode(candidate)
+        for i in range(0, len(toks), max_tokens):
+            out.append(enc.decode(toks[i : i + max_tokens]))
 
-    Args:
-        pdf_path: Path to corpus PDF
-        course: Course model for KA mapping
 
-    Returns:
-        List of CorpusSection objects
+def _split_oversized(text: str, max_tokens: int) -> List[str]:
+    """Split a too-large unit by sentences, then by token window.
+
+    Every returned unit is guaranteed to have len(enc.encode(unit)) <= max_tokens.
+    Note: sentences accumulated into a buffer are re-joined with a single
+    space (original inter-sentence whitespace is not preserved).
     """
-    logger.info(f"Parsing PDF: {pdf_path}")
-    ka_mapping = get_ka_mapping(course)
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    out: List[str] = []
+    buf: List[str] = []
+    buf_tokens = 0
+    for s in sentences:
+        s_tokens = len(enc.encode(s))
+        if s_tokens > max_tokens:
+            if buf:
+                _emit_clamped(" ".join(buf), max_tokens, out)
+                buf, buf_tokens = [], 0
+            toks = enc.encode(s)
+            for i in range(0, len(toks), max_tokens):
+                out.append(enc.decode(toks[i:i + max_tokens]))
+        elif buf_tokens + s_tokens > max_tokens and buf:
+            _emit_clamped(" ".join(buf), max_tokens, out)
+            buf, buf_tokens = [s], s_tokens
+        else:
+            buf.append(s)
+            buf_tokens += s_tokens
+    if buf:
+        _emit_clamped(" ".join(buf), max_tokens, out)
+    return out
 
-    sections: List[CorpusSection] = []
-    current_section: Optional[Dict] = None
 
-    try:
-        doc = fitz.open(pdf_path)
-        section_pattern = re.compile(r"^(\d+(?:\.\d+)*)\s+(.+)$")
-
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            text = page.get_text()
-
-            # Process each line to detect section headers
-            for line in text.split("\n"):
-                line = line.strip()
-                if not line:
-                    continue
-
-                # Check if line is a section header
-                match = section_pattern.match(line)
-                if match:
-                    # Save previous section if exists
-                    if current_section:
-                        ka_id = get_ka_from_section(
-                            current_section["section_ref"], ka_mapping
-                        )
-                        sections.append(
-                            CorpusSection(
-                                section_ref=current_section["section_ref"],
-                                title=current_section["title"],
-                                content=current_section["content"].strip(),
-                                knowledge_area_id=ka_id,
-                                page_numbers=current_section["pages"],
-                            )
-                        )
-
-                    # Start new section
-                    section_num, section_title = match.groups()
-                    current_section = {
-                        "section_ref": section_num,
-                        "title": section_title.strip(),
-                        "content": "",
-                        "pages": [page_num + 1],
-                    }
-                    logger.debug(f"Found section: {section_num} - {section_title}")
-                elif current_section:
-                    # Append content to current section
-                    current_section["content"] += f"{line}\n"
-                    if page_num + 1 not in current_section["pages"]:
-                        current_section["pages"].append(page_num + 1)
-
-        # Save final section
-        if current_section:
-            ka_id = get_ka_from_section(current_section["section_ref"], ka_mapping)
-            sections.append(
-                CorpusSection(
-                    section_ref=current_section["section_ref"],
-                    title=current_section["title"],
-                    content=current_section["content"].strip(),
-                    knowledge_area_id=ka_id,
-                    page_numbers=current_section["pages"],
-                )
-            )
-
-        doc.close()
-        logger.info(f"Parsed {len(sections)} sections from PDF")
-        return sections
-
-    except Exception as e:
-        logger.error(f"Error parsing PDF: {e}")
-        raise
+def _split_into_units(content: str, max_tokens: int) -> List[str]:
+    """Paragraphs (\\n\\n) where possible; hard-split any paragraph over max_tokens."""
+    units: List[str] = []
+    for para in [p.strip() for p in content.split("\n\n") if p.strip()]:
+        if len(enc.encode(para)) <= max_tokens:
+            units.append(para)
+        else:
+            units.extend(_split_oversized(para, max_tokens))
+    return units
 
 
 def chunk_section(
@@ -212,49 +253,48 @@ def chunk_section(
     max_tokens: int = 500,
     overlap_tokens: int = 50,
 ) -> List[Tuple[str, int]]:
-    """
-    Chunk a section using hybrid strategy.
-
-    Rules:
-    1. Never split across section boundaries
-    2. Target 200-500 tokens per chunk
-    3. Prefer splitting at paragraph boundaries
-    4. Add 50-token overlap for context
-
-    Args:
-        section: CorpusSection to chunk
-        min_tokens: Minimum tokens per chunk
-        max_tokens: Maximum tokens per chunk
-        overlap_tokens: Overlap between chunks
-
-    Returns:
-        List of (content, chunk_index) tuples
-    """
-    paragraphs = [p.strip() for p in section.content.split("\n\n") if p.strip()]
+    """Chunk a section to <= max_tokens units, never relying on \\n\\n alone."""
+    units = _split_into_units(section.content, max_tokens)
     chunks: List[Tuple[str, int]] = []
-    current_chunk: List[str] = []
+    current: List[str] = []
     current_tokens = 0
 
-    for para in paragraphs:
-        para_tokens = len(enc.encode(para))
-
-        if current_tokens + para_tokens > max_tokens and current_chunk:
-            # Emit current chunk
-            chunk_content = "\n\n".join(current_chunk)
-            chunks.append((chunk_content, len(chunks)))
-
-            # Start new chunk with overlap
-            overlap_text = get_overlap(current_chunk, overlap_tokens)
-            current_chunk = [overlap_text, para] if overlap_text else [para]
-            current_tokens = len(enc.encode("\n\n".join(current_chunk)))
+    for unit in units:
+        unit_tokens = len(enc.encode(unit))
+        # Measure the actual encoded size of the prospective joined chunk so the
+        # "\n\n" separators are counted (a +token-per-join the running sum misses).
+        projected = (
+            len(enc.encode("\n\n".join(current + [unit]))) if current else unit_tokens
+        )
+        if projected > max_tokens and current:
+            chunks.append(("\n\n".join(current), len(chunks)))
+            overlap_text = get_overlap(current, overlap_tokens)
+            current = [overlap_text, unit] if overlap_text else [unit]
+            current_tokens = len(enc.encode("\n\n".join(current)))
+            # Guard: overlap + unit may exceed max_tokens — drop overlap if so.
+            if current_tokens > max_tokens:
+                current = [unit]
+                current_tokens = unit_tokens
         else:
-            current_chunk.append(para)
-            current_tokens += para_tokens
+            current.append(unit)
+            current_tokens = projected
 
-    # Emit final chunk if not empty
-    if current_chunk:
-        chunk_content = "\n\n".join(current_chunk)
-        chunks.append((chunk_content, len(chunks)))
+    if current:
+        chunks.append(("\n\n".join(current), len(chunks)))
+
+    # Merge a tiny trailing chunk into its predecessor (avoid stubs),
+    # but only when the merged result stays within max_tokens. When the merge
+    # would breach max_tokens we keep the (possibly sub-min) stub rather than
+    # violate the hard size constraint.
+    if len(chunks) > 1 and len(enc.encode(chunks[-1][0])) < min_tokens:
+        last_content, last_idx = chunks.pop()
+        prev_content, prev_idx = chunks.pop()
+        merged = prev_content + "\n\n" + last_content
+        if len(enc.encode(merged)) <= max_tokens:
+            chunks.append((merged, prev_idx))
+        else:
+            chunks.append((prev_content, prev_idx))
+            chunks.append((last_content, last_idx))
 
     return chunks
 
@@ -301,10 +341,14 @@ def generate_chunk_title(section: CorpusSection, chunk_index: int, total_chunks:
     Returns:
         Generated title (max 255 chars)
     """
+    base = section.title.strip() if section.title else ""
+    if not base:
+        base = f"Section {section.section_ref}"
+
     if total_chunks == 1:
-        title = section.title
+        title = base
     else:
-        title = f"{section.title} - Part {chunk_index + 1}"
+        title = f"{base} - Part {chunk_index + 1}"
 
     # Truncate if needed
     if len(title) > 255:
@@ -616,6 +660,11 @@ async def main():
         help="Parse and chunk without database writes",
     )
     parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="Delete existing chunks for the course before inserting (clean re-parse)",
+    )
+    parser.add_argument(
         "--min-tokens",
         type=int,
         default=200,
@@ -627,6 +676,10 @@ async def main():
         default=500,
         help="Maximum tokens per chunk",
     )
+    parser.add_argument("--min-chapter", type=int, default=None,
+                        help="Override corpus_config chunk_chapters.min")
+    parser.add_argument("--max-chapter", type=int, default=None,
+                        help="Override corpus_config chunk_chapters.max")
 
     args = parser.parse_args()
 
@@ -647,8 +700,25 @@ async def main():
                 sys.exit(1)
             logger.info(f"Found course: {course.name} (ID: {course.id})")
 
-            # Step 2: Parse PDF
-            sections = parse_pdf(str(pdf_path), course)
+            # Step 2: Parse sections from markdown
+            validate_heading_style(course)
+            scope = resolve_chunk_chapters(course, args.min_chapter, args.max_chapter)
+            logger.info(f"Chunking chapters {scope.min}-{scope.max}")
+            allowed = frozenset(range(scope.min, scope.max + 1))
+            md_path = convert_pdf_to_markdown(str(pdf_path))
+            md_sections = CorpusMarkdownParser(md_path, allowed_chapters=allowed).parse()
+            ka_mapping = get_ka_mapping(course)
+            sections = [
+                CorpusSection(
+                    section_ref=s.section_number,
+                    title=s.title,
+                    content=s.content,
+                    knowledge_area_id=get_ka_from_section(s.section_number, ka_mapping),
+                    page_numbers=[s.page_start, s.page_end],
+                )
+                for s in md_sections
+            ]
+            logger.info(f"Parsed {len(sections)} sections from markdown")
 
             # Step 3: Load concepts for course
             logger.info(f"Loading concepts for course {args.course_slug}...")
@@ -668,6 +738,11 @@ async def main():
             if not args.dry_run:
                 logger.info("Storing chunks in database...")
                 chunk_repo = ReadingChunkRepository(session)
+
+                # Clean re-parse: remove existing chunks for this course first
+                if args.replace:
+                    deleted = await chunk_repo.delete_all_for_course(course.id)
+                    logger.info(f"Deleted {deleted} existing chunks for course {args.course_slug}")
 
                 # Convert to ChunkCreate schemas
                 chunk_creates = [
