@@ -47,12 +47,22 @@ def mock_belief_updater():
 
 
 @pytest.fixture
+def mock_mastery_gate_service():
+    """Create mock MasteryGateService (Story 4.11 AC 7)."""
+    svc = AsyncMock()
+    svc.check_and_record_unlocks = AsyncMock(return_value=[])
+    svc.get_session_unlocks = AsyncMock(return_value=[])
+    return svc
+
+
+@pytest.fixture
 def answer_service(
     mock_response_repo,
     mock_question_repo,
     mock_session_repo,
     mock_user_repo,
     mock_belief_updater,
+    mock_mastery_gate_service,
 ):
     """Create QuizAnswerService with mock dependencies."""
     return QuizAnswerService(
@@ -61,6 +71,7 @@ def answer_service(
         session_repo=mock_session_repo,
         user_repo=mock_user_repo,
         belief_updater=mock_belief_updater,
+        mastery_gate_service=mock_mastery_gate_service,
     )
 
 
@@ -404,3 +415,80 @@ class TestConceptsStrengthened:
 
         # Should count 3 unique concepts
         assert count == 3
+
+
+# ============================================================================
+# Unlock Recording Tests (Story 4.11 AC 7)
+# ============================================================================
+
+
+class TestUnlockRecording:
+    """Test that unlock recording is invoked after belief updates."""
+
+    @pytest.mark.asyncio
+    async def test_submit_answer_records_unlocks_for_updated_concepts(
+        self,
+        answer_service,
+        mock_mastery_gate_service,
+        mock_response_repo,
+        mock_question_repo,
+        mock_session_repo,
+        mock_user_repo,
+        mock_belief_updater,
+    ):
+        """Verify check_and_record_unlocks is called after a belief update."""
+        user_id = uuid4()
+        session_id = uuid4()
+        question_id = uuid4()
+        concept_id = uuid4()
+
+        # Session below target so it does NOT auto-complete (keeps arrange simple)
+        session_before = create_mock_session(
+            session_id=session_id,
+            user_id=user_id,
+            total_questions=5,
+            correct_count=3,
+            question_target=12,
+        )
+        session_after = create_mock_session(
+            session_id=session_id,
+            user_id=user_id,
+            total_questions=6,
+            correct_count=4,
+            question_target=12,
+        )
+
+        mock_session_repo.get_session_by_id.return_value = session_before
+        mock_session_repo.increment_question_count.return_value = session_after
+
+        question = create_mock_question(question_id=question_id)
+        mock_question_repo.get_question_by_id.return_value = question
+
+        mock_response_repo.check_already_answered.return_value = False
+        mock_response_repo.get_by_request_id.return_value = None
+
+        response = create_mock_response(is_correct=True)
+        mock_response_repo.create.return_value = response
+
+        # Belief updater returns one concept update so unlock recording is triggered
+        belief_update_mock = MagicMock()
+        belief_update_mock.concept_id = concept_id
+        belief_update_mock.concept_name = "Test Concept"
+        belief_update_mock.old_alpha = 1.0
+        belief_update_mock.old_beta = 1.0
+        belief_update_mock.new_alpha = 2.0
+        belief_update_mock.new_beta = 1.0
+        belief_response_mock = MagicMock()
+        belief_response_mock.updates = [belief_update_mock]
+        belief_response_mock.info_gain_actual = 0.1
+        mock_belief_updater.update_beliefs.return_value = belief_response_mock
+
+        await answer_service.submit_answer(
+            user_id=user_id,
+            session_id=session_id,
+            question_id=question_id,
+            selected_answer="B",
+        )
+
+        # Assert: recording was attempted for the concept that was updated
+        assert mock_mastery_gate_service.check_and_record_unlocks.await_count >= 1

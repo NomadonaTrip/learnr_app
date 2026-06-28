@@ -21,6 +21,7 @@ from src.repositories.quiz_session_repository import QuizSessionRepository
 from src.repositories.response_repository import ResponseRepository
 from src.repositories.user_repository import UserRepository
 from src.services.belief_updater import BeliefUpdater
+from src.services.mastery_gate import MasteryGateService
 from src.services.question_selector import QuestionSelector
 from src.services.quiz_answer_service import QuizAnswerService
 from src.services.quiz_session_service import QuizSessionService
@@ -330,6 +331,7 @@ def get_user_repository(
 
 
 def get_quiz_answer_service(
+    db: AsyncSession = Depends(get_db),
     response_repo: ResponseRepository = Depends(get_response_repository),
     question_repo: QuestionRepository = Depends(get_question_repository),
     session_repo: QuizSessionRepository = Depends(get_quiz_session_repository),
@@ -343,6 +345,7 @@ def get_quiz_answer_service(
     Provides the answer submission service with all required repositories
     and the belief updater for Bayesian knowledge tracing.
     Story 4.7: Added user_repo for quiz completion stats.
+    Story 4.11: Added mastery_gate_service for concept unlock recording (AC 7).
     """
     belief_updater = BeliefUpdater(
         belief_repository=belief_repo,
@@ -351,12 +354,18 @@ def get_quiz_answer_service(
         default_guess=0.25,
         prerequisite_propagation=0.3,
     )
+    mastery_gate_service = MasteryGateService(
+        session=db,
+        belief_repository=belief_repo,
+        concept_repository=concept_repo,
+    )
     return QuizAnswerService(
         response_repo=response_repo,
         question_repo=question_repo,
         session_repo=session_repo,
         user_repo=user_repo,
         belief_updater=belief_updater,
+        mastery_gate_service=mastery_gate_service,
     )
 
 
