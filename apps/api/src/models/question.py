@@ -139,6 +139,7 @@ class Question(Base):
         Index("idx_questions_course", "course_id"),
         Index("idx_questions_course_ka", "course_id", "knowledge_area_id"),
         Index("idx_questions_difficulty", "difficulty"),
+        Index("idx_questions_difficulty_label", "course_id", "difficulty_label"),
         Index("idx_questions_competencies_gin", "competencies", postgresql_using="gin"),
         Index("idx_questions_perspectives_gin", "perspectives", postgresql_using="gin"),
         Index(
