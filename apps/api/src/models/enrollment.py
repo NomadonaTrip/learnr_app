@@ -12,13 +12,14 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
 
 from ..db.session import Base
 
@@ -46,13 +47,11 @@ class Enrollment(Base):
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
     )
     course_id = Column(
         UUID(as_uuid=True),
         ForeignKey("courses.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
     )
 
     # Study goals (copied from user preferences per enrollment)
@@ -104,12 +103,19 @@ class Enrollment(Base):
         cascade="all, delete-orphan"
     )
 
-    # Table constraints
+    # Table constraints and indexes
     __table_args__ = (
         UniqueConstraint('user_id', 'course_id', name='uq_enrollments_user_course'),
         CheckConstraint(
             "status IN ('active', 'paused', 'completed', 'archived')",
             name='check_enrollment_status'
+        ),
+        Index('idx_enrollments_user', 'user_id'),
+        Index('idx_enrollments_course', 'course_id'),
+        Index(
+            'idx_enrollments_user_active',
+            'user_id', 'status',
+            postgresql_where=text("(status)::text = 'active'::text"),
         ),
     )
 

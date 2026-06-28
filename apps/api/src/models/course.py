@@ -5,10 +5,10 @@ Represents the courses table for multi-course support.
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Float, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, relationship
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
 
 from ..db.session import Base
 
@@ -32,7 +32,7 @@ class Course(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # Course identification
-    slug = Column(String(50), unique=True, nullable=False, index=True)
+    slug = Column(String(50), nullable=False)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     corpus_name = Column(String(100), nullable=True)
@@ -98,6 +98,12 @@ class Course(Base):
         "ReadingChunk",
         back_populates="course",
         cascade="all, delete-orphan"
+    )
+
+    # Table constraints and indexes
+    __table_args__ = (
+        Index('idx_courses_active', 'is_active', postgresql_where=text("is_active = true")),
+        Index('idx_courses_slug', 'slug', unique=True),
     )
 
     def __repr__(self) -> str:

@@ -7,7 +7,7 @@ Story 4.9: Post-Session Review Mode
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
@@ -39,13 +39,11 @@ class ReviewSession(Base):
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
     )
     original_session_id = Column(
         UUID(as_uuid=True),
         ForeignKey("quiz_sessions.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
     )
 
     # Review targets
@@ -58,7 +56,7 @@ class ReviewSession(Base):
     still_incorrect_count = Column(Integer, nullable=False, default=0)
 
     # Status
-    status = Column(String(20), nullable=False, default="pending", index=True)
+    status = Column(String(20), nullable=False, default="pending")
 
     # Timestamps
     started_at = Column(DateTime(timezone=True), nullable=True)
@@ -81,12 +79,15 @@ class ReviewSession(Base):
         cascade="all, delete-orphan"
     )
 
-    # Table constraints
+    # Table constraints and indexes
     __table_args__ = (
         CheckConstraint(
             "status IN ('pending', 'in_progress', 'completed', 'skipped')",
             name="check_review_session_status"
         ),
+        Index('idx_review_sessions_original', 'original_session_id'),
+        Index('idx_review_sessions_status', 'status'),
+        Index('idx_review_sessions_user', 'user_id'),
     )
 
     @property

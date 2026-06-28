@@ -5,7 +5,7 @@ Story 4.11: Prerequisite-Based Curriculum Navigation
 """
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, ForeignKey
+from sqlalchemy import Column, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
@@ -64,6 +64,13 @@ class ConceptUnlockEvent(Base):
     prerequisite_concept: Mapped["Concept"] = relationship(
         "Concept",
         foreign_keys=[prerequisite_concept_id]
+    )
+
+    __table_args__ = (
+        Index('idx_unlock_events_unlocked_at', 'unlocked_at'),
+        Index('idx_unlock_events_user', 'user_id'),
+        Index('idx_unlock_events_user_concept', 'user_id', 'concept_id'),
+        Index('uq_unlock_events_user_concept', 'user_id', 'concept_id', unique=True),
     )
 
     def __repr__(self) -> str:

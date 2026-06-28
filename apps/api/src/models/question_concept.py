@@ -4,7 +4,7 @@ Represents the many-to-many relationship between questions and concepts.
 """
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, Column, DateTime, Float, ForeignKey
+from sqlalchemy import CheckConstraint, Column, DateTime, Float, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
@@ -65,12 +65,14 @@ class QuestionConcept(Base):
         back_populates="question_concepts"
     )
 
-    # Table constraints
+    # Table constraints and indexes
     __table_args__ = (
         CheckConstraint(
             "relevance >= 0.0 AND relevance <= 1.0",
             name="ck_question_concepts_relevance_range",
         ),
+        Index('idx_question_concepts_concept', 'concept_id'),
+        Index('idx_question_concepts_question', 'question_id'),
     )
 
     def __repr__(self) -> str:
