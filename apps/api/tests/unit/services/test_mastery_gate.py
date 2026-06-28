@@ -493,3 +493,41 @@ class TestCustomConfig:
 
         assert default_service._meets_mastery_gate(belief) is True
         assert strict_service._meets_mastery_gate(belief) is False
+
+
+class TestGetSessionUnlocks:
+    """get_session_unlocks returns events since an anchor as SessionUnlockItems."""
+
+    @pytest.fixture
+    def service(self, mock_session, mock_belief_repo, mock_concept_repo):
+        return MasteryGateService(
+            session=mock_session,
+            belief_repository=mock_belief_repo,
+            concept_repository=mock_concept_repo,
+        )
+
+    @pytest.mark.asyncio
+    async def test_maps_rows_to_session_unlock_items(self, service, mock_session):
+        cid_a, cid_b = uuid4(), uuid4()
+        result = MagicMock()
+        result.all.return_value = [(cid_a, "Approach"), (cid_b, "Elicitation")]
+        mock_session.execute = AsyncMock(return_value=result)
+
+        since = datetime(2026, 6, 28, tzinfo=UTC)
+        items = await service.get_session_unlocks(uuid4(), since)
+
+        assert [(i.concept_id, i.concept_name) for i in items] == [
+            (cid_a, "Approach"),
+            (cid_b, "Elicitation"),
+        ]
+        mock_session.execute.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_empty_when_no_rows(self, service, mock_session):
+        result = MagicMock()
+        result.all.return_value = []
+        mock_session.execute = AsyncMock(return_value=result)
+
+        items = await service.get_session_unlocks(uuid4(), datetime(2026, 6, 28, tzinfo=UTC))
+
+        assert items == []

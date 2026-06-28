@@ -7,6 +7,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
+from src.schemas.mastery_gate import SessionUnlockItem
+
 
 class AnswerSubmission(BaseModel):
     """Request schema for submitting an answer to a quiz question."""
@@ -100,6 +102,10 @@ class SessionSummaryResponse(BaseModel):
         ...,
         ge=0,
         description="Duration of the session in seconds"
+    )
+    new_unlocks: list[SessionUnlockItem] = Field(
+        default_factory=list,
+        description="Concepts unlocked during this session (Story 4.11 AC 7)"
     )
 
 
