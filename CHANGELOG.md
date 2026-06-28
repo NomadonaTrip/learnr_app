@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- **Accessibility polish for curriculum lock/unlock components (#13)** — `LockedConceptConfirmDialog` now autofocuses on open with a focus trap (Escape works immediately, Tab cycles within), dismisses on backdrop click, and uses `aria-labelledby` referencing its heading; `ConceptLockBadge` uses `role="img"` so its label is reliably announced; `ConceptLockTooltip` accepts an optional `id` and `ConceptRow` wires `aria-describedby` on the Practice button so screen readers hear the blocking prerequisites.
 - **Reconciled SQLAlchemy models with the live DB schema (alembic drift)** — `alembic check` now reports "No new upgrade operations detected" (was 67 spurious ops). Models now declare the DB's actual index set exactly (GIN, partial `WHERE`, composite, ordered `priority DESC`), removing the inconsistent `index=True`/`idx_*` duplicates; DB was left untouched except the one fix below. Makes future `--autogenerate` migrations trustworthy. Covers `concepts`, `concept_prerequisites`, `concept_unlock_events`, `courses`, `diagnostic_sessions`, `enrollments`, `password_reset_tokens`, `question_concepts`, `questions`, `quiz_responses`, `quiz_sessions`, `reading_chunks`, `reading_queue`, `review_responses`, `review_sessions`.
 
 ### Fixed
