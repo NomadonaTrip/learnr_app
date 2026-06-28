@@ -5,7 +5,7 @@ Represents discrete, testable concepts extracted from course materials.
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
@@ -38,7 +38,6 @@ class Concept(Base):
         UUID(as_uuid=True),
         ForeignKey("courses.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
     )
 
     # Concept identification
@@ -46,7 +45,7 @@ class Concept(Base):
     description = Column(Text, nullable=True)
 
     # Reference to source material section (generic for any corpus)
-    corpus_section_ref = Column(String(50), nullable=True, index=True)
+    corpus_section_ref = Column(String(50), nullable=True)
 
     # Reference to course.knowledge_areas[].id
     knowledge_area_id = Column(String(50), nullable=False)
@@ -107,6 +106,12 @@ class Concept(Base):
         foreign_keys="ConceptUnlockEvent.concept_id",
         back_populates="concept",
         cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        Index('idx_concepts_course', 'course_id'),
+        Index('idx_concepts_knowledge_area', 'course_id', 'knowledge_area_id'),
+        Index('idx_concepts_section', 'corpus_section_ref'),
     )
 
     def __repr__(self) -> str:

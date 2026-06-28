@@ -29,10 +29,13 @@ class ReadingChunk(Base):
     __table_args__ = (
         # GIN index for efficient array overlap/contains queries on concept_ids
         Index(
-            "ix_reading_chunks_concept_ids_gin",
+            "idx_reading_chunks_concepts",
             "concept_ids",
             postgresql_using="gin"
         ),
+        Index('idx_reading_chunks_course', 'course_id'),
+        Index('idx_reading_chunks_knowledge_area', 'course_id', 'knowledge_area_id'),
+        Index('idx_reading_chunks_section', 'corpus_section'),
     )
 
     # Primary key
@@ -43,7 +46,6 @@ class ReadingChunk(Base):
         UUID(as_uuid=True),
         ForeignKey("courses.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
     )
 
     # Chunk content
@@ -51,7 +53,7 @@ class ReadingChunk(Base):
     content = Column(Text, nullable=False)
 
     # Reference to source material section (generic for any corpus)
-    corpus_section = Column(String(50), nullable=False, index=True)
+    corpus_section = Column(String(50), nullable=False)
 
     # Reference to course.knowledge_areas[].id
     knowledge_area_id = Column(String(50), nullable=False)

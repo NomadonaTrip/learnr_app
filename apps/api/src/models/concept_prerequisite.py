@@ -4,7 +4,7 @@ Represents prerequisite relationships between concepts for BKT prioritization.
 """
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, String
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
@@ -71,6 +71,11 @@ class ConceptPrerequisite(Base):
         "Concept",
         foreign_keys=[prerequisite_concept_id],
         back_populates="dependents"
+    )
+
+    __table_args__ = (
+        Index('idx_concept_prereqs_concept', 'concept_id'),
+        Index('idx_concept_prereqs_prereq', 'prerequisite_concept_id'),
     )
 
     def __repr__(self) -> str:
