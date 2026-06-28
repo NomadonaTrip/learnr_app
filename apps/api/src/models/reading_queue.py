@@ -6,7 +6,7 @@ Story 5.5: Background Reading Queue Population
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
@@ -34,6 +34,7 @@ class ReadingQueue(Base):
         Index("idx_reading_queue_user", "user_id"),
         Index("idx_reading_queue_enrollment", "enrollment_id"),
         Index("idx_reading_queue_enrollment_status", "enrollment_id", "status"),
+        Index("idx_reading_queue_priority", "enrollment_id", text("priority DESC"), "added_at"),
         UniqueConstraint("enrollment_id", "chunk_id", name="uq_reading_queue_enrollment_chunk"),
     )
 
