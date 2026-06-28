@@ -10,7 +10,8 @@
 
 - **~55 index-naming**: the live DB carries the hand-written `001_initial_schema.py` index names (`idx_<table>_<col>`), while the models declare `index=True` (implying `ix_<table>_<col>`) — frequently *both* on the same column (e.g. `quiz_response.request_id`, `password_reset_token.token`). Same physical index, mismatched name → autogenerate churn.
 - **DB-only indexes the models never declare** (real risk — autogenerate would DROP them): GIN on array columns (`idx_questions_competencies_gin`, `idx_questions_perspectives_gin`, `idx_reading_chunks_concepts`), partial/expression indexes (`idx_quiz_sessions_user_active_unique`, `idx_reading_queue_priority`), composite/secondary (`idx_questions_difficulty`, `idx_courses_active`).
-- **Genuine bugs** (decided: fix both): `questions.created_at/updated_at` are `timestamp without time zone` while every other table is tz-aware; `quiz_responses.request_id` is `unique=True` in the model (idempotency) but the DB lacks the unique constraint.
+- **Genuine bug** (decided: fix): `questions.created_at/updated_at` are `timestamp without time zone` while every other table is tz-aware.
+- **NOT a bug (corrected during planning):** `quiz_responses.request_id` is *already* unique in the DB via `quiz_responses_request_id_key` (the `unique=True` constraint's auto-index), alongside a redundant non-unique `ix_quiz_responses_request_id`. The earlier autogenerate "missing unique" noise was alembic's unique-constraint-vs-unique-index churn, not a real gap. → model-cleanup only (remove the redundant `idx_quiz_responses_request_id` from `__table_args__`); no DDL.
 - **Cosmetic type diff**: `quiz_responses.time_taken_ms` is `DOUBLE PRECISION` in DB vs `Integer` in model.
 
 The app runs fine today — this is a developer-workflow/foundation hazard, not a runtime outage.
@@ -18,7 +19,7 @@ The app runs fine today — this is a developer-workflow/foundation hazard, not 
 ## Decisions (locked)
 
 1. **DB is the source of truth.** The live schema has the complete, intentional index set; the models are an incomplete, inconsistent shadow. We align the *models* to the DB (no DDL for the index work), not the DB to the models.
-2. **Fix the two genuine bugs** with one small, safe migration (0 dup `request_id`s confirmed; `questions` = 236 rows).
+2. **Fix the one genuine bug** (`questions` timestamps → tz-aware) with one small, safe migration (`questions` = 236 rows). `request_id` is already unique — model cleanup only, no DDL.
 3. Assumes a single dev environment (`learnr-postgres-data-dev`); no other deployed DB needs to replay history.
 
 ## Goal / success criteria
@@ -42,9 +43,9 @@ This is **iterative**: edit → `alembic check` → repair the remaining diffs �
 
 Set the cosmetic type to match the DB: `quiz_responses.time_taken_ms` → `Float`/`Double` (matching `DOUBLE PRECISION`).
 
-### Part B — Reconciliation migration (the two real fixes)
+### Part B — Reconciliation migration (the one real fix)
 
-One new alembic migration, `down_revision = '38b668be7ca9'` (current head):
+One new alembic migration, `down_revision = '38b668be7ca9'` (current head). It alters ONLY the `questions` timestamps:
 
 ```python
 def upgrade():
@@ -53,22 +54,15 @@ def upgrade():
                     postgresql_using="created_at AT TIME ZONE 'UTC'", existing_nullable=False)
     op.alter_column('questions', 'updated_at', type_=sa.DateTime(timezone=True),
                     postgresql_using="updated_at AT TIME ZONE 'UTC'", existing_nullable=False)
-    # enforce request_id idempotency at the DB (0 dups confirmed)
-    op.drop_index('idx_quiz_responses_request_id', table_name='quiz_responses')  # if present
-    op.create_index('idx_quiz_responses_request_id', 'quiz_responses', ['request_id'], unique=True)
 
 def downgrade():
-    op.drop_index('idx_quiz_responses_request_id', table_name='quiz_responses')
-    op.create_index('idx_quiz_responses_request_id', 'quiz_responses', ['request_id'], unique=False)
     op.alter_column('questions', 'updated_at', type_=sa.TIMESTAMP(),
                     postgresql_using="updated_at AT TIME ZONE 'UTC'", existing_nullable=False)
     op.alter_column('questions', 'created_at', type_=sa.TIMESTAMP(),
                     postgresql_using="created_at AT TIME ZONE 'UTC'", existing_nullable=False)
 ```
 
-(Exact index name/uniqueness reconciliation for `request_id` to be finalized against what the DB actually has — there may be both a non-unique `idx_` and an `ix_`; the migration must end with exactly one unique index that the model also declares.)
-
-The models for `questions` (already `DateTime(timezone=True)`) and `quiz_responses.request_id` (already `unique=True`) then match the post-migration DB, contributing to a clean `alembic check`.
+The `questions` model is already `DateTime(timezone=True)`, so post-migration it matches the DB. `request_id` needs no migration — it is already unique; the model just drops its redundant `idx_quiz_responses_request_id` `__table_args__` entry (the column's `unique=True` + `index=True` already produce the DB's `quiz_responses_request_id_key` + `ix_quiz_responses_request_id`).
 
 ### Part C — env.py exclusion (only if needed)
 
@@ -89,6 +83,6 @@ If a partial/expression index genuinely cannot be round-tripped by autogenerate 
 
 ## Risks
 
-- **Alembic can't round-trip expression/partial indexes** → may never report fully clean for `idx_reading_queue_priority` / partial uniques. Mitigation: declare as precisely as possible; fall back to the documented `include_object` exclusion (Part C). The success criterion explicitly allows this documented residue.
+- **Alembic can't round-trip functional/ordered indexes** → likely never fully clean for `questions.idx_questions_text_hash_unique` (`md5(question_text)`) and `reading_queue.idx_reading_queue_priority` (`priority DESC`). These are the prime Part C `include_object` exclusion candidates. Partial indexes (the several `WHERE …` ones — `idx_courses_active`, `idx_questions_active`, `idx_quiz_sessions_user_active[_unique]`, `idx_enrollments_user_active`, `idx_diagnostic_sessions_active_enrollment`, `idx_diagnostic_sessions_stale`) SHOULD round-trip if declared with `postgresql_where=sa.text("…")` matching the DB predicate exactly. The success criterion explicitly allows the documented functional/ordered residue.
 - **Matching 35 indexes exactly is fiddly** → iterative `alembic check` loop is the safeguard; each step is verifiable.
 - **`alter_column ... USING`** on populated `questions` (236 rows) — safe; values reinterpreted as UTC. Backup `questions` before the migration.
