@@ -29,16 +29,13 @@ class PasswordResetToken(Base):
         UUID(as_uuid=True),
         ForeignKey('users.id', ondelete='CASCADE'),
         nullable=False,
-        index=True
     )
 
-    # Reset token (UUID, unique)
+    # Reset token (UUID, unique — uniqueness enforced via idx_password_reset_tokens_token)
     token = Column(
         UUID(as_uuid=True),
-        unique=True,
         nullable=False,
         default=uuid.uuid4,
-        index=True
     )
 
     # Timestamps
@@ -51,7 +48,6 @@ class PasswordResetToken(Base):
     expires_at = Column(
         DateTime(timezone=True),
         nullable=False,
-        index=True
     )
 
     used_at = Column(
@@ -61,9 +57,9 @@ class PasswordResetToken(Base):
 
     # Table indexes
     __table_args__ = (
-        Index('idx_password_reset_tokens_user_id', 'user_id'),
-        Index('idx_password_reset_tokens_token', 'token'),
         Index('idx_password_reset_tokens_expires_at', 'expires_at'),
+        Index('idx_password_reset_tokens_token', 'token', unique=True),
+        Index('idx_password_reset_tokens_user_id', 'user_id'),
     )
 
     def is_valid(self) -> bool:

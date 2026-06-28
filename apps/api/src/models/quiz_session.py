@@ -6,10 +6,10 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, relationship
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
 
 from ..db.session import Base
 
@@ -37,13 +37,11 @@ class QuizSession(Base):
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
     )
     enrollment_id = Column(
         UUID(as_uuid=True),
         ForeignKey("enrollments.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
     )
 
     # Session timestamps
@@ -105,7 +103,7 @@ class QuizSession(Base):
         cascade="all, delete-orphan"
     )
 
-    # Table constraints
+    # Table constraints and indexes
     __table_args__ = (
         CheckConstraint(
             "session_type IN ('diagnostic', 'adaptive', 'focused', 'focused_ka', 'focused_concept', 'review')",
@@ -118,6 +116,19 @@ class QuizSession(Base):
         CheckConstraint(
             "question_target BETWEEN 10 AND 15",
             name="check_quiz_session_question_target"
+        ),
+        Index('idx_quiz_sessions_enrollment', 'enrollment_id'),
+        Index('idx_quiz_sessions_user', 'user_id'),
+        Index(
+            'idx_quiz_sessions_user_active',
+            'user_id', 'ended_at',
+            postgresql_where=text("ended_at IS NULL"),
+        ),
+        Index(
+            'idx_quiz_sessions_user_active_unique',
+            'user_id',
+            unique=True,
+            postgresql_where=text("ended_at IS NULL"),
         ),
     )
 

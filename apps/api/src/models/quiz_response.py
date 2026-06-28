@@ -16,8 +16,8 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Index,
-    Integer,
     String,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, relationship
@@ -73,10 +73,12 @@ class QuizResponse(Base):
     # Response data
     selected_answer = Column(String(1), nullable=False)  # A, B, C, or D
     is_correct = Column(Boolean, nullable=False)
-    time_taken_ms = Column(Integer, nullable=True)  # Time taken to answer in milliseconds
+    time_taken_ms = Column(Float, nullable=True)  # Time taken to answer in milliseconds
 
     # Idempotency key (Story 4.3)
-    request_id = Column(UUID(as_uuid=True), nullable=True, unique=True, index=True)
+    # Declared without column-level unique/index flags to prevent SQLAlchemy 2 from
+    # merging them into a single unique ix_ index; the DB has these as separate objects.
+    request_id = Column(UUID(as_uuid=True), nullable=True)
 
     # Bayesian belief tracking (Story 4.3/4.4)
     info_gain_actual = Column(Float, nullable=True)  # Actual entropy reduction from this answer
@@ -106,14 +108,16 @@ class QuizResponse(Base):
             "selected_answer IN ('A', 'B', 'C', 'D')",
             name="ck_quiz_responses_selected_answer",
         ),
+        # Unique constraint for idempotency (backs quiz_responses_request_id_key in DB)
+        UniqueConstraint("request_id", name="quiz_responses_request_id_key"),
+        # Plain ix_ index on request_id (separate from the unique constraint above)
+        Index("ix_quiz_responses_request_id", "request_id"),
         # Index for recency filtering: get questions answered by user within time window
         Index("idx_quiz_responses_user_created", "user_id", "created_at"),
         # Index for session filtering: get questions answered in a session
         Index("idx_quiz_responses_session", "session_id"),
         # Composite index for efficient question lookups per user
         Index("idx_quiz_responses_user_question", "user_id", "question_id"),
-        # Index for idempotency lookups
-        Index("idx_quiz_responses_request_id", "request_id"),
     )
 
     def __repr__(self) -> str:

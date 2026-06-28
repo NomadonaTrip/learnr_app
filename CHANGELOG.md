@@ -22,7 +22,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Integration tests for belief update multipliers** (`apps/api/tests/integration/test_review_session_api.py`)
   - `TestBeliefUpdateMultipliers` class verifying 1.5x and 0.5x multipliers are correctly applied
 
+### Changed
+
+- **Reconciled SQLAlchemy models with the live DB schema (alembic drift)** — `alembic check` now reports "No new upgrade operations detected" (was 67 spurious ops). Models now declare the DB's actual index set exactly (GIN, partial `WHERE`, composite, ordered `priority DESC`), removing the inconsistent `index=True`/`idx_*` duplicates; DB was left untouched except the one fix below. Makes future `--autogenerate` migrations trustworthy. Covers `concepts`, `concept_prerequisites`, `concept_unlock_events`, `courses`, `diagnostic_sessions`, `enrollments`, `password_reset_tokens`, `question_concepts`, `questions`, `quiz_responses`, `quiz_sessions`, `reading_chunks`, `reading_queue`, `review_responses`, `review_sessions`.
+
 ### Fixed
+
+- **`questions.created_at`/`updated_at` made timezone-aware** (migration `aa01questionstz`) — they were `timestamp without time zone` while every other table is tz-aware; stored values reinterpreted as UTC.
+- **`quiz_responses.time_taken_ms` model type** corrected to `Float` to match the DB `DOUBLE PRECISION` column.
 
 - **Rebuilt `reading_chunks` concept links after CBAP re-extraction (#12)** — `reading_chunks.concept_ids` referenced stale pre-re-extraction concept UUIDs (0/58 resolved). Re-ran the corpus + embedding pipeline; cbap now has 327 chunks with 0 unresolved concept references and Qdrant vectors in sync (327/327).
 - **Corpus chunker producing unusable chunks** (`scripts/parse_corpus.py`) — raw-PDF (fitz) sectioning + `\n\n`-only splitter yielded 42 header-only stubs and giant blobs (one 466,987-char chunk holding ~80% of the corpus). Rewrote to chunk from heading-structured markdown with a token-budget splitter (sentence → token-window hard fallback); every chunk is now ≤ 500 tokens, and section coverage rose from ~35 to 263 sections.

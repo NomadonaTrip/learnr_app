@@ -50,7 +50,6 @@ class Question(Base):
         UUID(as_uuid=True),
         ForeignKey("courses.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
     )
 
     # Question content
@@ -137,20 +136,23 @@ class Question(Base):
             "slip_rate >= 0.0 AND slip_rate <= 1.0",
             name="ck_questions_slip_rate_range",
         ),
+        Index("idx_questions_course", "course_id"),
         Index("idx_questions_course_ka", "course_id", "knowledge_area_id"),
+        Index("idx_questions_difficulty", "difficulty"),
+        Index("idx_questions_competencies_gin", "competencies", postgresql_using="gin"),
+        Index("idx_questions_perspectives_gin", "perspectives", postgresql_using="gin"),
+        Index(
+            "idx_questions_active",
+            "is_active",
+            postgresql_where=text("is_active = true"),
+        ),
+        # Functional unique index — declared for completeness; Task 6 decides handling
         Index(
             "idx_questions_text_hash_unique",
             text("md5(question_text)"),
             unique=True,
             postgresql_using="btree",
         ),
-        Index(
-            "idx_questions_active",
-            "is_active",
-            postgresql_where=text("is_active = true"),
-        ),
-        # Index for IRT tier-based queries (Story 10.1 QA recommendation)
-        Index("idx_questions_difficulty_label", "course_id", "difficulty_label"),
     )
 
     @property
