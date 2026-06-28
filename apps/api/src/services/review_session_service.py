@@ -25,6 +25,7 @@ from src.schemas.review import (
     StillIncorrectConcept,
 )
 from src.services.belief_updater import BeliefUpdater
+from src.services.mastery_gate import MasteryGateService
 
 logger = structlog.get_logger(__name__)
 
@@ -50,6 +51,7 @@ class ReviewSessionService:
         belief_repo: BeliefRepository,
         concept_repo: ConceptRepository,
         belief_updater: BeliefUpdater,
+        mastery_gate_service: MasteryGateService,
     ):
         """
         Initialize review session service.
@@ -59,11 +61,13 @@ class ReviewSessionService:
             belief_repo: Repository for belief state operations
             concept_repo: Repository for concept operations
             belief_updater: Service for updating Bayesian belief states
+            mastery_gate_service: Service for checking and recording concept unlocks
         """
         self.review_repo = review_repo
         self.belief_repo = belief_repo
         self.concept_repo = concept_repo
         self.belief_updater = belief_updater
+        self.mastery_gate_service = mastery_gate_service
 
     async def check_review_available(
         self,
@@ -443,6 +447,20 @@ class ReviewSessionService:
 
         reinforcement_rate = review_session.reinforcement_rate
 
+        new_unlocks = []
+        try:
+            new_unlocks = await self.mastery_gate_service.get_session_unlocks(
+                user_id=user_id,
+                since=review_session.created_at,
+            )
+        except Exception as e:
+            logger.error(
+                "review_session_unlocks_fetch_failed",
+                user_id=str(user_id),
+                review_session_id=str(review_session_id),
+                error=str(e),
+            )
+
         logger.info(
             "review_session_completed",
             user_id=str(user_id),
@@ -458,6 +476,7 @@ class ReviewSessionService:
             still_incorrect_count=review_session.still_incorrect_count,
             reinforcement_rate=round(reinforcement_rate, 2),
             still_incorrect_concepts=still_incorrect_concepts,
+            new_unlocks=new_unlocks,
         )
 
     async def _update_beliefs_with_reinforcement(
@@ -570,6 +589,22 @@ class ReviewSessionService:
         # Persist updates
         if updated_beliefs:
             await self.belief_repo.flush_updates(updated_beliefs)
+
+        # Story 4.11 AC 7: record concepts unlocked by reinforcement. Never
+        # let unlock recording break a review submission.
+        for concept_id_str in {u["concept_id"] for u in belief_updates}:
+            try:
+                await self.mastery_gate_service.check_and_record_unlocks(
+                    user_id=user_id,
+                    updated_concept_id=UUID(concept_id_str),
+                )
+            except Exception as e:
+                logger.error(
+                    "review_unlock_recording_failed",
+                    user_id=str(user_id),
+                    concept_id=concept_id_str,
+                    error=str(e),
+                )
 
         return belief_updates
 
