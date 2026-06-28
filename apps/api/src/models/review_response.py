@@ -94,6 +94,7 @@ class ReviewResponse(Base):
         ),
         Index("idx_review_responses_session", "review_session_id"),
         Index("idx_review_responses_user", "user_id"),
+        Index("idx_review_responses_question", "question_id"),
     )
 
     def __repr__(self) -> str:
