@@ -3,6 +3,8 @@ interface ConceptLockTooltipProps {
   error: boolean
   blockingPrerequisites: { concept_id: string; name: string }[]
   closestName: string | null
+  /** Optional id so a trigger can reference this tooltip via aria-describedby. */
+  id?: string
 }
 
 /**
@@ -14,9 +16,11 @@ export function ConceptLockTooltip({
   error,
   blockingPrerequisites,
   closestName,
+  id,
 }: ConceptLockTooltipProps) {
   return (
     <div
+      id={id}
       role="tooltip"
       className="mt-2 rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-md"
     >

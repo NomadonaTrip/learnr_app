@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+
 interface LockedConceptConfirmDialogProps {
   conceptName: string
   blockingPrerequisites: { concept_id: string; name: string }[]
@@ -6,6 +8,10 @@ interface LockedConceptConfirmDialogProps {
   onConfirm: () => void
   onCancel: () => void
 }
+
+const TITLE_ID = 'locked-concept-dialog-title'
+const FOCUSABLE =
+  'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
 
 /**
  * Soft-gate confirmation before practicing a locked concept (AC 8).
@@ -19,16 +25,50 @@ export function LockedConceptConfirmDialog({
   onConfirm,
   onCancel,
 }: LockedConceptConfirmDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // Autofocus the dialog on open so Escape works immediately and focus enters the modal.
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      onCancel()
+      return
+    }
+    if (e.key !== 'Tab') return
+    // Trap focus within the dialog.
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE)
+    if (!focusable || focusable.length === 0) return
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
+
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Practice ${conceptName} before prerequisites are mastered?`}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onKeyDown={(e) => e.key === 'Escape' && onCancel()}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel()
+      }}
     >
-      <div className="w-full max-w-md rounded-[14px] bg-white p-6 shadow-xl">
-        <h2 className="text-lg font-semibold text-charcoal">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={TITLE_ID}
+        tabIndex={-1}
+        onKeyDown={handleKeyDown}
+        className="w-full max-w-md rounded-[14px] bg-white p-6 shadow-xl outline-none"
+      >
+        <h2 id={TITLE_ID} className="text-lg font-semibold text-charcoal">
           Practice "{conceptName}" anyway?
         </h2>
         <p className="mt-2 text-sm text-gray-600">

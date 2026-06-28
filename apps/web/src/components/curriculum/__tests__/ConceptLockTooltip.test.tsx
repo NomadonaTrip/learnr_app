@@ -31,4 +31,17 @@ describe('ConceptLockTooltip', () => {
     render(<ConceptLockTooltip isLoading={false} error={false} blockingPrerequisites={[]} closestName={null} />)
     expect(screen.getByText('All prerequisites met')).toBeInTheDocument()
   })
+
+  it('applies an optional id so a trigger can wire aria-describedby', () => {
+    render(
+      <ConceptLockTooltip
+        isLoading={false}
+        error={false}
+        blockingPrerequisites={[]}
+        closestName={null}
+        id="concept-tooltip-1"
+      />,
+    )
+    expect(screen.getByRole('tooltip')).toHaveAttribute('id', 'concept-tooltip-1')
+  })
 })
