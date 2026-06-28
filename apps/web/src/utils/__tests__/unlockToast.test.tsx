@@ -24,7 +24,9 @@ describe('buildUnlockMessage', () => {
 })
 
 describe('showUnlockToast', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
   it('does nothing when there are no unlocks', () => {
     showUnlockToast([], vi.fn())
