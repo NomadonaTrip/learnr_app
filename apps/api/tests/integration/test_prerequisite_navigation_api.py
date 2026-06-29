@@ -479,3 +479,60 @@ class TestAuthentication:
         """Recent unlocks endpoint requires authentication."""
         response = await client.get("/v1/concepts/recent-unlocks")
         assert response.status_code == 401
+
+
+# ============================================================================
+# Test: Neighborhood Endpoint
+# ============================================================================
+
+
+class TestNeighborhoodEndpoint:
+    """Tests for GET /concepts/{id}/neighborhood endpoint (Story 4.11 Slice D)."""
+
+    @pytest.mark.asyncio
+    async def test_returns_neighborhood_for_known_concept(
+        self, client, concepts_with_prerequisites, auth_headers
+    ):
+        """Neighborhood is returned for a concept with both prereqs and dependents."""
+        # concepts_with_prerequisites[1] requires [0] and is required by [2]
+        center = concepts_with_prerequisites[1]
+        resp = await client.get(
+            f"/v1/concepts/{center.id}/neighborhood?depth=2",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["center_id"] == str(center.id)
+        assert any(
+            n["concept_id"] == str(center.id) and n["direction"] == "center"
+            for n in body["nodes"]
+        )
+        assert body["truncated"] is False
+
+    @pytest.mark.asyncio
+    async def test_404_for_unknown_concept(self, client, auth_headers):
+        """Unknown concept UUID returns 404."""
+        resp = await client.get(
+            f"/v1/concepts/{uuid4()}/neighborhood",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_depth_out_of_range_is_rejected(
+        self, client, concepts_with_prerequisites, auth_headers
+    ):
+        """depth=9 exceeds Query(le=3) and returns 422."""
+        resp = await client.get(
+            f"/v1/concepts/{concepts_with_prerequisites[0].id}/neighborhood?depth=9",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_requires_auth(self, client, concepts_with_prerequisites):
+        """Neighborhood endpoint requires authentication."""
+        resp = await client.get(
+            f"/v1/concepts/{concepts_with_prerequisites[0].id}/neighborhood"
+        )
+        assert resp.status_code == 401

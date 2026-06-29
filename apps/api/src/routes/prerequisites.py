@@ -5,7 +5,7 @@ Story 4.11: Prerequisite-Based Curriculum Navigation
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_db
@@ -16,6 +16,7 @@ from src.repositories.concept_repository import ConceptRepository
 from src.schemas.mastery_gate import (
     BulkUnlockStatusResponse,
     GateCheckResult,
+    NeighborhoodResponse,
     OverrideAttemptResponse,
     RecentUnlocksResponse,
 )
@@ -220,3 +221,35 @@ async def attempt_locked_concept(
         mastery_progress=gate_result.mastery_progress,
         message=message,
     )
+
+
+@router.get(
+    "/{concept_id}/neighborhood",
+    response_model=NeighborhoodResponse,
+    summary="Get a concept's prerequisite neighborhood",
+    description="""
+    Return a focused neighborhood around a concept: prerequisites (upstream)
+    and dependents (downstream), up to `depth` hops each direction, joined with
+    the current user's per-concept lock status. Powers the interactive
+    prerequisite graph (Story 4.11, Slice D).
+    """,
+)
+async def get_concept_neighborhood(
+    concept_id: UUID,
+    depth: int = Query(2, ge=1, le=3, description="Hops in each direction"),
+    current_user: User = Depends(get_current_user),
+    service: MasteryGateService = Depends(get_mastery_gate_service),
+) -> NeighborhoodResponse:
+    """Return the prerequisite/dependent neighborhood for a concept."""
+    logger.info(
+        "neighborhood_requested",
+        user_id=str(current_user.id),
+        concept_id=str(concept_id),
+        depth=depth,
+    )
+    try:
+        return await service.get_neighborhood(
+            user_id=current_user.id, concept_id=concept_id, depth=depth
+        )
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Concept not found")
