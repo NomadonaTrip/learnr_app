@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- **Concept unlock notifications (Story 4.11 AC 7, #14)** — concept-unlock events are now recorded when a quiz or post-session-review belief update crosses a mastery gate (`MasteryGateService.check_and_record_unlocks` wired into `QuizAnswerService.submit_answer` and `ReviewSessionService`, defensively so recording can never fail a submission). The concepts unlocked during a session are returned inline on the session/review summary (`new_unlocks`, anchored on the session start time) and surfaced as a single aggregate toast ("🎉 You unlocked N new concepts!", click → `/curriculum`, fired once per session). A new "Recently unlocked" strip on the curriculum page (`RecentlyUnlockedStrip` + `useRecentUnlocks` over `/concepts/recent-unlocks`) lets users revisit recent unlocks; it stays invisible until there is data.
+
 - **Performance indexes** (migration `ab01perfindexes`) — `idx_questions_difficulty_label` on `questions(course_id, difficulty_label)` (difficulty-tier selection / Story 10.1 IRT) and `idx_review_responses_question` on `review_responses(question_id)` (FK lookups/joins). Declared in both the migration and the models, so `alembic check` stays clean.
 
 - **Course-agnostic corpus chunking pipeline** (`scripts/utils/corpus_markdown.py`, `scripts/parse_corpus.py`, `courses.corpus_config`)
