@@ -26,7 +26,7 @@ function makeConcept(unlocked: boolean): ConceptUnlockStatus {
 }
 
 describe('ConceptRow', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks() })
 
   it('renders the concept name and an unlocked badge', () => {
     render(<ConceptRow concept={makeConcept(true)} />)

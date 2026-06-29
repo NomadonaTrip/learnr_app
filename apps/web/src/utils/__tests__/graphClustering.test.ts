@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { clusterNeighborhood, CLUSTER_THRESHOLD } from '../graphClustering'
-import type { NeighborhoodResponse } from '../../services/prerequisiteService'
+import type { NeighborhoodNode, NeighborhoodResponse } from '../../services/prerequisiteService'
 
 function makeHub(prereqCount: number): NeighborhoodResponse {
-  const nodes = [
+  const nodes: NeighborhoodNode[] = [
     { concept_id: 'c', name: 'C', knowledge_area_id: 'ka', difficulty: 0.5, is_unlocked: true, mastery_progress: 1, depth: 0, direction: 'center' as const },
   ]
   const edges = []

@@ -52,7 +52,7 @@ function renderAt(conceptId: string) {
 }
 
 describe('ConceptGraphPage', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks() })
 
   it('renders the center concept name on success', async () => {
     vi.mocked(courseService.fetchCourseBySlug).mockResolvedValue(course as never)

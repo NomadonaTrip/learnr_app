@@ -547,7 +547,7 @@ class TestGetNeighborhood:
         self, mastery_gate_service, mock_concept_repo
     ):
         from unittest.mock import AsyncMock
-        mastery_gate_service.config.max_neighborhood_nodes = 1  # only center fits
+        mastery_gate_service.config = MasteryGateConfig(max_neighborhood_nodes=1)  # only center fits
         center_id, prereq_id = uuid4(), uuid4()
 
         def concept(cid):

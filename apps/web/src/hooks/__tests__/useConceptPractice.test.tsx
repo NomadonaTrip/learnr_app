@@ -22,7 +22,7 @@ function wrap() {
 }
 
 describe('useConceptPractice', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks() })
 
   it('navigates immediately when unlocked', () => {
     const { result } = renderHook(

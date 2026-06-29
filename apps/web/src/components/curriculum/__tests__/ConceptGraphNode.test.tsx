@@ -28,7 +28,7 @@ const conceptNode = {
 }
 
 describe('ConceptGraphNode', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks() })
 
   it('renders a concept node with name and re-centers on click', () => {
     const onRecenter = vi.fn()
