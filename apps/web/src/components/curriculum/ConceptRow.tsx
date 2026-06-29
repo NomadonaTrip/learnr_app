@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import type { ConceptUnlockStatus } from '../../services/prerequisiteService'
-import { useConceptLockStatus, useAttemptLockedConcept } from '../../hooks/useConceptLockStatus'
-import { buildFocusQuizUrl } from '../../utils/curriculum'
+import { useConceptLockStatus } from '../../hooks/useConceptLockStatus'
+import { useConceptPractice } from '../../hooks/useConceptPractice'
 import { ConceptLockBadge } from './ConceptLockBadge'
 import { ConceptLockTooltip } from './ConceptLockTooltip'
 import { LockedConceptConfirmDialog } from './LockedConceptConfirmDialog'
@@ -16,10 +15,12 @@ interface ConceptRowProps {
  * Practice action with a soft-gate confirm for locked concepts.
  */
 export function ConceptRow({ concept }: ConceptRowProps) {
-  const navigate = useNavigate()
   const [showDetail, setShowDetail] = useState(false)
-  const [showDialog, setShowDialog] = useState(false)
-  const attemptLocked = useAttemptLockedConcept()
+  const practice = useConceptPractice({
+    conceptId: concept.concept_id,
+    conceptName: concept.concept_name,
+    isUnlocked: concept.is_unlocked,
+  })
 
   // Lazy: only fetch blocking-prerequisite detail once the row is hovered/focused,
   // and only for locked concepts (no useful data to fetch for unlocked ones).
@@ -29,27 +30,6 @@ export function ConceptRow({ concept }: ConceptRowProps) {
     name: b.name,
   }))
   const closestName = status.data?.closest_to_unlock?.name ?? null
-
-  const launch = () =>
-    navigate(buildFocusQuizUrl(concept.concept_id, concept.concept_name))
-
-  const handlePractice = () => {
-    if (concept.is_unlocked) {
-      launch()
-    } else {
-      setShowDialog(true)
-    }
-  }
-
-  const handleConfirm = async () => {
-    try {
-      await attemptLocked.mutateAsync(concept.concept_id)
-      setShowDialog(false)
-      launch()
-    } catch {
-      // Keep the dialog open on failure; mutation error state is surfaced below.
-    }
-  }
 
   const tooltipId = `concept-lock-tooltip-${concept.concept_id}`
   const showTooltip = showDetail && !concept.is_unlocked
@@ -84,7 +64,7 @@ export function ConceptRow({ concept }: ConceptRowProps) {
         </div>
         <button
           type="button"
-          onClick={handlePractice}
+          onClick={practice.handlePractice}
           aria-describedby={showTooltip ? tooltipId : undefined}
           className="shrink-0 px-3 py-1.5 text-sm font-medium text-primary-700 rounded-[14px] border border-primary-200 hover:bg-primary-50"
         >
@@ -102,14 +82,14 @@ export function ConceptRow({ concept }: ConceptRowProps) {
         />
       )}
 
-      {showDialog && (
+      {practice.showDialog && (
         <LockedConceptConfirmDialog
           conceptName={concept.concept_name}
           blockingPrerequisites={blockers}
-          isSubmitting={attemptLocked.isPending}
-          isError={attemptLocked.isError}
-          onConfirm={handleConfirm}
-          onCancel={() => setShowDialog(false)}
+          isSubmitting={practice.isSubmitting}
+          isError={practice.isError}
+          onConfirm={practice.confirm}
+          onCancel={practice.cancel}
         />
       )}
     </div>
