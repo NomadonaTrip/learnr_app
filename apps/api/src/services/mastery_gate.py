@@ -25,6 +25,9 @@ from src.schemas.mastery_gate import (
     ConceptUnlockStatus,
     GateCheckResult,
     MasteryGateConfig,
+    NeighborhoodEdge,
+    NeighborhoodNode,
+    NeighborhoodResponse,
     RecentUnlocksResponse,
     SessionUnlockItem,
 )
@@ -479,6 +482,98 @@ class MasteryGateService:
             SessionUnlockItem(concept_id=concept_id, concept_name=name)
             for concept_id, name in result.all()
         ]
+
+    async def get_neighborhood(
+        self,
+        user_id: UUID,
+        concept_id: UUID,
+        depth: int = 2,
+    ) -> NeighborhoodResponse:
+        """
+        Build a focused prerequisite neighborhood around a concept.
+
+        BFS upstream (prerequisites) and downstream (dependents) up to ``depth``
+        hops each, dedups nodes (smallest absolute depth wins; center wins),
+        and joins per-node lock status. Applies an absolute safety ceiling.
+        """
+        center = await self.concept_repository.get_by_id(concept_id)
+        if center is None:
+            raise ValueError(f"Concept {concept_id} not found")
+
+        # node_id -> (concept, signed_depth, direction)
+        discovered: dict[UUID, tuple[object, int, str]] = {
+            concept_id: (center, 0, "center")
+        }
+        edges: dict[tuple[UUID, UUID], NeighborhoodEdge] = {}
+
+        # Upstream: prerequisites (edge prereq -> current)
+        frontier = [concept_id]
+        for d in range(1, depth + 1):
+            nxt: list[UUID] = []
+            for cid in frontier:
+                for prereq, strength, rel in (
+                    await self.concept_repository.get_prerequisites_with_strength(cid)
+                ):
+                    edges[(prereq.id, cid)] = NeighborhoodEdge(
+                        source=prereq.id, target=cid,
+                        relationship_type=rel, strength=strength)
+                    if prereq.id not in discovered:
+                        discovered[prereq.id] = (prereq, -d, "prereq")
+                        nxt.append(prereq.id)
+            frontier = nxt
+
+        # Downstream: dependents (edge current -> dependent)
+        frontier = [concept_id]
+        for d in range(1, depth + 1):
+            nxt = []
+            for cid in frontier:
+                for dep, strength, rel in (
+                    await self.concept_repository.get_dependents_with_strength(cid)
+                ):
+                    edges[(cid, dep.id)] = NeighborhoodEdge(
+                        source=cid, target=dep.id,
+                        relationship_type=rel, strength=strength)
+                    if dep.id not in discovered:
+                        discovered[dep.id] = (dep, d, "unlock")
+                        nxt.append(dep.id)
+            frontier = nxt
+
+        # Safety ceiling: keep center + nearest by absolute depth.
+        truncated = False
+        kept_ids = set(discovered)
+        if len(discovered) > self.config.max_neighborhood_nodes:
+            truncated = True
+            ordered = sorted(discovered.items(), key=lambda kv: abs(kv[1][1]))
+            kept_ids = {cid for cid, _ in ordered[: self.config.max_neighborhood_nodes]}
+            logger.warning(
+                "neighborhood_truncated",
+                concept_id=str(concept_id),
+                discovered=len(discovered),
+                ceiling=self.config.max_neighborhood_nodes,
+            )
+
+        # Join lock status per kept node.
+        nodes: list[NeighborhoodNode] = []
+        for cid in kept_ids:
+            concept, signed_depth, direction = discovered[cid]
+            gate = await self.check_prerequisites_mastered(user_id, cid)
+            nodes.append(NeighborhoodNode(
+                concept_id=cid,
+                name=concept.name,
+                knowledge_area_id=concept.knowledge_area_id,
+                difficulty=concept.difficulty_estimate,
+                is_unlocked=gate.is_unlocked,
+                mastery_progress=gate.mastery_progress,
+                depth=signed_depth,
+                direction=direction,
+            ))
+
+        kept_edges = [
+            e for (s, t), e in edges.items() if s in kept_ids and t in kept_ids
+        ]
+        return NeighborhoodResponse(
+            center_id=concept_id, depth=depth,
+            nodes=nodes, edges=kept_edges, truncated=truncated)
 
     async def check_and_record_unlocks(
         self,

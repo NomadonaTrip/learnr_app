@@ -4,6 +4,7 @@ Story 4.11: Prerequisite-Based Curriculum Navigation
 """
 from datetime import datetime
 from enum import Enum
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -37,6 +38,12 @@ class MasteryGateConfig(BaseModel):
         default=3,
         ge=0,
         description="Minimum responses before gate applies"
+    )
+    max_neighborhood_nodes: int = Field(
+        default=500,
+        ge=1,
+        description="Absolute safety ceiling on nodes returned by the "
+        "neighborhood endpoint (defensive backstop, not a UX limit)",
     )
 
 
@@ -166,3 +173,32 @@ class OverrideAttemptResponse(BaseModel):
     blocking_prerequisites: list[BlockingPrerequisite] = Field(default_factory=list)
     mastery_progress: float = Field(ge=0.0, le=1.0)
     message: str = Field(description="User-friendly message about the attempt")
+
+
+class NeighborhoodNode(BaseModel):
+    """One concept in a focused prerequisite neighborhood (Story 4.11, Slice D)."""
+    concept_id: UUID
+    name: str
+    knowledge_area_id: str
+    difficulty: float
+    is_unlocked: bool
+    mastery_progress: float = Field(ge=0.0, le=1.0)
+    depth: int  # signed: negative=prereq (up), 0=center, positive=unlock (down)
+    direction: Literal["prereq", "center", "unlock"]
+
+
+class NeighborhoodEdge(BaseModel):
+    """A prerequisite edge: ``source`` (prereq) -> ``target`` (dependent)."""
+    source: UUID
+    target: UUID
+    relationship_type: str
+    strength: float
+
+
+class NeighborhoodResponse(BaseModel):
+    """Focused neighborhood around a concept (prereqs up + dependents down)."""
+    center_id: UUID
+    depth: int
+    nodes: list[NeighborhoodNode]
+    edges: list[NeighborhoodEdge]
+    truncated: bool

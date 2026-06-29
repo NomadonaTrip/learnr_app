@@ -495,6 +495,93 @@ class TestCustomConfig:
         assert strict_service._meets_mastery_gate(belief) is False
 
 
+class TestGetNeighborhood:
+    @pytest.mark.asyncio
+    async def test_builds_bidirectional_neighborhood_with_lock_status(
+        self, mastery_gate_service, mock_concept_repo
+    ):
+        from unittest.mock import AsyncMock
+        center_id, prereq_id, dep_id = uuid4(), uuid4(), uuid4()
+
+        def concept(cid, name):
+            c = MagicMock()
+            c.id, c.name, c.knowledge_area_id, c.difficulty_estimate = cid, name, "ka-1", 0.5
+            return c
+
+        mock_concept_repo.get_by_id = AsyncMock(return_value=concept(center_id, "Center"))
+        mock_concept_repo.get_prerequisites_with_strength = AsyncMock(
+            side_effect=lambda cid: [(concept(prereq_id, "Prereq"), 0.8, "required")]
+            if cid == center_id else []
+        )
+        mock_concept_repo.get_dependents_with_strength = AsyncMock(
+            side_effect=lambda cid: [(concept(dep_id, "Dependent"), 0.7, "required")]
+            if cid == center_id else []
+        )
+
+        # Reuse the real gate check but stub its result per concept.
+        async def fake_gate(user_id, concept_id):
+            return GateCheckResult(
+                concept_id=concept_id, concept_name="x",
+                is_unlocked=(concept_id != prereq_id),
+                blocking_prerequisites=[], closest_to_unlock=None,
+                mastery_progress=0.4 if concept_id == prereq_id else 1.0,
+                estimated_questions_to_unlock=0)
+        mastery_gate_service.check_prerequisites_mastered = fake_gate
+
+        result = await mastery_gate_service.get_neighborhood(uuid4(), center_id, depth=2)
+
+        ids = {n.concept_id: n for n in result.nodes}
+        assert set(ids) == {center_id, prereq_id, dep_id}
+        assert ids[center_id].direction == "center" and ids[center_id].depth == 0
+        assert ids[prereq_id].direction == "prereq" and ids[prereq_id].depth == -1
+        assert ids[dep_id].direction == "unlock" and ids[dep_id].depth == 1
+        assert ids[prereq_id].is_unlocked is False
+        # Edges are canonical: prereq -> center, center -> dependent
+        edge_pairs = {(e.source, e.target) for e in result.edges}
+        assert (prereq_id, center_id) in edge_pairs
+        assert (center_id, dep_id) in edge_pairs
+        assert result.truncated is False
+
+    @pytest.mark.asyncio
+    async def test_truncates_when_over_ceiling(
+        self, mastery_gate_service, mock_concept_repo
+    ):
+        from unittest.mock import AsyncMock
+        mastery_gate_service.config.max_neighborhood_nodes = 1  # only center fits
+        center_id, prereq_id = uuid4(), uuid4()
+
+        def concept(cid):
+            c = MagicMock()
+            c.id, c.name, c.knowledge_area_id, c.difficulty_estimate = cid, "n", "ka-1", 0.5
+            return c
+
+        mock_concept_repo.get_by_id = AsyncMock(return_value=concept(center_id))
+        mock_concept_repo.get_prerequisites_with_strength = AsyncMock(
+            side_effect=lambda cid: [(concept(prereq_id), 0.8, "required")]
+            if cid == center_id else [])
+        mock_concept_repo.get_dependents_with_strength = AsyncMock(return_value=[])
+
+        async def fake_gate(user_id, concept_id):
+            return GateCheckResult(
+                concept_id=concept_id, concept_name="x", is_unlocked=True,
+                blocking_prerequisites=[], closest_to_unlock=None,
+                mastery_progress=1.0, estimated_questions_to_unlock=0)
+        mastery_gate_service.check_prerequisites_mastered = fake_gate
+
+        result = await mastery_gate_service.get_neighborhood(uuid4(), center_id, depth=2)
+        assert result.truncated is True
+        assert [n.concept_id for n in result.nodes] == [center_id]
+
+    @pytest.mark.asyncio
+    async def test_raises_when_concept_missing(
+        self, mastery_gate_service, mock_concept_repo
+    ):
+        from unittest.mock import AsyncMock
+        mock_concept_repo.get_by_id = AsyncMock(return_value=None)
+        with pytest.raises(ValueError):
+            await mastery_gate_service.get_neighborhood(uuid4(), uuid4(), depth=2)
+
+
 class TestGetSessionUnlocks:
     """get_session_unlocks returns events since an anchor as SessionUnlockItems."""
 
