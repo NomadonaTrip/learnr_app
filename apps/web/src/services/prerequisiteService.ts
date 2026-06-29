@@ -110,6 +110,35 @@ export interface OverrideAttemptResponse {
   message: string
 }
 
+/** One concept in a focused prerequisite neighborhood. Story 4.11 Slice D. */
+export interface NeighborhoodNode {
+  concept_id: string
+  name: string
+  knowledge_area_id: string
+  difficulty: number
+  is_unlocked: boolean
+  mastery_progress: number
+  depth: number // negative=prereq, 0=center, positive=unlock
+  direction: 'prereq' | 'center' | 'unlock'
+}
+
+/** A prerequisite edge: source (prereq) -> target (dependent). */
+export interface NeighborhoodEdge {
+  source: string
+  target: string
+  relationship_type: string
+  strength: number
+}
+
+/** Focused neighborhood around a concept. Mirrors backend `NeighborhoodResponse`. */
+export interface NeighborhoodResponse {
+  center_id: string
+  depth: number
+  nodes: NeighborhoodNode[]
+  edges: NeighborhoodEdge[]
+  truncated: boolean
+}
+
 /**
  * Service for prerequisite / mastery-gate API calls.
  * Backend routes are mounted under `/concepts` (see routes/prerequisites.py).
@@ -166,6 +195,22 @@ export const prerequisiteService = {
   async attemptLockedConcept(conceptId: string): Promise<OverrideAttemptResponse> {
     const response = await api.post<OverrideAttemptResponse>(
       `/concepts/${conceptId}/attempt-locked`
+    )
+    return response.data
+  },
+
+  /**
+   * Get a concept's prerequisite neighborhood (prereqs up + dependents down).
+   * @param conceptId - Concept UUID
+   * @param depth - Hops in each direction (1-3, default 2)
+   */
+  async getNeighborhood(
+    conceptId: string,
+    depth = 2
+  ): Promise<NeighborhoodResponse> {
+    const response = await api.get<NeighborhoodResponse>(
+      `/concepts/${conceptId}/neighborhood`,
+      { params: { depth } }
     )
     return response.data
   },
