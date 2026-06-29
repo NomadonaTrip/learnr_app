@@ -10,6 +10,7 @@ import { QuizPage } from './pages/QuizPage'
 import { CurriculumPage } from './pages/CurriculumPage'
 import { ReadingLibraryPage } from './pages/ReadingLibraryPage'
 import { ReadingDetailPage } from './pages/ReadingDetailPage'
+import ConceptGraphPage from './pages/ConceptGraphPage'
 import { useAuthStore } from './stores/authStore'
 
 /** Route guard that redirects to login if not authenticated */
@@ -106,6 +107,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <CurriculumPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/curriculum/graph/:conceptId',
+    element: (
+      <ProtectedRoute>
+        <ConceptGraphPage />
       </ProtectedRoute>
     ),
   },

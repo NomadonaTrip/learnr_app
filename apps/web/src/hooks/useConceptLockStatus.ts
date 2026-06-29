@@ -5,6 +5,7 @@ import {
   BulkUnlockStatusResponse,
   OverrideAttemptResponse,
   RecentUnlocksResponse,
+  NeighborhoodResponse,
 } from '../services/prerequisiteService'
 
 /**
@@ -19,6 +20,8 @@ export const conceptLockKeys = {
     [...conceptLockKeys.all, 'bulk', courseId, kaId ?? null] as const,
   recentUnlocks: (limit: number) =>
     [...conceptLockKeys.all, 'recent-unlocks', limit] as const,
+  neighborhood: (conceptId: string, depth: number) =>
+    [...conceptLockKeys.all, 'neighborhood', conceptId, depth] as const,
 }
 
 /**
@@ -88,6 +91,25 @@ export function useRecentUnlocks(limit = 5) {
   return useQuery<RecentUnlocksResponse>({
     queryKey: conceptLockKeys.recentUnlocks(limit),
     queryFn: () => prerequisiteService.getRecentUnlocks(limit),
+    staleTime: 30_000,
+  })
+}
+
+/**
+ * Fetch a concept's prerequisite neighborhood for the interactive graph
+ * (Story 4.11, Slice D).
+ *
+ * @param conceptId - Concept UUID, or null/undefined to disable
+ * @param depth - Hops each direction (default 2)
+ */
+export function useConceptNeighborhood(
+  conceptId: string | null | undefined,
+  depth = 2
+) {
+  return useQuery<NeighborhoodResponse>({
+    queryKey: conceptLockKeys.neighborhood(conceptId ?? '', depth),
+    queryFn: () => prerequisiteService.getNeighborhood(conceptId as string, depth),
+    enabled: Boolean(conceptId),
     staleTime: 30_000,
   })
 }
