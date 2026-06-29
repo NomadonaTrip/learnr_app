@@ -27,6 +27,15 @@ vi.mock('../../components/curriculum/PrerequisiteGraph', () => ({
 const course = { id: 'course-1', slug: 'cbap', name: 'CBAP', knowledge_areas: [{ id: 'ka-1', name: 'Planning', abbreviation: 'P', color_hex: '#3b82f6' }] }
 const neighborhood = {
   center_id: 'c', depth: 2, truncated: false,
+  nodes: [
+    { concept_id: 'c', name: 'Center Concept', knowledge_area_id: 'ka-1', difficulty: 0.5, is_unlocked: true, mastery_progress: 1, depth: 0, direction: 'center' },
+    { concept_id: 'p1', name: 'Prereq One', knowledge_area_id: 'ka-1', difficulty: 0.4, is_unlocked: false, mastery_progress: 0.3, depth: -1, direction: 'prereq' },
+  ],
+  edges: [{ source: 'p1', target: 'c', relationship_type: 'required', strength: 0.8 }],
+}
+
+const loneCenter = {
+  center_id: 'c', depth: 2, truncated: false,
   nodes: [{ concept_id: 'c', name: 'Center Concept', knowledge_area_id: 'ka-1', difficulty: 0.5, is_unlocked: true, mastery_progress: 1, depth: 0, direction: 'center' }],
   edges: [],
 }
@@ -66,5 +75,12 @@ describe('ConceptGraphPage', () => {
     vi.mocked(prerequisiteService.getNeighborhood).mockRejectedValue(new Error('boom'))
     renderAt('c')
     await waitFor(() => expect(screen.getByText(/couldn't load/i)).toBeInTheDocument())
+  })
+
+  it('shows the empty state for a lone-center concept (no prereqs, no dependents)', async () => {
+    vi.mocked(courseService.fetchCourseBySlug).mockResolvedValue(course as never)
+    vi.mocked(prerequisiteService.getNeighborhood).mockResolvedValue(loneCenter as never)
+    renderAt('c')
+    await waitFor(() => expect(screen.getByText('No prerequisites')).toBeInTheDocument())
   })
 })

@@ -47,11 +47,10 @@ export default function ConceptGraphPage() {
   }, [courseQuery.data])
 
   const center = neighborhoodQuery.data?.nodes.find((n) => n.direction === 'center')
-  // "Empty" only when the API returned a neighborhood with no nodes at all.
-  // A center-only neighborhood (1 node, 0 edges) still renders the graph
-  // so PrerequisiteGraph can display context and expose its controls.
+  // "Empty" when the neighborhood has only the lone center node (no prereqs, no dependents).
+  // The backend always returns at least the center, so nodes.length === 1 means truly isolated.
   const isEmpty =
-    neighborhoodQuery.data && neighborhoodQuery.data.nodes.length === 0
+    !!neighborhoodQuery.data && neighborhoodQuery.data.nodes.length <= 1
 
   // useCallback so PrerequisiteGraph's internal useMemo doesn't thrash on every render.
   const onRecenter = useCallback(
