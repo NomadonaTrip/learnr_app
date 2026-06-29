@@ -117,6 +117,18 @@ class ConceptUnlockEventResponse(BaseModel):
     unlocked_at: datetime
 
 
+class SessionUnlockItem(BaseModel):
+    """Lightweight concept-unlock item returned inline in session summaries.
+
+    Carries only what a post-session toast / click-through needs.
+    Story 4.11 AC 7 (Slice C).
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    concept_id: UUID
+    concept_name: str
+
+
 class RecentUnlocksResponse(BaseModel):
     """Response for recently unlocked concepts."""
     model_config = ConfigDict(from_attributes=True)

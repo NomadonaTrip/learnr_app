@@ -77,6 +77,15 @@ export interface ConceptUnlockEvent {
 }
 
 /**
+ * Lightweight concept-unlock item returned inline on session summaries.
+ * Mirrors backend schema `SessionUnlockItem`. Story 4.11 AC 7 (Slice C).
+ */
+export interface SessionUnlockItem {
+  concept_id: string
+  concept_name: string
+}
+
+/**
  * Response listing recently unlocked concepts.
  * Mirrors backend schema `RecentUnlocksResponse`.
  * Story 4.11: Prerequisite-Based Curriculum Navigation

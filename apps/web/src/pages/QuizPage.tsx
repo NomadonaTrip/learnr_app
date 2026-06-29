@@ -9,6 +9,9 @@ import { FocusContextBanner } from '../components/quiz/FocusContextBanner'
 import { CheckIcon, XIcon } from '../components/shared/icons'
 import { Navigation } from '../components/layout/Navigation'
 import { ReviewPrompt, ReviewQuestion, ReviewFeedback, ReviewSummary } from '../components/review'
+import { showUnlockToast } from '../utils/unlockToast'
+import type { SessionUnlockItem } from '../services/prerequisiteService'
+import { useQuizStore } from '../stores/quizStore'
 // Note: FeedbackOverlay retained in codebase for session summary overlay (future use)
 
 /**
@@ -637,6 +640,24 @@ function PausedState({
 }
 
 /**
+ * Fire the aggregate unlock toast once per session id (Story 4.11 AC 7).
+ * Exported for unit testing. Guards against re-fire on EndedState remount.
+ */
+export function useUnlockToastOnSession(
+  sessionKey: string | null,
+  unlocks: SessionUnlockItem[],
+) {
+  const navigate = useNavigate()
+  const toastedKey = useRef<string | null>(null)
+  useEffect(() => {
+    if (!sessionKey || unlocks.length === 0) return
+    if (toastedKey.current === sessionKey) return
+    toastedKey.current = sessionKey
+    showUnlockToast(unlocks, navigate)
+  }, [sessionKey, unlocks, navigate])
+}
+
+/**
  * Ended session state component with review integration.
  * Story 4.9: Post-Session Review Mode
  */
@@ -657,6 +678,7 @@ function EndedState({
 }) {
   const navigate = useNavigate()
   const incorrectCount = totalQuestions - correctCount
+  const sessionSummary = useQuizStore((s) => s.sessionSummary)
 
   // Story 4.9: Review hook integration
   const {
@@ -679,6 +701,18 @@ function EndedState({
     submitAnswer: reviewSubmitAnswer,
     proceedToNextQuestion: reviewProceedToNext,
   } = useReview({ originalSessionId: sessionId || undefined })
+
+  // Story 4.11 AC 7: toast concepts unlocked this quiz session.
+  useUnlockToastOnSession(
+    sessionSummary ? sessionId : null,
+    sessionSummary?.new_unlocks ?? [],
+  )
+
+  // ...and concepts unlocked during the post-session review.
+  useUnlockToastOnSession(
+    reviewSummary ? `${sessionId}:review` : null,
+    reviewSummary?.new_unlocks ?? [],
+  )
 
   // Check for review availability when component mounts (if there are incorrect answers)
   // Guard with isCheckingAvailability to prevent duplicate requests

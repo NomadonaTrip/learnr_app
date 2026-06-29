@@ -6,6 +6,7 @@ This service checks if prerequisites are mastered before allowing
 access to advanced concepts.
 """
 import time
+from datetime import datetime
 from uuid import UUID
 
 import structlog
@@ -25,6 +26,7 @@ from src.schemas.mastery_gate import (
     GateCheckResult,
     MasteryGateConfig,
     RecentUnlocksResponse,
+    SessionUnlockItem,
 )
 
 logger = structlog.get_logger(__name__)
@@ -445,6 +447,38 @@ class MasteryGateService:
             unlocks=unlocks,
             total_unlocked=total,
         )
+
+    async def get_session_unlocks(
+        self,
+        user_id: UUID,
+        since: datetime,
+    ) -> list[SessionUnlockItem]:
+        """
+        Return concepts unlocked for a user at or after ``since``.
+
+        Used to surface this-session unlocks inline on session summaries
+        (Story 4.11 AC 7). Ordered oldest-first so the toast reads in
+        unlock order.
+
+        Args:
+            user_id: User UUID
+            since: tz-aware lower bound (typically the session's start time)
+
+        Returns:
+            List of SessionUnlockItem (concept_id + concept_name)
+        """
+        query = (
+            select(ConceptUnlockEvent.concept_id, Concept.name)
+            .join(Concept, ConceptUnlockEvent.concept_id == Concept.id)
+            .where(ConceptUnlockEvent.user_id == user_id)
+            .where(ConceptUnlockEvent.unlocked_at >= since)
+            .order_by(ConceptUnlockEvent.unlocked_at.asc())
+        )
+        result = await self.session.execute(query)
+        return [
+            SessionUnlockItem(concept_id=concept_id, concept_name=name)
+            for concept_id, name in result.all()
+        ]
 
     async def check_and_record_unlocks(
         self,

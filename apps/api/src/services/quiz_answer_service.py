@@ -25,6 +25,7 @@ from src.schemas.quiz import (
     SessionSummaryResponse,
 )
 from src.services.belief_updater import BeliefUpdater
+from src.services.mastery_gate import MasteryGateService
 
 logger = structlog.get_logger(__name__)
 
@@ -48,6 +49,7 @@ class QuizAnswerService:
         session_repo: QuizSessionRepository,
         user_repo: UserRepository,
         belief_updater: BeliefUpdater,
+        mastery_gate_service: MasteryGateService,
     ):
         """
         Initialize quiz answer service.
@@ -58,12 +60,14 @@ class QuizAnswerService:
             session_repo: Repository for session operations
             user_repo: Repository for user operations (Story 4.7)
             belief_updater: Service for updating Bayesian belief states
+            mastery_gate_service: Service for checking/recording concept unlocks (Story 4.11)
         """
         self.response_repo = response_repo
         self.question_repo = question_repo
         self.session_repo = session_repo
         self.user_repo = user_repo
         self.belief_updater = belief_updater
+        self.mastery_gate_service = mastery_gate_service
 
     async def submit_answer(
         self,
@@ -234,6 +238,22 @@ class QuizAnswerService:
                 error=str(e),
             )
 
+        # 7b. Story 4.11 AC 7: record any concepts unlocked by this update.
+        # Never fail the answer submission if unlock recording fails.
+        for concept_id_str in {u["concept_id"] for u in belief_updates}:
+            try:
+                await self.mastery_gate_service.check_and_record_unlocks(
+                    user_id=user_id,
+                    updated_concept_id=UUID(concept_id_str),
+                )
+            except Exception as e:
+                logger.error(
+                    "quiz_unlock_recording_failed",
+                    user_id=str(user_id),
+                    concept_id=concept_id_str,
+                    error=str(e),
+                )
+
         # 8. Create response record
         response = await self.response_repo.create(
             user_id=user_id,
@@ -288,6 +308,22 @@ class QuizAnswerService:
                 if session.total_questions > 0
                 else 0.0
             )
+
+            # Story 4.11 AC 7: surface concepts unlocked during this session.
+            new_unlocks = []
+            try:
+                new_unlocks = await self.mastery_gate_service.get_session_unlocks(
+                    user_id=user_id,
+                    since=started_at,
+                )
+            except Exception as e:
+                logger.error(
+                    "quiz_session_unlocks_fetch_failed",
+                    user_id=str(user_id),
+                    session_id=str(session_id),
+                    error=str(e),
+                )
+
             session_summary = SessionSummaryResponse(
                 questions_answered=session.total_questions,
                 question_target=session.question_target,
@@ -296,6 +332,7 @@ class QuizAnswerService:
                 concepts_strengthened=concepts_strengthened,
                 quizzes_completed_total=user.quizzes_completed,
                 session_duration_seconds=duration_seconds,
+                new_unlocks=new_unlocks,
             )
 
             # Log session completion (Story 4.7, AC 9)

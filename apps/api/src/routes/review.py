@@ -26,6 +26,7 @@ from src.schemas.review import (
     ReviewSummaryResponse,
 )
 from src.services.belief_updater import BeliefUpdater
+from src.services.mastery_gate import MasteryGateService
 from src.services.review_session_service import ReviewSessionService
 
 logger = structlog.get_logger(__name__)
@@ -44,11 +45,17 @@ def get_review_session_service(
         belief_repository=belief_repo,
         concept_repository=concept_repo,
     )
+    mastery_gate_service = MasteryGateService(
+        session=db,
+        belief_repository=belief_repo,
+        concept_repository=concept_repo,
+    )
     return ReviewSessionService(
         review_repo=review_repo,
         belief_repo=belief_repo,
         concept_repo=concept_repo,
         belief_updater=belief_updater,
+        mastery_gate_service=mastery_gate_service,
     )
 
 

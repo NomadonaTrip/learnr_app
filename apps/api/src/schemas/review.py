@@ -7,6 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
+from src.schemas.mastery_gate import SessionUnlockItem
+
 
 class ReviewAvailableResponse(BaseModel):
     """Response for checking if review is available for a session."""
@@ -137,6 +139,10 @@ class ReviewSummaryResponse(BaseModel):
     still_incorrect_concepts: list[StillIncorrectConcept] = Field(
         default_factory=list,
         description="Concepts that were still incorrect, with study links"
+    )
+    new_unlocks: list[SessionUnlockItem] = Field(
+        default_factory=list,
+        description="Concepts unlocked during this review session (Story 4.11 AC 7)"
     )
 
 

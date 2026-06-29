@@ -44,11 +44,21 @@ def mock_belief_updater():
 
 
 @pytest.fixture
+def mock_mastery_gate_service():
+    """Create mock MasteryGateService."""
+    svc = AsyncMock()
+    svc.check_and_record_unlocks.return_value = []
+    svc.get_session_unlocks.return_value = []
+    return svc
+
+
+@pytest.fixture
 def review_service(
     mock_review_repo,
     mock_belief_repo,
     mock_concept_repo,
     mock_belief_updater,
+    mock_mastery_gate_service,
 ):
     """Create ReviewSessionService with mock dependencies."""
     return ReviewSessionService(
@@ -56,6 +66,7 @@ def review_service(
         belief_repo=mock_belief_repo,
         concept_repo=mock_concept_repo,
         belief_updater=mock_belief_updater,
+        mastery_gate_service=mock_mastery_gate_service,
     )
 
 
@@ -381,6 +392,57 @@ class TestSubmitReviewAnswer:
         assert result.is_correct is True
         assert result.was_reinforced is True
         assert "improvement" in result.feedback_message.lower() or "correct" in result.feedback_message.lower()
+
+    @pytest.mark.asyncio
+    async def test_submit_review_answer_records_unlocks(
+        self,
+        review_service,
+        mock_review_repo,
+        mock_belief_repo,
+        mock_mastery_gate_service,
+    ):
+        """Verify unlock recording is called after belief updates (Story 4.11 AC 7)."""
+        user_id = uuid4()
+        review_session_id = uuid4()
+        question_id = uuid4()
+        original_response_id = uuid4()
+
+        review_session = create_mock_review_session(
+            session_id=review_session_id,
+            user_id=user_id,
+            total_to_review=2,
+            reviewed_count=0,
+            status="in_progress",
+        )
+        mock_review_repo.get_by_id.return_value = review_session
+        mock_review_repo.check_question_already_reviewed.return_value = False
+
+        question = create_mock_question(question_id=question_id, correct_answer="B")
+        # Give the question a concept so beliefs are fetched and updated
+        concept_id = uuid4()
+        qc = MagicMock()
+        qc.concept_id = concept_id
+        question.question_concepts = [qc]
+        mock_review_repo.get_question_with_options.return_value = question
+
+        original_response = MagicMock()
+        original_response.id = original_response_id
+        mock_review_repo.get_original_response_for_question.return_value = original_response
+
+        belief = create_mock_belief(concept_id=concept_id)
+        mock_belief_repo.get_beliefs_for_concepts.return_value = {concept_id: belief}
+        mock_belief_repo.flush_updates.return_value = None
+        mock_review_repo.create_review_response.return_value = MagicMock()
+        mock_review_repo.update_progress.return_value = review_session
+
+        await review_service.submit_review_answer(
+            review_session_id=review_session_id,
+            user_id=user_id,
+            question_id=question_id,
+            selected_answer="B",
+        )
+
+        assert mock_mastery_gate_service.check_and_record_unlocks.await_count >= 1
 
     @pytest.mark.asyncio
     async def test_incorrect_answer_not_reinforced(

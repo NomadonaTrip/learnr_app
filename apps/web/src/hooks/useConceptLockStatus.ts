@@ -4,6 +4,7 @@ import {
   GateCheckResult,
   BulkUnlockStatusResponse,
   OverrideAttemptResponse,
+  RecentUnlocksResponse,
 } from '../services/prerequisiteService'
 
 /**
@@ -16,6 +17,8 @@ export const conceptLockKeys = {
   status: (conceptId: string) => [...conceptLockKeys.all, 'status', conceptId] as const,
   bulk: (courseId: string, kaId?: string) =>
     [...conceptLockKeys.all, 'bulk', courseId, kaId ?? null] as const,
+  recentUnlocks: (limit: number) =>
+    [...conceptLockKeys.all, 'recent-unlocks', limit] as const,
 }
 
 /**
@@ -71,5 +74,20 @@ export function useAttemptLockedConcept() {
   return useMutation<OverrideAttemptResponse, unknown, string>({
     mutationFn: (conceptId: string) =>
       prerequisiteService.attemptLockedConcept(conceptId),
+  })
+}
+
+/**
+ * Fetch the current user's recently unlocked concepts (Story 4.11 AC 7).
+ *
+ * Powers the "recently unlocked" strip on the curriculum page.
+ *
+ * @param limit - Max results (default 5)
+ */
+export function useRecentUnlocks(limit = 5) {
+  return useQuery<RecentUnlocksResponse>({
+    queryKey: conceptLockKeys.recentUnlocks(limit),
+    queryFn: () => prerequisiteService.getRecentUnlocks(limit),
+    staleTime: 30_000,
   })
 }
