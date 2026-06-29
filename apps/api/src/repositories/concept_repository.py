@@ -342,6 +342,34 @@ class ConceptRepository:
         )
         return list(result.scalars().all())
 
+    async def get_dependents_with_strength(
+        self, concept_id: UUID
+    ) -> list[tuple[Concept, float, str]]:
+        """
+        Get direct dependents (reverse edge) with strength and relationship type.
+
+        Args:
+            concept_id: Prerequisite concept UUID
+
+        Returns:
+            List of tuples (dependent Concept, strength, relationship_type)
+            for the edge ``concept_id (prereq) -> dependent``.
+        """
+        result = await self.session.execute(
+            select(
+                Concept,
+                ConceptPrerequisite.strength,
+                ConceptPrerequisite.relationship_type,
+            )
+            .join(
+                ConceptPrerequisite,
+                ConceptPrerequisite.concept_id == Concept.id,
+            )
+            .where(ConceptPrerequisite.prerequisite_concept_id == concept_id)
+            .order_by(ConceptPrerequisite.strength.desc())
+        )
+        return list(result.all())
+
     async def add_prerequisite(
         self,
         concept_id: UUID,

@@ -51,6 +51,36 @@ async def test_concepts(db_session, test_course):
     return concepts
 
 
+@pytest.fixture
+async def concept_repo_with_chain(db_session):
+    from uuid import uuid4
+    from src.models.concept import Concept
+    from src.models.concept_prerequisite import ConceptPrerequisite
+    from src.models.course import Course
+    from src.repositories.concept_repository import ConceptRepository
+
+    course = Course(slug=f"chain-{uuid4().hex[:8]}", name="C", description="d",
+                    corpus_name="cbap", knowledge_areas=[{"id": "ka-1", "name": "KA"}],
+                    is_active=True)
+    db_session.add(course)
+    await db_session.flush()
+
+    prereq = Concept(course_id=course.id, name="Prereq", knowledge_area_id="ka-1",
+                     difficulty_estimate=0.5)
+    dependent = Concept(course_id=course.id, name="Dependent", knowledge_area_id="ka-1",
+                        difficulty_estimate=0.6)
+    db_session.add_all([prereq, dependent])
+    await db_session.flush()
+
+    db_session.add(ConceptPrerequisite(
+        concept_id=dependent.id, prerequisite_concept_id=prereq.id,
+        strength=0.8, relationship_type="required"))
+    await db_session.commit()
+
+    return {"repo": ConceptRepository(db_session),
+            "prereq_id": prereq.id, "dependent_id": dependent.id}
+
+
 @pytest.mark.asyncio
 async def test_add_prerequisite(db_session, test_concepts):
     """Test adding a single prerequisite relationship."""
@@ -360,3 +390,32 @@ async def test_prerequisite_chain_empty_for_root(db_session, test_concepts):
     chain = await repo.get_prerequisite_chain(test_concepts[0].id)
 
     assert chain == []
+
+
+@pytest.mark.asyncio
+async def test_get_dependents_with_strength_returns_strength_and_type(
+    db_session, concept_repo_with_chain
+):
+    # concept_repo_with_chain fixture exposes: repo, prereq_id, dependent_id
+    # with an edge dependent depends-on prereq (strength=0.8, type="required")
+    repo = concept_repo_with_chain["repo"]
+    prereq_id = concept_repo_with_chain["prereq_id"]
+    dependent_id = concept_repo_with_chain["dependent_id"]
+
+    result = await repo.get_dependents_with_strength(prereq_id)
+
+    assert len(result) == 1
+    concept, strength, rel_type = result[0]
+    assert concept.id == dependent_id
+    assert strength == 0.8
+    assert rel_type == "required"
+
+
+@pytest.mark.asyncio
+async def test_get_dependents_with_strength_empty_when_no_dependents(
+    db_session, concept_repo_with_chain
+):
+    repo = concept_repo_with_chain["repo"]
+    dependent_id = concept_repo_with_chain["dependent_id"]
+    # dependent_id is a leaf — nothing depends on it
+    assert await repo.get_dependents_with_strength(dependent_id) == []
