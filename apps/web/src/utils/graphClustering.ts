@@ -63,17 +63,36 @@ export function clusterNeighborhood(
   }
 
   const nodes: VisibleNode[] = []
-  const edges: VisibleEdge[] = []
+  const candidateEdges: VisibleEdge[] = []
+  // Tracks every id that is part of the visible set (concept ids + cluster ids).
+  // A group whose parent is not emitted is skipped entirely so collapsed parents
+  // never leave orphan grandchildren or dangling edges.
+  const emitted = new Set<string>()
 
-  // Always include the center node.
+  // Always include the center node; seed `emitted` with it.
   const center = neighborhood.nodes.find((n) => n.direction === 'center')
   if (center) {
     nodes.push({ id: center.concept_id, data: { kind: 'concept', node: center } })
+    emitted.add(center.concept_id)
   }
 
-  for (const [key, childrenRaw] of groups) {
-    const [parentId, direction] = key.split(':') as [string, 'prereq' | 'unlock']
-    const children = [...childrenRaw].sort(
+  // Process groups CENTER-OUTWARD so a parent is emitted (or proven hidden)
+  // before any of its own children's groups are considered.
+  const sortedKeys = [...groups.keys()].sort((k1, k2) => {
+    const p1 = byId.get(k1.slice(0, k1.lastIndexOf(':')))
+    const p2 = byId.get(k2.slice(0, k2.lastIndexOf(':')))
+    return Math.abs(p1?.depth ?? 0) - Math.abs(p2?.depth ?? 0)
+  })
+
+  for (const key of sortedKeys) {
+    const splitAt = key.lastIndexOf(':')
+    const parentId = key.slice(0, splitAt)
+    const direction = key.slice(splitAt + 1) as 'prereq' | 'unlock'
+
+    // If the parent was collapsed/hidden, its children must not appear at all.
+    if (!emitted.has(parentId)) continue
+
+    const children = [...(groups.get(key) ?? [])].sort(
       (x, y) =>
         y.strength - x.strength ||
         y.node.mastery_progress - x.node.mastery_progress
@@ -85,11 +104,16 @@ export function clusterNeighborhood(
     const hidden = overflow ? children.slice(CLUSTER_THRESHOLD) : []
 
     for (const child of shown) {
-      nodes.push({
-        id: child.node.concept_id,
-        data: { kind: 'concept', node: child.node },
-      })
-      edges.push({
+      // A diamond's shared node is reachable from multiple parents: emit the node
+      // once, but still record each legitimate parent edge.
+      if (!emitted.has(child.node.concept_id)) {
+        nodes.push({
+          id: child.node.concept_id,
+          data: { kind: 'concept', node: child.node },
+        })
+        emitted.add(child.node.concept_id)
+      }
+      candidateEdges.push({
         id: `${child.edge.source}->${child.edge.target}`,
         source: child.edge.source,
         target: child.edge.target,
@@ -107,14 +131,25 @@ export function clusterNeighborhood(
           hiddenIds: hidden.map((h) => h.node.concept_id),
         },
       })
+      emitted.add(clusterId)
       // Edge orientation matches the direction: prereqs point up to the parent,
       // unlocks point down from the parent.
-      edges.push(
+      candidateEdges.push(
         direction === 'prereq'
           ? { id: `${clusterId}->${parentId}`, source: clusterId, target: parentId }
           : { id: `${parentId}->${clusterId}`, source: parentId, target: clusterId }
       )
     }
+  }
+
+  // Keep only edges whose BOTH endpoints are part of the visible set, deduped by id.
+  const edges: VisibleEdge[] = []
+  const seenEdges = new Set<string>()
+  for (const edge of candidateEdges) {
+    if (!emitted.has(edge.source) || !emitted.has(edge.target)) continue
+    if (seenEdges.has(edge.id)) continue
+    seenEdges.add(edge.id)
+    edges.push(edge)
   }
 
   return { nodes, edges }

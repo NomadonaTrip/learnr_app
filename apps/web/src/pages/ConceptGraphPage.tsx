@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Navigation } from '../components/layout/Navigation'
 import { courseService } from '../services/courseService'
 import { useConceptNeighborhood } from '../hooks/useConceptLockStatus'
+import { useConceptPractice } from '../hooks/useConceptPractice'
 import PrerequisiteGraph from '../components/curriculum/PrerequisiteGraph'
+import { LockedConceptConfirmDialog } from '../components/curriculum/LockedConceptConfirmDialog'
+import type { NeighborhoodNode } from '../services/prerequisiteService'
 
 const ONBOARDING_STORAGE_KEY = 'learnr_onboarding'
 const DEFAULT_COURSE_SLUG = 'cbap'
@@ -122,11 +126,7 @@ export default function ConceptGraphPage() {
               {/* Accessible text equivalent of the canvas for keyboard/screen-reader users. */}
               <ol className="sr-only">
                 {neighborhoodQuery.data.nodes.map((n) => (
-                  <li key={n.concept_id}>
-                    <Link to={`/curriculum/graph/${n.concept_id}`}>
-                      {n.name} — {n.direction}, {n.is_unlocked ? 'unlocked' : 'locked'}
-                    </Link>
-                  </li>
+                  <AccessibleNeighborNode key={n.concept_id} node={n} />
                 ))}
               </ol>
             </>
@@ -134,5 +134,42 @@ export default function ConceptGraphPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+/**
+ * One row of the sr-only accessible list: a re-center link plus a real Practice
+ * button (keyboard reachable) mirroring the canvas node's actions (spec §9).
+ * The soft-gate dialog is portaled to document.body so the sr-only ancestor
+ * (which clips content) doesn't hide it when opened from here.
+ */
+function AccessibleNeighborNode({ node }: { node: NeighborhoodNode }) {
+  const practice = useConceptPractice({
+    conceptId: node.concept_id,
+    conceptName: node.name,
+    isUnlocked: node.is_unlocked,
+  })
+
+  return (
+    <li>
+      <Link to={`/curriculum/graph/${node.concept_id}`}>
+        {node.name} — {node.direction}, {node.is_unlocked ? 'unlocked' : 'locked'}
+      </Link>
+      <button type="button" onClick={() => practice.handlePractice()}>
+        Practice {node.name}
+      </button>
+      {practice.showDialog &&
+        createPortal(
+          <LockedConceptConfirmDialog
+            conceptName={node.name}
+            blockingPrerequisites={[]}
+            isSubmitting={practice.isSubmitting}
+            isError={practice.isError}
+            onConfirm={practice.confirm}
+            onCancel={practice.cancel}
+          />,
+          document.body
+        )}
+    </li>
   )
 }

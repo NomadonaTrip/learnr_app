@@ -83,4 +83,26 @@ describe('ConceptGraphPage', () => {
     renderAt('c')
     await waitFor(() => expect(screen.getByText('No prerequisites')).toBeInTheDocument())
   })
+
+  it('exposes a Practice button per node in the accessible list', async () => {
+    vi.mocked(courseService.fetchCourseBySlug).mockResolvedValue(course as never)
+    vi.mocked(prerequisiteService.getNeighborhood).mockResolvedValue(neighborhood as never)
+    renderAt('c')
+    // Neighbor Practice button is present (accessible equivalent of the canvas).
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /practice prereq one/i })).toBeInTheDocument()
+    )
+  })
+
+  it('navigates to the focused quiz when the unlocked node Practice button is clicked', async () => {
+    vi.mocked(courseService.fetchCourseBySlug).mockResolvedValue(course as never)
+    vi.mocked(prerequisiteService.getNeighborhood).mockResolvedValue(neighborhood as never)
+    renderAt('c')
+    const btn = await screen.findByRole('button', { name: /practice center concept/i })
+    fireEvent.click(btn)
+    // Center is unlocked, so Practice launches the focused quiz directly.
+    expect(navigate).toHaveBeenCalledWith(
+      '/quiz?focus=concept&targets=c&name=Center%20Concept'
+    )
+  })
 })

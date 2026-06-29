@@ -26,7 +26,7 @@ export default function ConceptGraphNode({ data }: { data: GraphNodeData }) {
   if (data.kind === 'cluster') {
     return (
       <>
-        <Handle type="target" position={Position.Top} />
+        <Handle type="target" position={Position.Bottom} />
         <button
           type="button"
           onClick={data.onExpand}
@@ -35,7 +35,7 @@ export default function ConceptGraphNode({ data }: { data: GraphNodeData }) {
         >
           +{data.hiddenCount} more {DIRECTION_LABEL[data.direction]} &#9658;
         </button>
-        <Handle type="source" position={Position.Bottom} />
+        <Handle type="source" position={Position.Top} />
       </>
     )
   }
@@ -69,7 +69,7 @@ function ConceptCard({
       }`}
       style={{ borderLeftColor: kaColor }}
     >
-      <Handle type="target" position={Position.Top} />
+      <Handle type="target" position={Position.Bottom} />
       <p className="truncate text-sm font-medium text-gray-900">{node.name}</p>
       <div className="mt-1 flex items-center gap-2">
         <ConceptLockBadge isUnlocked={node.is_unlocked} />
@@ -94,7 +94,7 @@ function ConceptCard({
           onCancel={practice.cancel}
         />
       )}
-      <Handle type="source" position={Position.Bottom} />
+      <Handle type="source" position={Position.Top} />
     </div>
   )
 }
