@@ -4,7 +4,11 @@ import { ConceptRow } from '../ConceptRow'
 import type { ConceptUnlockStatus } from '../../../services/prerequisiteService'
 
 const navigateMock = vi.fn()
-vi.mock('react-router-dom', () => ({ useNavigate: () => navigateMock }))
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => navigateMock,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Link: ({ to, children, ...rest }: any) => <a href={to} {...rest}>{children}</a>,
+}))
 
 const mutateAsyncMock = vi.fn()
 vi.mock('../../../hooks/useConceptLockStatus', () => ({
@@ -48,5 +52,11 @@ describe('ConceptRow', () => {
     expect(navigateMock).toHaveBeenCalledWith(
       '/quiz?focus=concept&targets=c-1&name=Stakeholder%20Analysis',
     )
+  })
+
+  it('renders a "View map" link pointing to the concept graph route', () => {
+    render(<ConceptRow concept={makeConcept(true)} />)
+    const link = screen.getByRole('link', { name: /view map/i })
+    expect(link).toHaveAttribute('href', '/curriculum/graph/c-1')
   })
 })

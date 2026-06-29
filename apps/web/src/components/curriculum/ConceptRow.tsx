@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { ConceptUnlockStatus } from '../../services/prerequisiteService'
 import { useConceptLockStatus } from '../../hooks/useConceptLockStatus'
 import { useConceptPractice } from '../../hooks/useConceptPractice'
@@ -62,14 +63,22 @@ export function ConceptRow({ concept }: ConceptRowProps) {
             />
           </div>
         </div>
-        <button
-          type="button"
-          onClick={practice.handlePractice}
-          aria-describedby={showTooltip ? tooltipId : undefined}
-          className="shrink-0 px-3 py-1.5 text-sm font-medium text-primary-700 rounded-[14px] border border-primary-200 hover:bg-primary-50"
-        >
-          Practice
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            to={`/curriculum/graph/${concept.concept_id}`}
+            className="px-3 py-1.5 text-sm font-medium text-gray-600 rounded-[14px] border border-gray-200 hover:bg-gray-50"
+          >
+            View map
+          </Link>
+          <button
+            type="button"
+            onClick={practice.handlePractice}
+            aria-describedby={showTooltip ? tooltipId : undefined}
+            className="px-3 py-1.5 text-sm font-medium text-primary-700 rounded-[14px] border border-primary-200 hover:bg-primary-50"
+          >
+            Practice
+          </button>
+        </div>
       </div>
 
       {showTooltip && (
